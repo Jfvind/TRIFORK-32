@@ -52,7 +52,7 @@ fn uart_print(s: &str) {
 // ── LED helper ──────────────────────────────────────────────────────────────
 
 /// Write a value to the LED register (lower 8 bits visible on Basys3).
-fn led_write(val: u8) {
+fn led_write(val: u16) {
     unsafe {
         LED_REG.write_volatile(val as u32);
     }
@@ -80,7 +80,7 @@ pub extern "C" fn _start() -> ! {
     uart_print("PASS\n");
 
     // Light up more LEDs to show completion
-    led_write(0xFF);
+    led_write(0x3FF);
 
     // Halt
     loop {}

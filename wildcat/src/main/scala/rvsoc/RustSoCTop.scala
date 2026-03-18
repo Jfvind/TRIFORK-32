@@ -42,7 +42,7 @@ import soc._
 class RustSoCTop(frequ: Int = 100000000, baudRate: Int = 115200, memBytes: Int = 4096) extends Module {
 
   val io = IO(new Bundle {
-    val led = Output(UInt(16.W))
+    val led = Output(UInt(24.W))
     val tx  = Output(UInt(1.W))
     val rx  = Input(UInt(1.W))
   })
@@ -164,21 +164,21 @@ class RustSoCTop(frequ: Int = 100000000, baudRate: Int = 115200, memBytes: Int =
   }
 
   // LED register at 0xF010_0000.
-  val ledReg = withReset(combinedReset) { RegInit(0.U(8.W)) }
+  val ledReg = withReset(combinedReset) { RegInit(0.U(16.W)) }
   when(cpuRunning && (cpu.io.dmem.address(31, 28) === 0xf.U) && cpu.io.dmem.wr) {
     when(cpu.io.dmem.address(23, 20) === 0.U && cpu.io.dmem.address(3, 0) === 4.U) {
       // UART Tx data write
       uartTx.io.channel.valid := true.B
     }.elsewhen(cpu.io.dmem.address(23, 20) === 1.U) {
       // LED register write
-      ledReg := cpu.io.dmem.wrData(7, 0)
+      ledReg := cpu.io.dmem.wrData(15, 0)
     }
     // Prevent IO-mapped writes from reaching the scratchpad memory.
     dmem.io.wr := false.B
   }
 
-  // LED output: MSB = cpuRunning indicator, lower 8 bits = ledReg
-  io.led := cpuRunning ## 0.U(7.W) ## RegNext(ledReg)
+  // LED output: MSB = cpuRunning indicator, lower 8 bits = ledReg, bit 15 downto 8 are GPIO LED
+  io.led := RegNext(ledReg(15, 8)) ## cpuRunning ## 0.U(7.W) ## RegNext(ledReg(7, 0))
 }
 
 /**
