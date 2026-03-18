@@ -37,7 +37,7 @@ set_property PACKAGE_PIN V19 [get_ports {io_led[3]}]
 set_property PACKAGE_PIN W18 [get_ports {io_led[4]}]					
 set_property PACKAGE_PIN U15 [get_ports {io_led[5]}]					
 set_property PACKAGE_PIN U14 [get_ports {io_led[6]}]					
-set_property PACKAGE_PIN V14 [get_ports {io_led[7]}]					
+#set_property PACKAGE_PIN V14 [get_ports {io_led[7]}]					
 #set_property PACKAGE_PIN V13 [get_ports {io_led[8]}]					
 #set_property PACKAGE_PIN V3  [get_ports {io_led[9]}]					
 #set_property PACKAGE_PIN W3  [get_ports {io_led[10]}]					
@@ -45,7 +45,7 @@ set_property PACKAGE_PIN V14 [get_ports {io_led[7]}]
 #set_property PACKAGE_PIN P3  [get_ports {io_led[12]}]					
 #set_property PACKAGE_PIN N3  [get_ports {io_led[13]}]					
 #set_property PACKAGE_PIN P1  [get_ports {io_led[14]}]					
-#set_property PACKAGE_PIN L1  [get_ports {io_led[15]}]					
+set_property PACKAGE_PIN L1  [get_ports {io_led[7]}]					
 	
 	
 ##Buttons
@@ -100,14 +100,14 @@ set_property PACKAGE_PIN A18 [get_ports io_tx]
 
 
 ##Pmod Header JA
-set_property PACKAGE_PIN J1 [get_ports {io_led[16]}]					
-set_property PACKAGE_PIN L2 [get_ports {io_led[17]}]					
-set_property PACKAGE_PIN J2 [get_ports {io_led[18]}]					
-set_property PACKAGE_PIN G2 [get_ports {io_led[19]}]					
-set_property PACKAGE_PIN H1 [get_ports {io_led[20]}]					
-set_property PACKAGE_PIN K2 [get_ports {io_led[21]}]					
-set_property PACKAGE_PIN H2 [get_ports {io_led[22]}]					
-set_property PACKAGE_PIN G3 [get_ports {io_led[23]}]					
+set_property PACKAGE_PIN J1 [get_ports {io_led[8]}]					
+set_property PACKAGE_PIN L2 [get_ports {io_led[9]}]					
+set_property PACKAGE_PIN J2 [get_ports {io_led[10]}]					
+set_property PACKAGE_PIN G2 [get_ports {io_led[11]}]					
+set_property PACKAGE_PIN H1 [get_ports {io_led[12]}]					
+set_property PACKAGE_PIN K2 [get_ports {io_led[13]}]					
+set_property PACKAGE_PIN H2 [get_ports {io_led[14]}]					
+set_property PACKAGE_PIN G3 [get_ports {io_led[15]}]					
 
 
 ##Pmod Header JB

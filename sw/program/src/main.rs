@@ -74,7 +74,7 @@ pub extern "C" fn _start() -> ! {
     }
 
     // Light up LED 0 to indicate we're alive
-    led_write(0x01);
+    led_write(0x401);
 
     // Send test output — the CI harness checks for "PASS"
     uart_print("PASS\n");

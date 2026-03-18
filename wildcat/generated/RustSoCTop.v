@@ -1483,7 +1483,7 @@ endmodule
 module RustSoCTop(
   input         clock,
   input         reset,
-  output [23:0] io_led, // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 44:14]
+  output [15:0] io_led, // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 44:14]
   output        io_tx, // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 44:14]
   input         io_rx // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 44:14]
 );
@@ -1568,8 +1568,8 @@ module RustSoCTop(
   reg [15:0] ledReg; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 167:50]
   wire  _T_30 = cpu_io_dmem_address[23:20] == 4'h0 & cpu_io_dmem_address[3:0] == 4'h4; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 169:46]
   reg [7:0] io_led_REG; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 181:20]
-  wire [15:0] _io_led_T_2 = {io_led_REG,cpuRunning,7'h0}; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 181:50]
-  reg [7:0] io_led_REG_1; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 181:72]
+  wire [8:0] _io_led_T_1 = {io_led_REG,cpuRunning}; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 181:36]
+  reg [6:0] io_led_REG_1; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 181:60]
   Rx resetRx ( // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 55:23]
     .clock(resetRx_clock),
     .reset(resetRx_reset),
@@ -1637,7 +1637,7 @@ module RustSoCTop(
     .io_channel_valid(uartRx_io_channel_valid),
     .io_channel_bits(uartRx_io_channel_bits)
   );
-  assign io_led = {_io_led_T_2,io_led_REG_1}; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 181:62]
+  assign io_led = {_io_led_T_1,io_led_REG_1}; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 181:50]
   assign io_tx = cpuRunning ? uartTx_io_txd : 1'h1; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 143:15]
   assign resetRx_clock = clock;
   assign resetRx_reset = reset;
@@ -1701,7 +1701,7 @@ module RustSoCTop(
       end
     end
     io_led_REG <= ledReg[15:8]; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 181:27]
-    io_led_REG_1 <= ledReg[7:0]; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 181:79]
+    io_led_REG_1 <= ledReg[6:0]; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 181:67]
   end
 // Register and memory initialization
 `ifdef RANDOMIZE_GARBAGE_ASSIGN
@@ -1752,7 +1752,7 @@ initial begin
   _RAND_5 = {1{`RANDOM}};
   io_led_REG = _RAND_5[7:0];
   _RAND_6 = {1{`RANDOM}};
-  io_led_REG_1 = _RAND_6[7:0];
+  io_led_REG_1 = _RAND_6[6:0];
 `endif // RANDOMIZE_REG_INIT
   `endif // RANDOMIZE
 end // initial
