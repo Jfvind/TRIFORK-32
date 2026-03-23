@@ -86,7 +86,7 @@ macro_rules! println {
 }
 
 // ── 7. HAL: LED helper ─────────────────────────────────────────────────────
-fn led_write(val: u8) { // LED = 1 on, LED = 0 off, bitmask for 8 LEDs
+fn led_write(val: u16) { // LED = 1 on, LED = 0 off, bitmask for 16 LEDs
     unsafe {
         LED_REG.write_volatile(val as u32);
     }
@@ -94,16 +94,16 @@ fn led_write(val: u8) { // LED = 1 on, LED = 0 off, bitmask for 8 LEDs
 
 // ── 8. APP ────────────────────────────────────────────────────────
 fn main() {
-    // Tænd den første LED for at vise, at CPU'en lever
-    led_write(0x01);
+    // Tænd den første LED for at vise, at CPU'en lever + BLÅ LED
+    led_write(0x401);
     
     // Use safe HAL for writing to UART
     println!("=== DTU MCU Booted ===");
     println!("SRAM Size: {} bytes", 4096);
     println!("Status: PASS");
 
-    // Tænd alle LEDs for at indikere at vi nåede bunden af main
-    led_write(0xFF);
+    // Tænd 7 mest højrestående LEDer på boardet + RØD og GRØN LED
+    led_write(0x3FF);
 }
 
 // ── 9. Panic Handler ────────────────────────────────────────────────────────
