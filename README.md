@@ -87,8 +87,20 @@ Required to assemble the simulation test programs (`make sim-test`). Not needed 
 - **Linux (Ubuntu 22.04 and earlier):** `sudo apt-get install -y gcc-riscv64-unknown-elf`
 
 ## :rocket: Getting started
-For now a simple program turns on one LED, sends "PASS" and turn on the eigth rightmost LEDs. 
+After boot, the program prints "PASS" over UART and enters button mode.
+Pressing any of the four directional buttons (btnU, btnL, btnR, btnD) 
+will light up the corresponding LED (0-3).
 **Note:** When CPU is running, the leftmost LED is lit.
+
+### Memory Map
+
+| Address        | Description                                      |
+|----------------|--------------------------------------------------|
+| `0x0000_0000`  | Scratchpad RAM (4 KB)                            |
+| `0xF000_0000`  | UART status (bit 0 = TX ready, bit 1 = RX ready)|
+| `0xF000_0004`  | UART data (read = RX, write = TX)                |
+| `0xF010_0000`  | LED register (bit 0-6 = LED 0-6, bit 7 = CPU running indicator (read-only), bit 8-15 = LED 8-15) |
+| `0xF020_0000`  | Button register (bit 0-3 = btnU, btnL, btnR, btnD, read-only) |
 
 ### 1. Clone repo
 ```bash

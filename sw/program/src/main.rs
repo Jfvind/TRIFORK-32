@@ -9,6 +9,7 @@ use core::panic::PanicInfo; // for our custom panic handler
 const UART_STATUS: *const u32 = 0xF000_0000 as *const u32;
 const UART_DATA: *mut u32 = 0xF000_0004 as *mut u32;
 const LED_REG: *mut u32 = 0xF010_0000 as *mut u32;
+const BTN_REG: *const u32 = 0xF020_0000 as *const u32;
 
 // ── 2. Linker symboler (Fra linker.ld) ──────────────────────────────────────
 extern "C" {
@@ -85,10 +86,16 @@ macro_rules! println {
     ($($arg:tt)*) => ($crate::print!("{}\n", format_args!($($arg)*)));
 }
 
-// ── 7. HAL: LED helper ─────────────────────────────────────────────────────
+// ── 7. HAL: LED helper + BTN helper ─────────────────────────────────────────────────────
 fn led_write(val: u16) { // LED = 1 on, LED = 0 off, bitmask for 16 LEDs
     unsafe {
         LED_REG.write_volatile(val as u32);
+    }
+}
+
+fn btn_read() -> u32 {
+    unsafe {
+        BTN_REG.read_volatile()
     }
 }
 
@@ -104,6 +111,14 @@ fn main() {
 
     // Tænd 7 mest højrestående LEDer på boardet + RØD og GRØN LED
     led_write(0x3FF);
+
+    // Button-blink demo: LEDs afspejler knaptryk
+    // Note: Physical LED 7 is hardwired to the cpuRunning signal and cannot be controlled from software
+    println!("Entering button mode...");
+    loop {
+        let buttons = btn_read();
+        led_write(buttons as u16);
+    }
 }
 
 // ── 9. Panic Handler ────────────────────────────────────────────────────────

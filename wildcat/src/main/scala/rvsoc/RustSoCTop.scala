@@ -34,6 +34,7 @@ import soc._
  *   0xF000_0000               : UART status  (bit 0 = TX ready, bit 1 = RX data available)
  *   0xF000_0004               : UART data    (read = RX byte, write = TX byte)
  *   0xF010_0000               : LED register  (lower 8 bits drive LEDs)
+ *   0xF020_0000               : Button register (bit 0-3 = btnU, btnL, btnR, btnD)
  *
  * @param frequ     system clock frequency in Hz (default 100 MHz for Basys3)
  * @param baudRate  UART baud rate (default 115200)
@@ -45,6 +46,7 @@ class RustSoCTop(frequ: Int = 100000000, baudRate: Int = 115200, memBytes: Int =
     val led = Output(UInt(16.W))
     val tx  = Output(UInt(1.W))
     val rx  = Input(UInt(1.W))
+    val btn = Input(UInt(4.W))
   })
 
   // ---- Reset monitor ----
@@ -139,7 +141,7 @@ class RustSoCTop(frequ: Int = 100000000, baudRate: Int = 115200, memBytes: Int =
   val uartTx = withReset(combinedReset) { Module(new BufferedTx(frequ, baudRate)) }
   val uartRx = withReset(combinedReset) { Module(new Rx(frequ, baudRate)) }
 
-  // Tx: Opposite of bootloaderTx. It rund when CPU is running.
+  // Tx: Opposite of bootloaderTx. It runs when CPU is running.
   io.tx := Mux(cpuRunning, uartTx.io.txd, 1.U)
   // Rx: Same as Tx
   uartRx.io.rxd := Mux(cpuRunning, io.rx, 1.U)
@@ -161,6 +163,11 @@ class RustSoCTop(frequ: Int = 100000000, baudRate: Int = 115200, memBytes: Int =
       cpu.io.dmem.rdData := uartRx.io.channel.bits
       uartRx.io.channel.ready := cpu.io.dmem.rd
     }
+  }
+
+  // Buttons read at 0xF020_0000
+  when(cpuRunning && (memAddressReg(31, 28) === 0xf.U) && memAddressReg(23, 20) === 2.U) {
+    cpu.io.dmem.rdData := io.btn
   }
 
   // LED register at 0xF010_0000.

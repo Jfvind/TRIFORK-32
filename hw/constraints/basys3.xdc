@@ -50,10 +50,10 @@ set_property PACKAGE_PIN L1  [get_ports {io_led[7]}]
 	
 ##Buttons
 set_property PACKAGE_PIN U18 [get_ports reset]						
-#set_property PACKAGE_PIN T18 [get_ports btnU]						
-#set_property PACKAGE_PIN W19 [get_ports btnL]						
-#set_property PACKAGE_PIN T17 [get_ports btnR]						
-#set_property PACKAGE_PIN U17 [get_ports btnD]						
+set_property PACKAGE_PIN T18 [get_ports io_btn[0]]						
+set_property PACKAGE_PIN W19 [get_ports io_btn[1]]						
+set_property PACKAGE_PIN T17 [get_ports io_btn[2]]						
+set_property PACKAGE_PIN U17 [get_ports io_btn[3]]						
 
 
 ##7 segment display
