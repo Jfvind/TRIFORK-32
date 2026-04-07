@@ -1,0 +1,296 @@
+# Manual: SoC for Basys-3 - MCU for embedded systems programming 02112 at DTU
+## Introduktion - hvad systemet er og kan
+Dette projekt udgør en SoC (System on a Chip) som ved hjælp af implementeringen af en softcore (Wildcat) 3-trins pipelinet RISC-V processor på et Digilent Basys 3 Artix-7 FPGA, muliggør programmering af selvsamme processor og tilhørende periferienheder i Rust. Specifikke GPIO-enheder som LED, knapper og UART interageres med via prædefineret Memory-Mapped I/O. For at forenkle systemet er der udviklet et tilhørende abstraktionslag til føromtalte Memory-Mapped I/O, som leverer færdigbagte hjælpefunktioner der forenkler programmeringen af selvsamme.
+
+Med dette system kan du styre LEDs, aflæse knapper, samt sende og modtage data over seriel kommunikation (UART) — alt sammen fra Rust-programmer du selv skriver og uploader til boardet.
+
+Denne manual guider dig igennem opsætning af systemet, forklarer den underliggende arkitektur, og giver dig en komplet reference over de tilgængelige hjælpefunktioner med tilhørende eksempler.
+
+## Begreber og Terminologi **(Anbefalet læsning inden næste sektion)**
+### Hvad er en softcore
+En normal processor er en fysisk siliciumchip hvor uforanderlige transistorer udgør processorens interne logik. En "softcore" er en processor der er beskrevet i kode og derefter flashet over på en FPGA. FPGA'en bruger konfigurerbare logikblokke, som så kan implementere den logik som koden for softcoren beskriver, og dermed opfører sig som en rigtig processor. Derfor skal man først flashe softcoren som projektet beskriver - det konfigurerer FPGA'en til at være en (for dette projekt's specifikke softcore) Wildcat-processor.
+
+### Hvad er GPIO (General Purpose Input/Output)
+GPIO refererer til de fysiske pins på boardet der kan bruges til at sende eller modtage elektriske signaler. En LED tilsluttet en GPIO-pin kan eksempelvis tændes og slukkes af software, eller en knaps input kan aflæses. "General Purpose" betyder at disse pins ikke er funktionsspecifikke, men derimod kan bruges til hvad end du kobler på dem.
+
+### Hvad er Memory-Mapped I/O (MMIO)
+RISC-V arkitekturen som Wildcat-processoren er bygget på har kun load/store operationer til at kommunikere med hvad end der eksisterer uden for CPU'en selv. Derfor bruges memory-mapping til at kortlægge specifikke I/O-enheder til specifikke hukommelsesadresser. Når processoren under kørsel af et program skal interagere med forskellige I/O, laver den enten en read eller write operation på en af de specifikke hukommelsesadresser som den specifikke I/O korresponderer med. SoC'en har logik der forstår at for disse specifikke adresser skal den udføre instruktionerne på I/O-enhederne og ikke i den rigtige hukommelse - eksempelvis LED-registret.
+
+### Hvad er HAL (Hardware Abstraction Layer)
+For at forenkle programmering af denne SoC er selveste interaktionen med det tilgængelige Memory-Mapped I/O løftet op på et højere abstraktionsniveau. I stedet for at skulle kende de specifikke hukommelsesadresser, er dette et lag af hjælpefunktioner hvor adresserne er hardcodet sammen med den ønskede interaktion i specifikke funktioner. I stedet for at skrive `unsafe { (0xF010_0000 as *mut u32).write_volatile(0xFF) }` kan man skrive `led_write(0xFF)`.
+
+## Forudsætninger og opsætning
+Forudsætningerne for at og flashe projektets softcore arkitektur over på en Basys-3 FPGA for tilsidst at uploade og køre det Rust program der udgør logikken for dit miljø-overvågningssystem er beskrevet i den installationsguide du finder i projektetes `READEME.md`-fil. 
+
+Herunder en forklaring af hvad hver værktøj bruges til.
+
+### **Forudsætninger:** Værktøjer der skal være installeret
+| Værktøj | Formål |
+|---|---|
+| Make | Er et build-automatiseringsværktøj. Når du skriver en kommando som `make flash` eller `make upload`, eksekverer Make automatisk en sekvens af underliggende kommandoer i den rigtige rækkefølge. Uden Make skulle du manuelt køre hver enkelt kommando selv. |
+| Vivado | Er Xilinx' udviklingsmiljø til FPGA'er. Det tager SoC-designets hardwarebeskrivelse (genereret Verilog-kode), syntetiserer det ned til en bitstream, og flasher bitstreamen på FPGA'en. Når SoC'en er flashet, ligger den i FPGA'ens non-volatile hukommelse og overlever både genstart og slukning. Du skal kun bruge Vivado én gang — medmindre selve hardwaredesignet ændres. |
+| Rust toolchain | Er compileren der oversætter dine Rust-programmer til RISC-V maskinkode. Compileren er konfigureret med target `riscv32i-unknown-none-elf`, som fortæller den at den skal producere kode til en 32-bit RISC-V processor uden operativsystem — præcis hvad Wildcat-processoren er. |
+| Python + pyserial | Bruges af upload-scriptet (`upload.py`). Scriptet tager dit kompilerede program og sender det til boardet over en seriel USB-forbindelse (UART). Python er kun nødvendigt fordi upload-scriptet er skrevet i Python. |
+| Git | Bruges til at klone projektets repository så du har adgang til al kildekode, build-scripts, og denne manual. |
+
+Sørg for at du har installeret overstående ved at følge projektets `README.md`-fil under sektionen **"Prerequisites & Installation"** før du går videre til at flashe SoC'en ned på dit board.
+
+### **Opsætning del 1:** Flash SoC'en på boardet
+Efter værktøjerne er installeret og repoet er klonet, skal SoC'en flahes på FPGA'en. Logikken for SoC'en flashes til FPGA'ens non-volatile hukommelse, hvilket sikrer at logikken overlever genstart og slukning af boardet. Det eneste scenarie hvor du ville være nødsagt til at gen-flashe SoC'en er hvis der er blevet lavet ændringer til selveste SoC'ens logik.
+
+**Flash SoC'en ved at**:
+1. Tilslut Basys-3 boardet via USB og tænd det
+2. I din terminal, naviger til roden af repoet, så du står i mappen `.../rust-riscv-soc`
+3. Kør nu kommandoen `make flash` i terminalen
+4. SoC'en flashes: Vent på at processen færdiggøres (dette kan tage flere minutter)
+5. Tryk på PROG-knappen på FPGA (rød knap i øverste højre hjørne af boardet)
+6. Efter 5-10 sekunder bør CPU'en køre - den venstre LED lyser som indikation
+### **Opsætning del 2:** Upload dit første program
+Når først SoC'en er flashet, kan du uploade Rust-programmer (igen og igen) via UART **uden** at skulle reflashe SoC'en over på FPGA'en. Dette er et bevidst designvalg med det formål at sænke den tid det tager at itterere programdesign, og dermed sænke friktion i workflowet for kursister af 02112.
+
+**Upload dit første program ved at:**
+1. Find din serielle port:
+    - **Windows:** `Get-PnpDevice -Class Ports -PresentOnly`
+    - **Linux:** `ls /dev/ttyUSB* /dev/ttyACM*`
+2. Upload programmet ved at skrive kommandoen `make upload SERIAL_PORT=<din_port>` i terminalen
+3. Programmet kompilere automatisk, uploades, og begynder at køre. Output fra programmet vises i terminalen.
+
+**Itterer i jeres program design:**
+Efterfølgende ændringer i Rust-koden kan uploades ved at køre `make upload` igen. Det er ikke nødvændigt at reflashe SoC'en for at uplade nye programmer. 
+
+## Systemarkitektur - CPU, hukommelse, boot-flow og memory map
+
+### CPU: Wildcat ThreeCats
+Projektet implementere en softcore processor på en basys-3 FPGA - den specifikke processor som softcoren implementere er en "Wildcat ThreeCat" CPU, der er bygget på RISC-V arkitekturen og  implementere RV32I instruktionssættet. Det betyder at processorens arkitektur er i et 32-bit format: instruktioner er 32-bit, registre er 32-bit og vi er begrænset til heltalsoperationer (ingen floating point - det kræver højere præcision).
+
+Processoren kører ét clock-tick ad gangen, igennem dens 3 trins pipeline - fetch (hent instruktion fra hukommelse), decode (forstå instruktionen og indlæs registre) og execute (udfør beregningen).
+### Hukommelse
+SoC'en implementeres i dette projekt med 4 KB scratchpad-hukommelse, som vivado genkender og implementere i den on chip BRAM der findes på et Basys-3 board. 
+
+SoC'en har to seperate fysiske hukommelser - begge implementeret som scratchpad-hukommelse på hhv. 4 KB:
+- **IMEM (Instruction Memory):** Herfra henter CPU'en instruktioner
+- **DMEM (Data Memory):** Herfra læser og skriver CPU'en data (variabler, stack, arrays osv.)
+
+De to hukommelser er på seperate busser, hvilket betyder at CPU'en kan hente en instruktion og tilgå data på samme clock-cyklus (mere effektivt).
+
+**OBS**: Ved upload skrives programmets indhold til begge hukommelser. Under kørsel bruger CPU'en kun IMEM til instruktioner og kun DMEM til data. Da kode og data deler det samme 4 KB adresserum for begge hukommelsestyper (0x0000_0000 – 0x0000_0FFF), skal programmets samlede størrelse (kode + data + stack) holdes inden for 4 KB.
+
+### Boot-flow: Hvad sker der når boardet tændes
+**Når boardet tændes, gennemgår systemet følgende sekvens:**
+1. **Starter Basys3 m. softcore flashet:** FPGA'en starter med bootloaderen aktiv og CPU'en stallet - den kan ikke eksekvere instruktioner endnu
+
+**Upload-scriptet gennemgår derefter følgende sekvens:**
+
+2. **Reset:** Upload-scriptet sender reset-signalet `0xDEADBEEF` over UART. SoC'en lytter konstant efter 
+   denne sekvens og resetter CPU og bootloader til starttilstand (bootloader aktiv, CPU stallet). 
+   
+   Dette sikrer at systemet er klar til at modtage et nyt program — uanset om boardet lige er tændt, eller om der allerede kører et program fra et tidligere upload.
+3. **Aktivering:** Upload-scriptet sender sender magic word `0xB00710AD` som aktiverer bootloaderen.
+4. **Upload:** Upload-scriptet sender Rust-programmet som (adresse, data)-par. Bootloaderen modtager hvert word over UART og skriver det direkte ind i både IMEM og DMEM.
+5. **Start eksekvering:** Upload scriptet sender done signalet `0xD0000000` som frigiver CPU'en og starter programeksekvering fra adressen `0x0000_0000`.
+ 
+Bootloaderen er implementeret i hardware som en state machine - den er ikke software der kører på CPU'en. Den sidder og lytter på UART-linjen, modtager bytes, og skriver dem ind i hukommelsen.
+
+#### Soft reset
+For at muliggøre hurtigere itterationer under developmenmt, er det muligt at re-uploade programmer uden at skulle genflashe hele softcoren. Upload-scriptet sender automatisk reset-signalet `0xDEADBEEF` over UART inden hvert upload. En dedikeret monitor-komponent i SoC'en lytter konstant efter denne sekvens og resetter CPU og bootloader tilbage til boot tilstand når denne detekteres. I overstående sekvens svarer det til at gennemgå punkt 2 - 5 forfra.
+
+### Memory Map: Hvilke komponenter korrespondere til hvilke adresser?
+Adresserummet er delt i to områder: adresser der starter med `0x0` peger på scratchpad hukommelsen, og adresser der starter med `0xF` peger på I/O-enheder. For disse I/O-enheder er det bits 23-20 i adressen der specificerer hvilken enhed der tilgås.
+| Adresse | Enhed | Læs/Skriv |
+|---|---|---|
+| `0x0000_0000 – 0x0000_0FFF` | Scratchpad RAM (4 KB) | Læs + Skriv |
+| `0xF000_0000` | UART status (bit 0 = TX klar, bit 1 = RX data tilgængelig) | Læs |
+| `0xF000_0004` | UART data (læs = modtag byte, skriv = send byte) | Læs + Skriv |
+| `0xF010_0000` | LED-register (bit 0–6, 8–15 = LEDs, bit 7 = CPU running indikator) | Skriv (bit 7 read-only) |
+| `0xF020_0000` | Button-register (bit 0–3 = btnU, btnL, btnR, btnD) | Læs |
+
+## Workflow - fra Rust-kode til kørende program
+Når du udvikler programmer til denne SoCc, er dit workflow:
+1. Skriv eller rediger dit Rust-program i filen `sw/program/src/main.rs`
+2. Kør kommandoen `make upload SERIAL_PORT=<din_port>` fra roden af repoet (`.../rust-riscv-soc`)
+3. Dit program kompileres, uploades, og begynder at eksekvere automatisk.
+
+### Hvad sker der på din pc?
+Kommandoen `make upload` automatiserer følgende kæde af handlinger:
+1. **Kompilering:** Cargo (Rusts build-system) kompilerer dit Rust-program til en RISC-V ELF-fil. ELF-formatet indeholder maskinkode plus metadata om programmets struktur (Hvor kode og data starter, symbolnavne osv.)
+2. **Konvertering:** `cargo objcopy` konverterer denne ELF-fil til en rå binærfil (`program.bin`). Denne fil indeholder udelukkende maskinkode uden metadata - det er de bytes der skal ligges ind i hukommelsen på din basys-3 FPGA.
+3. **Upload:** Python-scriptet `upload.py` sender binærfilen over USB/UART til FPGA'en. Scriptet håndterer reset, aktivering af bootloader, og overførsel af programdata (se bootflow sektion for flere detaljer).
+4. **Eksekvering:** Når upload er færdig, frigiver bootloaderen CPU'en og dit progream eksekveres fra adresse `0x0000_0000`.
+
+### Filstruktur
+
+### Filstruktur
+
+Dit Rust-program skrives i filen `sw/program/src/main.rs`. Det 
+er den eneste fil du behøver at redigere under normal brug.
+
+**Note:** Hvis du løber ind i hukommelsesbegrænsninger (4 KB), 
+er det muligt at udvide hukommelsen ved at ændre størrelsen i 
+`sw/program/linker.ld` og `wildcat/src/main/scala/rvsoc/RustSoCTop.scala`, 
+efterfulgt af et `make flash`. Kontakt en underviser inden du 
+gør dette.
+
+## HAL-reference: tilgængelige funktioner og adresser
+
+Følgende funktioner udgør det Hardware Abstraction Layer (HAL) 
+der er tilgængeligt i `main.rs`. Disse funktioner abstraherer 
+den underliggende Memory-Mapped I/O, så du ikke behøver at 
+arbejde direkte med hukommelsesadresser.
+
+### LED: `led_write(val: u16)`
+
+Skriver en værdi til LED-registret. Hver bit svarer til én LED 
+— sæt bit til 1 for at tænde, 0 for at slukke.
+```rust
+led_write(0b0000_0101); // Tænder LED 0 og LED 2
+led_write(0xFF);         // Tænder LED 0-5 + 8-9
+led_write(0x00);         // Slukker alle LEDs
+```
+
+**Bemærk:** LED 7 er hardwired til CPU running-indikatoren og 
+kan ikke styres fra software. Bit 0–6 styrer LED 0–6 på boardet, 
+og bit 8–15 styrer LEDs tilsluttet via Pmod-headeren.
+
+### Knapper: `btn_read() -> u32`
+
+Returnerer den aktuelle tilstand af de fire retningsknapper. 
+Bit 0–3 svarer til de fire knapper — 1 betyder trykket, 
+0 betyder ikke trykket.
+```rust
+let buttons = btn_read();
+
+if buttons & 0x1 != 0 {
+    // Knap 0 (btnU) er trykket
+}
+
+if buttons & 0x4 != 0 {
+    // Knap 2 (btnR) er trykket
+}
+```
+
+| Bit | Knap |
+|-----|------|
+| 0   | btnU (op) |
+| 1   | btnL (venstre) |
+| 2   | btnR (højre) |
+| 3   | btnD (ned) |
+
+### UART: `print!()` og `println!()`
+
+Sender tekst over den serielle forbindelse (UART). Fungerer 
+ligesom standard Rust — understøtter formatering med `{}`.
+```rust
+println!("Hello from Rust!");
+println!("Tallet er: {}", 42);
+println!("Knapper: 0x{:X}", btn_read());
+```
+
+Output kan ses i terminalen efter `make upload`, eller med et 
+serielt terminalprogram (115200 baud, 8N1).
+
+### Avanceret: Direkte MMIO
+
+Hvis du har brug for at tilgå hardware direkte uden HAL-funktioner, 
+kan du bruge de rå adresser. Dette kræver `unsafe` blokke i Rust 
+fordi compileren ikke kan garantere at adresserne er gyldige.
+```rust
+// Læs UART status
+let status = unsafe { (0xF000_0000 as *const u32).read_volatile() };
+
+// Skriv til LED-register
+unsafe { (0xF010_0000 as *mut u32).write_volatile(0xFF) };
+
+// Læs knapper
+let buttons = unsafe { (0xF020_0000 as *const u32).read_volatile() };
+```
+
+De prædefinerede adresser er:
+
+| Konstant | Adresse | Type | Beskrivelse |
+|----------|---------|------|-------------|
+| `UART_STATUS` | `0xF000_0000` | `*const u32` | UART statusregister |
+| `UART_DATA` | `0xF000_0004` | `*mut u32` | UART data (send/modtag) |
+| `LED_REG` | `0xF010_0000` | `*mut u32` | LED-register |
+| `BTN_REG` | `0xF020_0000` | `*const u32` | Button-register |
+
+
+## Eksempler på programmering
+
+### Komplet eksempel: Button-blink
+
+Følgende program demonstrerer brug af alle tilgængelige 
+I/O enheder. Ved opstart printes en besked over UART, 
+og derefter aflæses knapperne kontinuerligt — de tilsvarende 
+LEDs tændes når en knap holdes nede.
+```rust
+fn main() {
+    // Print boot-besked over UART
+    println!("=== DTU MCU Booted ===");
+    println!("Tryk på knapperne for at tænde LEDs");
+
+    // Kontinuerlig aflæsning af knapper
+    loop {
+        let buttons = btn_read();
+        led_write(buttons as u16);
+    }
+}
+```
+
+**Forventet adfærd:**
+- Ved opstart vises "=== DTU MCU Booted ===" i terminalen
+- Tryk btnU → LED 0 lyser
+- Tryk btnL → LED 1 lyser
+- Tryk btnR → LED 2 lyser
+- Tryk btnD → LED 3 lyser
+- Tryk flere knapper samtidigt → flere LEDs lyser
+
+## Fejlfinding
+
+### "make upload" fejler med "Could not open port"
+
+Seriel porten er enten forkert angivet eller i brug af et 
+andet program. Tjek at du har angivet den rigtige port med 
+`SERIAL_PORT=<din_port>`. Luk eventuelle andre programmer 
+der bruger porten (serielle terminaler, andre upload-scripts).
+
+### Ingen output i terminalen efter upload
+
+Tjek at din serielle port er korrekt. Tjek at boardet er 
+tændt og at SoC'en er flashet (venstre LED skal lyse). 
+Prøv at trykke på PROG-knappen og vent 5-10 sekunder 
+inden du kører `make upload` igen.
+
+### Programmet virker ikke efter ændringer i koden
+
+Sørg for at du gemmer filen inden du kører `make upload`. 
+Tjek terminalens output for kompileringsfejl — Rust-compileren 
+giver typisk præcise fejlbeskeder med linjenummer.
+
+### "make flash" fejler
+
+Tjek følgende:
+- **Er Vivado installeret?** Følg installationsguiden i README
+- **Kan terminalen finde Vivado?** Vivado skal være tilføjet 
+  til dit systems PATH — det er en miljøvariabel der fortæller 
+  din terminal hvor den kan finde programmer. Hvis du skriver 
+  `vivado -version` i terminalen og får en fejl, er PATH ikke 
+  sat korrekt. Se README under "Xilinx Vivado" for hvordan du 
+  tilføjer den korrekte sti til PATH for dit operativsystem
+- **Er boardet tilsluttet?** Boardet skal være forbundet via 
+  USB og tændt
+- **Er der kun ét board tilsluttet?** Vivado kan kun 
+  auto-detektere ét board ad gangen
+
+### Programmet kompilerer men gør ingenting på boardet
+
+Dit program fylder muligvis mere end 4 KB. Tjek størrelsen 
+af den kompilerede binær i 
+`sw/program/target/riscv32i-unknown-none-elf/release/program.bin`. 
+Hvis filen er over 4096 bytes, skal du reducere programmets 
+størrelse.
+
+### LEDs reagerer ikke
+
+Husk at LED 7 er reserveret til CPU running-indikatoren og 
+kan ikke styres fra software. Tjek at du bruger de rigtige 
+bit-positioner i `led_write()`.
