@@ -130,3 +130,14 @@ set_property PACKAGE_PIN G3 [get_ports {io_led[15]}]
 #set_property PACKAGE_PIN M19 [get_ports {JC[5]}]					
 #set_property PACKAGE_PIN P17 [get_ports {JC[6]}]					
 #set_property PACKAGE_PIN R18 [get_ports {JC[7]}]
+
+
+##Pmod Header JXADC
+set_property PACKAGE_PIN J3 [get_ports vauxp6]					
+#set_property PACKAGE_PIN L3 [get_ports {JC[1]}]					
+#set_property PACKAGE_PIN M2 [get_ports {JC[2]}]					
+#set_property PACKAGE_PIN N2 [get_ports {JC[3]}]					
+set_property PACKAGE_PIN K3 [get_ports vauxn6]					
+#set_property PACKAGE_PIN M3 [get_ports {JC[5]}]					
+#set_property PACKAGE_PIN M1 [get_ports {JC[6]}]					
+#set_property PACKAGE_PIN N1 [get_ports {JC[7]}]
