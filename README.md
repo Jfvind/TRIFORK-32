@@ -101,6 +101,7 @@ will light up the corresponding LED (0-3).
 | `0xF000_0004`  | UART data (read = RX, write = TX)                |
 | `0xF010_0000`  | LED register (bit 0-6 = LED 0-6, bit 7 = CPU running indicator (read-only), bit 8-15 = LED 8-15) |
 | `0xF020_0000`  | Button register (bit 0-3 = btnU, btnL, btnR, btnD, read-only) |
+| `0xF030_0000`  | Base address for JXADC analog inputs, offset for four total inputs (e.g. `0xF030_0004`) |
 
 ### 1. Clone repo
 ```bash

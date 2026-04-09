@@ -103,6 +103,7 @@ Adresserummet er delt i to områder: adresser der starter med `0x0` peger på sc
 | `0xF000_0004` | UART data (læs = modtag byte, skriv = send byte) | Læs + Skriv |
 | `0xF010_0000` | LED-register (bit 0–6, 8–15 = LEDs, bit 7 = CPU running indikator) | Skriv (bit 7 read-only) |
 | `0xF020_0000` | Button-register (bit 0–3 = btnU, btnL, btnR, btnD) | Læs |
+| `0xF030_0000`  | Base address for JXADC analog inputs, offset for four total inputs (e.g. `0xF030_0004`) | Læs |
 
 ## Workflow - fra Rust-kode til kørende program
 Når du udvikler programmer til denne SoCc, er dit workflow:
@@ -174,6 +175,19 @@ if buttons & 0x4 != 0 {
 | 1   | btnL (venstre) |
 | 2   | btnR (højre) |
 | 3   | btnD (ned) |
+
+### ADC (Analogt Input): `adc_read_all() -> [u32, 4]`
+
+Aflæser den aktuelle digitale værdi fra JXADC-portene på Basys-3 boardet. Spændingen konverteres via ADC-controlleren og returneres som en 12-bit værdi: et heltal mellem 0 og 4095. Dette er især nyttigt til at aflæse analoge sensorer (f.eks. et potentiometer, lyssensor osv.).
+
+```rust
+let adc_val = adc_read_all();
+
+if adc_val[0] > 2048 { // Aflæser component i JXADC1, 7
+    // Værdien (og dermed spændingen) er over 50%
+    println!("ADC-værdi er høj: {}", adc_val[0]);
+}
+```
 
 ### UART: `print!()` og `println!()`
 
