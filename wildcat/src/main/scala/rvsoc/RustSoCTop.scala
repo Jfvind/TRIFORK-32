@@ -15,6 +15,8 @@ import soc._
  *   - Integrates the BootloaderTop so programs can be loaded at runtime via UART,
  *     rather than at synthesis time.
  *   - Holds the CPU stalled while the bootloader is active (by ack deassertion).
+ *   - Enable button inputs
+ *   - Reads Analog values from JXADC inputs
  *
  * Boot sequence:
  *   1. After FPGA is programmed, the bootloader is active and the CPU is stalled.
@@ -35,6 +37,10 @@ import soc._
  *   0xF000_0004               : UART data    (read = RX byte, write = TX byte)
  *   0xF010_0000               : LED register  (lower 8 bits drive LEDs)
  *   0xF020_0000               : Button register (bit 0-3 = btnU, btnL, btnR, btnD)
+ *   0xF030_0000               : Analogue input (JXADC1, 7)
+ *   0xF030_0004               : Analogue input (JXADC2, 8)
+ *   0xF030_0008               : Analogue input (JXADC3, 9)
+ *   0xF030_000C               : Analogue input (JXADC4, 10)
  *
  * @param frequ     system clock frequency in Hz (default 100 MHz for Basys3)
  * @param baudRate  UART baud rate (default 115200)
@@ -43,12 +49,19 @@ import soc._
 class RustSoCTop(frequ: Int = 100000000, baudRate: Int = 115200, memBytes: Int = 4096) extends Module {
 
   val io = IO(new Bundle {
-    val led = Output(UInt(16.W))
-    val tx  = Output(UInt(1.W))
-    val rx  = Input(UInt(1.W))
-    val btn = Input(UInt(4.W))
-    val vauxp6 = Input(Bool())
-    val vauxn6 = Input(Bool())
+    val led         = Output(UInt(16.W))
+    val tx          = Output(UInt(1.W))
+    val rx          = Input(UInt(1.W))
+    val btn         = Input(UInt(4.W))
+
+    val vauxp6      = Input(Bool())
+    val vauxn6      = Input(Bool())
+    val vauxp14     = Input(Bool())
+    val vauxn14     = Input(Bool())
+    val vauxp7      = Input(Bool())
+    val vauxn7      = Input(Bool())
+    val vauxp15     = Input(Bool())
+    val vauxn15     = Input(Bool())
   })
 
   // ---- Reset monitor ----
@@ -139,8 +152,14 @@ class RustSoCTop(frequ: Int = 100000000, baudRate: Int = 115200, memBytes: Int =
   }
 
   val adc = withReset(combinedReset) { Module(new AdcController())}
-  adc.io.vauxp6 := io.vauxp6
-  adc.io.vauxn6 := io.vauxn6
+  adc.io.vauxp6   := io.vauxp6
+  adc.io.vauxn6   := io.vauxn6
+  adc.io.vauxp14  := io.vauxp14
+  adc.io.vauxn14  := io.vauxn14
+  adc.io.vauxp7   := io.vauxp7
+  adc.io.vauxn7   := io.vauxn7
+  adc.io.vauxp15  := io.vauxp15
+  adc.io.vauxn15  := io.vauxn15
 
   // ---- UART for CPU ----
   // With combinedReset so any Tx/Rx is aborted on software reset.
@@ -193,10 +212,12 @@ class RustSoCTop(frequ: Int = 100000000, baudRate: Int = 115200, memBytes: Int =
     cpu.io.dmem.rdData := io.btn
   }
 
-  // ADC read at 0xF030_0000
+  // ADC read at 0xF030_000X
   when(cpuRunning && (memAddressReg(31, 28) === 0xf.U) && (memAddressReg(23, 20) === 3.U)) {
-    cpu.io.dmem.rdData := adc.io.adcData
-  }
+    when(memAddressReg(3, 0) === 0.U)       { cpu.io.dmem.rdData := adc.io.adcData0 } // 0xF030_0000
+    .elsewhen(memAddressReg(3, 0) === 4.U)  { cpu.io.dmem.rdData := adc.io.adcData1 } // 0xF030_0004
+    .elsewhen(memAddressReg(3, 0) === 8.U)  { cpu.io.dmem.rdData := adc.io.adcData2 } // 0xF030_0008
+    .elsewhen(memAddressReg(3, 0) === 12.U) { cpu.io.dmem.rdData := adc.io.adcData3 } // 0xF030_000C
 }
 
 /**

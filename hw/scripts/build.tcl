@@ -22,7 +22,12 @@ set_property top RustSoCTop [current_fileset]
 create_ip -name xadc_wiz -vendor xilinx.com -library ip -version 3.3 -module_name xadc_wiz_0
 set_property -dict [list \
   CONFIG.INTERFACE_SELECTION {Enable_DRP} \
-  CONFIG.SINGLE_CHANNEL_SELECTION {VAUXP6_VAUXN6} \
+  CONFIG.SEQUENCER_MODE {Continuous} \
+  CONFIG.XADC_STARUP_SELECTION {channel_sequencer} \
+  CONFIG.CHANNEL_ENABLE_VAUXP6_VAUXN6 {true} \
+  CONFIG.CHANNEL_ENABLE_VAUXP14_VAUXN14 {true} \
+  CONFIG.CHANNEL_ENABLE_VAUXP7_VAUXN7 {true} \
+  CONFIG.CHANNEL_ENABLE_VAUXP15_VAUXN15 {true} \
 ] [get_ips xadc_wiz_0]
 generate_target all [get_ips xadc_wiz_0]
 synth_ip [get_ips xadc_wiz_0]
