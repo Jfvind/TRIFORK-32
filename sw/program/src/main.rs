@@ -11,6 +11,7 @@ const UART_DATA: *mut u32 = 0xF000_0004 as *mut u32;
 const LED_REG: *mut u32 = 0xF010_0000 as *mut u32;
 const BTN_REG: *const u32 = 0xF020_0000 as *const u32;
 const ADC_BASE: *const u32 = 0xF030_0000 as *const u32;
+const PWM_Base: *mut u32 = 0xF040_0000 as *mut u32;
 
 // ── 2. Linker symboler (Fra linker.ld) ──────────────────────────────────────
 extern "C" {
@@ -108,6 +109,26 @@ fn adc_read_all() -> [u32; 4] {
             ADC_BASE.offset(2).read_volatile(), // 0xF030_0008
             ADC_BASE.offset(3).read_volatile()  // 0xF030_000C
         ]
+    }
+}
+
+// Enables PWM mode for specific LEDs.
+// Each bit in 'mask' corresponds to one LED (bit 0 = LED 0, etc.)
+// When enabled, that LED is controlled by its duty cycle instead of led_write().
+fn pwm_enable(mask: u8) {
+    unsafe {
+        PWM.BASE.write_volatile(mask as u32)
+    }
+}
+
+// Sets the brightness of a PWM enabled LED.
+// 'channel' : LED number (0 - 6)
+// 'percent' : brightness from 0 (off) to 100 (full)
+fn pwn_set(channel: u8, percent: u8) {
+    let perceent = if percent > 100 { 100 } else { percent };
+    let duty = (percent as u32 * 255) / 100
+    unsafe {
+        PWM_BASE.offset((channel as isize) + 1).write_volatile(duty);
     }
 }
 
