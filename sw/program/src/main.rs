@@ -133,7 +133,8 @@ fn pwm_set(channel: u8, percent: u8) {
 }
 
 fn rgb_set(r: u8, g: u8, b: u8) {
-    pwm_set(12, r);  // or whatever pins the RGB is on
+    // External RGB LED channels are mapped to io_led[12..14] via JA pins.
+    pwm_set(12, r);
     pwm_set(13, g);
     pwm_set(14, b);
 }
@@ -146,53 +147,54 @@ fn main() {
     println!("SRAM Size: {} bytes", 4096);
     println!("Status: PASS");
 
-    // Enable PWM on onboard LEDs 0-6 and RGB LED on pins 12-14
-    pwm_enable(0b0111_0000_0111_1111);
+    // Enable PWM only for RGB test outputs on io_led[12..14].
+    // io_led[0..6] stay as plain GPIO for ADC bargraph visibility.
+    pwm_enable((1u16 << 12) | (1u16 << 13) | (1u16 << 14));
 
-    let thresholds = [0u32, 500, 1000, 1500, 2000, 2500, 3000];
-    let mut rgb_state: u8 = 0;
-    let mut rgb_counter: u32 = 0;
+    // Simple PWM fade state for RGB test.
+    let mut fade: u8 = 0;
+    let mut fade_up = true;
 
     loop {
-        // 1. Read hardware peripherals
+        // 1) Read peripherals
         let adc_val = adc_read_all(); // Returns 0 to 4095 for all four inputs
-        let btn_val = btn_read(); // Returns 4-bit button state
+        let btn_val = btn_read() & 0b111; // Use buttons 0..2 for io_led[8..10]
 
-        // 2. Logic: Smooth PWM gradient on onboard LEDs (Bits 0 to 6)
-        for i in 0..7 {
-            let t = thresholds[i];
-            let brightness = if adc_val[0] >= t + 500 {
-                100
-            } else if adc_val[0] <= t {
-                0
+        // 2) ADC bargraph on io_led[0..6] using direct thresholds.
+        let mut adc_leds: u16 = 0;
+        if adc_val[0] > 512  { adc_leds |= 0b0000001; }
+        if adc_val[0] > 1024 { adc_leds |= 0b0000011; }
+        if adc_val[0] > 1536 { adc_leds |= 0b0000111; }
+        if adc_val[0] > 2048 { adc_leds |= 0b0001111; }
+        if adc_val[0] > 2560 { adc_leds |= 0b0011111; }
+        if adc_val[0] > 3072 { adc_leds |= 0b0111111; }
+        if adc_val[0] > 3584 { adc_leds |= 0b1111111; }
+
+        // 3) Button mirror on io_led[8..10].
+        let btn_leds = (btn_val as u16) << 8;
+
+        // 4) Combine GPIO-driven LEDs and write once.
+        // bit7 is reserved internally for cpuRunning in hardware.
+        led_write(adc_leds | btn_leds);
+
+        // 5) RGB PWM fade test on io_led[12..14].
+        // R fades up while B fades down, G runs at half intensity.
+        rgb_set(fade, fade / 2, 100 - fade);
+
+        if fade_up {
+            if fade >= 100 {
+                fade_up = false;
             } else {
-                ((adc_val[0] - t) * 100 / 500) as u8
-            };
-            pwm_set(i as u8, brightness);
-        }
-
-        // 3. Logic: Map Buttons to PMOD LEDs (Bits 8, 9, 10)
-        // BTN[0] -> LED[8], BTN[1] -> LED[9], BTN[2] -> LED[10]
-        // We isolate the lowest 3 buttons (0b111) and shift them left by 8
-        let pmod_leds = (btn_val & 0b111) << 8;
-
-        // 4. Write button LEDs to LED register (onboard LEDs handled by PWM)
-        led_write(pmod_leds as u16);
-
-        // 5. RGB LED on pins 12-14: cycle through colors
-        rgb_counter += 1;
-        if rgb_counter >= 200 {
-            rgb_counter = 0;
-            rgb_state = (rgb_state + 1) % 3;
-            match rgb_state {
-                0 => rgb_set(100, 0, 0),   // Red
-                1 => rgb_set(0, 100, 0),   // Green
-                _ => rgb_set(0, 0, 100),   // Blue
+                fade += 1;
             }
+        } else if fade == 0 {
+            fade_up = true;
+        } else {
+            fade -= 1;
         }
 
-        // 6. Small delay to prevent spamming and flickering
-        for _ in 0..500_000 {
+        // 6) Small delay to set animation speed.
+        for _ in 0..150_000 {
             unsafe { core::arch::asm!("nop"); }
         }
     }
