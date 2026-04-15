@@ -133,10 +133,10 @@ fn pwm_set(channel: u8, percent: u8) {
 }
 
 fn rgb_set(r: u8, g: u8, b: u8) {
-    // External RGB LED channels are mapped to io_led[12..14] via JA pins.
-    pwm_set(12, r);
-    pwm_set(13, g);
-    pwm_set(14, b);
+    // Common-anode RGB: lower duty means brighter, so invert brightness.
+    pwm_set(12, 100 - r);
+    pwm_set(13, 100 - g);
+    pwm_set(14, 100 - b);
 }
 
 // ── 8. APP ────────────────────────────────────────────────────────
