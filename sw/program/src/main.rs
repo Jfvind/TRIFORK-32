@@ -11,6 +11,7 @@ const UART_DATA: *mut u32 = 0xF000_0004 as *mut u32;
 const LED_REG: *mut u32 = 0xF010_0000 as *mut u32;
 const BTN_REG: *const u32 = 0xF020_0000 as *const u32;
 const ADC_BASE: *const u32 = 0xF030_0000 as *const u32;
+const PWM_BASE: *mut u32 = 0xF040_0000 as *mut u32;
 
 // ── 2. Linker symboler (Fra linker.ld) ──────────────────────────────────────
 extern "C" {
@@ -111,6 +112,33 @@ fn adc_read_all() -> [u32; 4] {
     }
 }
 
+// Enables PWM mode for specific LEDs.
+// Each bit in 'mask' corresponds to one LED (bit 0 = LED 0, etc.)
+// When enabled, that LED is controlled by its duty cycle instead of led_write().
+fn pwm_enable(mask: u16) {
+    unsafe {
+        PWM_BASE.write_volatile(mask as u32);
+    }
+}
+
+// Sets the brightness of a PWM enabled LED.
+// 'channel' : LED number (0 - 6, 8 - 15)
+// 'percent' : brightness from 0 (off) to 100 (full)
+fn pwm_set(channel: u8, percent: u8) {
+    let percent = if percent > 100 { 100 } else { percent };
+    let duty = (percent as u32 * 255) / 100;
+    unsafe {
+        PWM_BASE.offset((channel as isize) + 1).write_volatile(duty);
+    }
+}
+
+fn rgb_set(r: u8, g: u8, b: u8) {
+    // Common-anode RGB: lower duty means brighter, so invert brightness.
+    pwm_set(12, 100 - r);
+    pwm_set(13, 100 - g);
+    pwm_set(14, 100 - b);
+}
+
 // ── 8. APP ────────────────────────────────────────────────────────
 fn main() {
     
@@ -119,33 +147,54 @@ fn main() {
     println!("SRAM Size: {} bytes", 4096);
     println!("Status: PASS");
 
+    // Enable PWM only for RGB test outputs on io_led[12..14].
+    // io_led[0..6] stay as plain GPIO for ADC bargraph visibility.
+    pwm_enable((1u16 << 12) | (1u16 << 13) | (1u16 << 14));
+
+    // Simple PWM fade state for RGB test.
+    let mut fade: u8 = 0;
+    let mut fade_up = true;
+
     loop {
-        // 1. Read hardware peripherals
+        // 1) Read peripherals
         let adc_val = adc_read_all(); // Returns 0 to 4095 for all four inputs
-        let btn_val = btn_read(); // Returns 4-bit button state
+        let btn_val = btn_read() & 0b111; // Use buttons 0..2 for io_led[8..10]
 
-        // 2. Logic: Map ADC to Onboard LEDs (Bits 0 to 6) like a volume bar graph
-        let mut onboard_leds = 0;
-        if adc_val[0] > 500  { onboard_leds |= 0b0000001; } // LED 0
-        if adc_val[0] > 1000 { onboard_leds |= 0b0000011; } // LED 1
-        if adc_val[0] > 1500 { onboard_leds |= 0b0000111; } // LED 2
-        if adc_val[0] > 2000 { onboard_leds |= 0b0001111; } // LED 3
-        if adc_val[0] > 2500 { onboard_leds |= 0b0011111; } // LED 4
-        if adc_val[0] > 3000 { onboard_leds |= 0b0111111; } // LED 5
-        if adc_val[0] > 3500 { onboard_leds |= 0b1111111; } // LED 6
+        // 2) ADC bargraph on io_led[0..6] using direct thresholds.
+        let mut adc_leds: u16 = 0;
+        if adc_val[0] > 512  { adc_leds |= 0b0000001; }
+        if adc_val[0] > 1024 { adc_leds |= 0b0000011; }
+        if adc_val[0] > 1536 { adc_leds |= 0b0000111; }
+        if adc_val[0] > 2048 { adc_leds |= 0b0001111; }
+        if adc_val[0] > 2560 { adc_leds |= 0b0011111; }
+        if adc_val[0] > 3072 { adc_leds |= 0b0111111; }
+        if adc_val[0] > 3584 { adc_leds |= 0b1111111; }
 
-        // 3. Logic: Map Buttons to PMOD LEDs (Bits 8, 9, 10)
-        // BTN[0] -> LED[8], BTN[1] -> LED[9], BTN[2] -> LED[10]
-        // We isolate the lowest 3 buttons (0b111) and shift them left by 8
-        let pmod_leds = (btn_val & 0b111) << 8;
+        // 3) Button mirror on io_led[8..10].
+        let btn_leds = (btn_val as u16) << 8;
 
-        // 4. Combine and write to LED register
-        // Note: LED[7] is ignored by hardware, so we can leave it 0
-        let final_led_output = onboard_leds | pmod_leds;
-        led_write(final_led_output as u16);
+        // 4) Combine GPIO-driven LEDs and write once.
+        // bit7 is reserved internally for cpuRunning in hardware.
+        led_write(adc_leds | btn_leds);
 
-        // 5. Small delay to prevent spamming and flickering
-        for _ in 0..500_000 {
+        // 5) RGB PWM fade test on io_led[12..14].
+        // R fades up while B fades down, G runs at half intensity.
+        rgb_set(fade, fade / 2, 100 - fade);
+
+        if fade_up {
+            if fade >= 100 {
+                fade_up = false;
+            } else {
+                fade += 1;
+            }
+        } else if fade == 0 {
+            fade_up = true;
+        } else {
+            fade -= 1;
+        }
+
+        // 6) Small delay to set animation speed.
+        for _ in 0..150_000 {
             unsafe { core::arch::asm!("nop"); }
         }
     }
