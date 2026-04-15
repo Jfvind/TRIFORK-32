@@ -117,16 +117,16 @@ fn adc_read_all() -> [u32; 4] {
 // When enabled, that LED is controlled by its duty cycle instead of led_write().
 fn pwm_enable(mask: u16) {
     unsafe {
-        PWM.BASE.write_volatile(mask as u32)
+        PWM_BASE.write_volatile(mask as u32);
     }
 }
 
 // Sets the brightness of a PWM enabled LED.
 // 'channel' : LED number (0 - 6, 8 - 15)
 // 'percent' : brightness from 0 (off) to 100 (full)
-fn pwn_set(channel: u8, percent: u8) {
-    let perceent = if percent > 100 { 100 } else { percent };
-    let duty = (percent as u32 * 255) / 100
+fn pwm_set(channel: u8, percent: u8) {
+    let percent = if percent > 100 { 100 } else { percent };
+    let duty = (percent as u32 * 255) / 100;
     unsafe {
         PWM_BASE.offset((channel as isize) + 1).write_volatile(duty);
     }
@@ -146,32 +146,52 @@ fn main() {
     println!("SRAM Size: {} bytes", 4096);
     println!("Status: PASS");
 
+    // Enable PWM on onboard LEDs 0-6 and RGB LED on pins 12-14
+    pwm_enable(0b0111_0000_0111_1111);
+
+    let thresholds = [0u32, 500, 1000, 1500, 2000, 2500, 3000];
+    let mut rgb_state: u8 = 0;
+    let mut rgb_counter: u32 = 0;
+
     loop {
         // 1. Read hardware peripherals
         let adc_val = adc_read_all(); // Returns 0 to 4095 for all four inputs
         let btn_val = btn_read(); // Returns 4-bit button state
 
-        // 2. Logic: Map ADC to Onboard LEDs (Bits 0 to 6) like a volume bar graph
-        let mut onboard_leds = 0;
-        if adc_val[0] > 500  { onboard_leds |= 0b0000001; } // LED 0
-        if adc_val[0] > 1000 { onboard_leds |= 0b0000011; } // LED 1
-        if adc_val[0] > 1500 { onboard_leds |= 0b0000111; } // LED 2
-        if adc_val[0] > 2000 { onboard_leds |= 0b0001111; } // LED 3
-        if adc_val[0] > 2500 { onboard_leds |= 0b0011111; } // LED 4
-        if adc_val[0] > 3000 { onboard_leds |= 0b0111111; } // LED 5
-        if adc_val[0] > 3500 { onboard_leds |= 0b1111111; } // LED 6
+        // 2. Logic: Smooth PWM gradient on onboard LEDs (Bits 0 to 6)
+        for i in 0..7 {
+            let t = thresholds[i];
+            let brightness = if adc_val[0] >= t + 500 {
+                100
+            } else if adc_val[0] <= t {
+                0
+            } else {
+                ((adc_val[0] - t) * 100 / 500) as u8
+            };
+            pwm_set(i as u8, brightness);
+        }
 
         // 3. Logic: Map Buttons to PMOD LEDs (Bits 8, 9, 10)
         // BTN[0] -> LED[8], BTN[1] -> LED[9], BTN[2] -> LED[10]
         // We isolate the lowest 3 buttons (0b111) and shift them left by 8
         let pmod_leds = (btn_val & 0b111) << 8;
 
-        // 4. Combine and write to LED register
-        // Note: LED[7] is ignored by hardware, so we can leave it 0
-        let final_led_output = onboard_leds | pmod_leds;
-        led_write(final_led_output as u16);
+        // 4. Write button LEDs to LED register (onboard LEDs handled by PWM)
+        led_write(pmod_leds as u16);
 
-        // 5. Small delay to prevent spamming and flickering
+        // 5. RGB LED on pins 12-14: cycle through colors
+        rgb_counter += 1;
+        if rgb_counter >= 200 {
+            rgb_counter = 0;
+            rgb_state = (rgb_state + 1) % 3;
+            match rgb_state {
+                0 => rgb_set(100, 0, 0),   // Red
+                1 => rgb_set(0, 100, 0),   // Green
+                _ => rgb_set(0, 0, 100),   // Blue
+            }
+        }
+
+        // 6. Small delay to prevent spamming and flickering
         for _ in 0..500_000 {
             unsafe { core::arch::asm!("nop"); }
         }

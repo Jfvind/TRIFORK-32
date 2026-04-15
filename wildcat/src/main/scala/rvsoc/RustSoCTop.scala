@@ -211,8 +211,8 @@ class RustSoCTop(frequ: Int = 100000000, baudRate: Int = 115200, memBytes: Int =
       // LED register write
       ledReg := cpu.io.dmem.wrData(15, 0)
     }.elsewhen (cpu.io.dmem.address(23, 20) === 4.U) {
-      // PWMregisters: offset 0x00 = enable, 0x04-01C = duty cycle ch 0 - 6
-      when (cpu.io.dmem.adress(6, 2) === 0.U) {
+      // PWM registers: offset 0x00 = enable, 0x04-0x44 = duty cycle ch 0-15
+      when (cpu.io.dmem.address(6, 2) === 0.U) {
         pwmEnable := cpu.io.dmem.wrData(15,0)
       }
       for (i <- 0 until 16) {
@@ -224,9 +224,6 @@ class RustSoCTop(frequ: Int = 100000000, baudRate: Int = 115200, memBytes: Int =
     // Prevent IO-mapped writes from reaching the scratchpad memory.
     dmem.io.wr := false.B
   }
-
-  // LED output: MSB = cpuRunning indicator, lower 8 bits = ledReg, bit 15 downto 8 are GPIO LED
-  io.led := RegNext(ledReg(15, 8)) ## cpuRunning ## RegNext(ledReg(6, 0))
 
   // Mux between direct LED register and PWM output per channel
   val pwmLedBits = Wire(Vec(16, Bool()))
