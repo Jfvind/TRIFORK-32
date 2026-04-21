@@ -87,10 +87,12 @@ Required to assemble the simulation test programs (`make sim-test`). Not needed 
 - **Linux (Ubuntu 22.04 and earlier):** `sudo apt-get install -y gcc-riscv64-unknown-elf`
 
 ## :rocket: Getting started
-After boot, the program prints "PASS" over UART and enters button mode.
-Pressing any of the four directional buttons (btnU, btnL, btnR, btnD) 
-will light up the corresponding LED (0-3).
-**Note:** When CPU is running, the leftmost LED is lit.
+After boot, the program prints "PASS" over UART and demonstrates all peripherals:
+- **ADC bar-graph:** Onboard LEDs 0-6 light up as a bar-graph based on the first JXADC analaog input
+- **Buttons:** btnU, btnL, btnR, light up Pmod LEDs 8, 9, 10 respectively.
+- **RGB LED (PWM):** Pmod pins 12-14 drive a common-anode RGB LED that fades through red, green, and blue
+
+**Note:** When CPU is running, LED 7 (leftmost onboard) is lit as a status indicator.
 
 The test circuit below is the hardware setup used by the code currently running in [sw/program/src/main.rs](sw/program/src/main.rs).
 
@@ -106,7 +108,9 @@ The test circuit below is the hardware setup used by the code currently running 
 | `0xF010_0000`  | LED register (bit 0-6 = LED 0-6, bit 7 = CPU running indicator (read-only), bit 8-15 = LED 8-15) |
 | `0xF020_0000`  | Button register (bit 0-3 = btnU, btnL, btnR, btnD, read-only) |
 | `0xF030_0000`  | Base address for JXADC analog inputs, offset for four total inputs (e.g. `0xF030_0004`) |
-| `0xF040_0000`  | PWM base address for LED brightness control (enable at offset `0x00`, duty cycle channels at `0x04`-`0x44`) |
+| `0xF040_0000`  | PWM enable bitmask (bit N = 1 → LED N is PWM-controlled, bit 7 ignored) |
+| `0xF040_0004`  | PWM duty cycle for LED 0 (0-255, 8-bit)                          |
+| `0xF040_0008` — `0xF040_0044`  | PWM duty cycle for LED 1-15 (same format, offset 4 bytes per channel) |
 
 ### 1. Clone repo
 ```bash
