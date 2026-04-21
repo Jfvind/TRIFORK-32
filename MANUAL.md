@@ -19,6 +19,18 @@ RISC-V arkitekturen som Wildcat-processoren er bygget på har kun load/store ope
 ### Hvad er HAL (Hardware Abstraction Layer)
 For at forenkle programmering af denne SoC er selveste interaktionen med det tilgængelige Memory-Mapped I/O løftet op på et højere abstraktionsniveau. I stedet for at skulle kende de specifikke hukommelsesadresser, er dette et lag af hjælpefunktioner hvor adresserne er hardcodet sammen med den ønskede interaktion i specifikke funktioner. I stedet for at skrive `unsafe { (0xF010_0000 as *mut u32).write_volatile(0xFF) }` kan man skrive `led_write(0xFF)`.
 
+### Hvad er PWM (Pulse Width Modulation)
+PWM er en teknik til at styre hvor meget effekt der leveres til en enhed - f.eks. lysstyrken af en LED - ved at tænde og slukke signalet ekstremt hurtigt. I stedet for at sende en "halv" spænding (hvilket kræver analog elektronik), tænder vi LED'en i en vis procentdel af tiden og slukker den resten. Dette forhold kaldes *duty cycle*: 100% = altid tændt (fuld lysstyrke), 50% = tændt halvdelen af tiden (halv lysstyrke), 0% = altid slukket.
+
+Når skiftene sker hurtigt nok (typisk over 100Hz), kan det menneskelige øje ikke skelne de individuelle blink - det opfattes som en jævn dæmpet lysstyrke. På denne SoC kører PWM-tælleren med ~390 kHz, langt over flimre-grænsen, så alle dæmpede LEDs producerer den ønskede bløde og glatte effekt.
+
+PWM-modulet i denne SoC er implementeret direkte i hardware. Det betyder at CPU'en kun skal skrive én duty cycle-værdi per kanal, og så generere hardwaren selv de hurtige skift. CPU'en er demed fri til at lave andet arbejde imens.
+
+### Hvad er en RGB-LED
+En RGB-LED er tre separate enkeltfarvede LEDs (rød, grøn, blå) pakket ind i én fysisk komponent. Ved at styre lysstyrken af hver af de tre kanaler uafhængigt - typisk via PWM - kan man vlande farverne og proiducere næsten enhver farve. Denne farveblanding sker i dit øje, ikke i LED'en: når tre lyskilder sidder tæt nok sammen, kan øjet ikke skelne dem individuelt og opdatter dem som ét kombineret lys.
+
+RGB-LEDs findes i to varianter: *common-anode* hvor den fælles pin er +3.3V og hver farvekanal tændes ved at trække den til ground, og *common-cathode* hvor det er omvendt. I common-anode betyder det at en *lav* duty cycle giver *høj* lysstyrke — hvilket HAL-funktionen `rgb_set` tager højde for automatisk.
+
 ## Forudsætninger og opsætning
 Forudsætningerne for at og flashe projektets softcore arkitektur over på en Basys-3 FPGA for tilsidst at uploade og køre det Rust program der udgør logikken for dit miljø-overvågningssystem er beskrevet i den installationsguide du finder i projektetes `READEME.md`-fil. 
 
@@ -104,7 +116,9 @@ Adresserummet er delt i to områder: adresser der starter med `0x0` peger på sc
 | `0xF010_0000` | LED-register (bit 0–6, 8–15 = LEDs, bit 7 = CPU running indikator) | Skriv (bit 7 read-only) |
 | `0xF020_0000` | Button-register (bit 0–3 = btnU, btnL, btnR, btnD) | Læs |
 | `0xF030_0000`  | Base address for JXADC analog inputs, offset for four total inputs (e.g. `0xF030_0004`) | Læs |
-| `0xF040_0000`  | PWM base address for LED brightness control (enable at offset `0x00`, duty cycle channels at `0x04`-`0x44`) | Læs + Skriv |
+| `0xF040_0000` | PWM enable-bitmask (bit N = 1 → LED N styres af PWM, bit 7 ignoreres) | Læs + Skriv |
+| `0xF040_0004` | PWM duty cycle for LED 0 (8-bit værdi 0-255) | Læs + Skriv |
+| `0xF040_0008 – 0xF040_0044` | PWM duty cycle for LED 1-15 (samme format, offset 4 bytes per kanal) | Læs + Skriv |
 
 ## Workflow - fra Rust-kode til kørende program
 Når du udvikler programmer til denne SoCc, er dit workflow:
@@ -122,8 +136,6 @@ Kommandoen `make upload` automatiserer følgende kæde af handlinger:
 2. **Konvertering:** `cargo objcopy` konverterer denne ELF-fil til en rå binærfil (`program.bin`). Denne fil indeholder udelukkende maskinkode uden metadata - det er de bytes der skal ligges ind i hukommelsen på din basys-3 FPGA.
 3. **Upload:** Python-scriptet `upload.py` sender binærfilen over USB/UART til FPGA'en. Scriptet håndterer reset, aktivering af bootloader, og overførsel af programdata (se bootflow sektion for flere detaljer).
 4. **Eksekvering:** Når upload er færdig, frigiver bootloaderen CPU'en og dit progream eksekveres fra adresse `0x0000_0000`.
-
-### Filstruktur
 
 ### Filstruktur
 
@@ -194,6 +206,50 @@ if adc_val[0] > 2048 { // Aflæser component i JXADC1, 7
 }
 ```
 
+### PWM: `pwm_enable(mask: u16)`
+
+Aktiverer PWM-mode for specifikke LEDs. Hvert bit i `mask` svarer til én LED — bit 0 = LED 0, bit 1 = LED 1, osv. Når en LED er PWM-enabled, styres dens lysstyrke af dens duty cycle-register i stedet for det almindelige LED-register.
+
+```rust
+pwm_enable(0b0000_0000_0111_1111); // PWM på LED 0-6 (onboard)
+pwm_enable(0b0111_0000_0000_0000); // PWM på LED 12-14 (RGB)
+pwm_enable(0); // Slå PWM fra for alle LEDs
+```
+
+**Bemærk:** Bit 7 ignoreres af hardwaren, da LED 7 er reserveret til CPU running-indikatoren. LEDs der *ikke* er PWM-aktiverede opfører sig som normalt og styres af `led_write()`.
+
+### PWM: `pwm_set(channel: u8, percent: u8)`
+
+Sætter lysstyrken af en PWM-aktiveret LED som en procentværdi. `channel` er LED-nummeret (0-6 eller 8-15), og `percent` er lysstyrken fra 0 (slukket) til 100 (fuld lysstyrke). Værdier over 100 clampes automatisk til 100.
+
+```rust
+pwm_set(0, 100); // LED 0: fuld lysstyrke
+pwm_set(1, 50);  // LED 1: halv lysstyrke
+pwm_set(2, 10);  // LED 2: svagt lys
+pwm_set(3, 0);   // LED 3: slukket
+```
+
+For at en `pwm_set`-skrivning faktisk påvirker en LED, skal den pågældende kanal være aktiveret via `pwm_enable`. Hvis ikke, gemmes duty cycle-værdien i registret men ignoreres af LED-outputtet.
+
+### RGB-LED: `rgb_set(r: u8, g: u8, b: u8)`
+
+Sætter farven af en RGB-LED tilsluttet pin 12, 13 og 14. Hver farvekanal angives som en procentværdi (0-100). Funktionen inverterer værdierne internt fordi RGB-LED'en er common-anode — så en høj `r`-værdi giver reelt høj rød lysstyrke, som forventet.
+
+```rust
+rgb_set(100, 0, 0);   // Fuld rød
+rgb_set(0, 100, 0);   // Fuld grøn
+rgb_set(0, 0, 100);   // Fuld blå
+rgb_set(100, 100, 0); // Gul (rød + grøn)
+rgb_set(50, 0, 50);   // Lilla (halv rød + halv blå)
+rgb_set(0, 0, 0);     // Slukket
+```
+
+**Forudsætning:** PWM skal være aktiveret for pin 12-14 før `rgb_set` virker:
+
+```rust
+pwm_enable(0b0111_0000_0000_0000); // Aktiver PWM på bit 12, 13, 14
+```
+
 ### UART: `print!()` og `println!()`
 
 Sender tekst over den serielle forbindelse (UART). Fungerer 
@@ -231,37 +287,93 @@ De prædefinerede adresser er:
 | `UART_DATA` | `0xF000_0004` | `*mut u32` | UART data (send/modtag) |
 | `LED_REG` | `0xF010_0000` | `*mut u32` | LED-register |
 | `BTN_REG` | `0xF020_0000` | `*const u32` | Button-register |
+| `ADC_BASE` | `0xF030_0000` | `*const u32` | ADC-base (4 kanaler, offset 0-12) |
+| `PWM_BASE` | `0xF040_0000` | `*mut u32` | PWM-base (enable + 16 duty registre) |
 
 
 ## Eksempler på programmering
 
-### Komplet eksempel: Button-blink
+### Komplet eksempel: Alle periferienheder
 
-Følgende program demonstrerer brug af alle tilgængelige 
-I/O enheder. Ved opstart printes en besked over UART, 
-og derefter aflæses knapperne kontinuerligt — de tilsvarende 
-LEDs tændes når en knap holdes nede.
+Følgende program demonstrerer brug af alle tilgængelige I/O-enheder. 
+Ved opstart printes en besked over UART, og derefter kører systemet 
+i en uendelig løkke der samtidig:
+
+- Viser ADC-værdien som en bar-graph på onboard LEDs 0-6
+- Spejler knaptryk på Pmod LEDs 8, 9, 10
+- Fader en RGB-LED på pin 12-14 igennem rød, grøn og blå
+
 ```rust
 fn main() {
-    // Print boot-besked over UART
+    // Boot-besked over UART
     println!("=== DTU MCU Booted ===");
-    println!("Tryk på knapperne for at tænde LEDs");
+    println!("SRAM Size: {} bytes", 4096);
+    println!("Status: PASS");
 
-    // Kontinuerlig aflæsning af knapper
+    // Aktiver PWM kun for RGB-LED på pin 12-14.
+    // Onboard LED 0-6 forbliver almindelig GPIO (on/off).
+    pwm_enable((1u16 << 12) | (1u16 << 13) | (1u16 << 14));
+
+    // Fade-tilstand for RGB-test
+    let mut fade: u8 = 0;
+    let mut fade_up = true;
+    let mut color_phase: u8 = 0; // 0 = rød, 1 = grøn, 2 = blå
+
     loop {
-        let buttons = btn_read();
-        led_write(buttons as u16);
+        // 1. Aflæs periferienheder
+        let adc_val = adc_read_all();
+        let btn_val = btn_read() & 0b111;
+
+        // 2. ADC bar-graph på onboard LEDs 0-6
+        let mut adc_leds: u16 = 0;
+        if adc_val[0] > 512  { adc_leds |= 0b0000001; }
+        if adc_val[0] > 1024 { adc_leds |= 0b0000011; }
+        if adc_val[0] > 1536 { adc_leds |= 0b0000111; }
+        if adc_val[0] > 2048 { adc_leds |= 0b0001111; }
+        if adc_val[0] > 2560 { adc_leds |= 0b0011111; }
+        if adc_val[0] > 3072 { adc_leds |= 0b0111111; }
+        if adc_val[0] > 3584 { adc_leds |= 0b1111111; }
+
+        // 3. Spejl knapper på Pmod LEDs 8-10
+        let btn_leds = (btn_val as u16) << 8;
+
+        // 4. Skriv alle GPIO-styrede LEDs på én gang
+        led_write(adc_leds | btn_leds);
+
+        // 5. Fade RGB-LED — én farve ad gangen
+        match color_phase {
+            0 => rgb_set(fade, 0, 0),
+            1 => rgb_set(0, fade, 0),
+            _ => rgb_set(0, 0, fade),
+        }
+
+        if fade_up {
+            if fade >= 100 { fade_up = false; }
+            else { fade += 1; }
+        } else {
+            if fade == 0 {
+                fade_up = true;
+                color_phase = (color_phase + 1) % 3;
+            } else { fade -= 1; }
+        }
+
+        // 6. Lille forsinkelse for animation
+        for _ in 0..150_000 {
+            unsafe { core::arch::asm!("nop"); }
+        }
     }
 }
 ```
 
 **Forventet adfærd:**
 - Ved opstart vises "=== DTU MCU Booted ===" i terminalen
-- Tryk btnU → LED 0 lyser
-- Tryk btnL → LED 1 lyser
-- Tryk btnR → LED 2 lyser
-- Tryk btnD → LED 3 lyser
-- Tryk flere knapper samtidigt → flere LEDs lyser
+- Drej på potentiometer tilsluttet JXADC → flere LEDs (0-6) lyser op som en bar-graph
+- Tryk btnU → LED 8 lyser, btnL → LED 9, btnR → LED 10
+- RGB-LED på pin 12-14 fader langsomt op til fuld rød, ned til slukket, op til fuld grøn, ned, op til fuld blå, ned, og gentager
+
+**Bemærk:** Hvis din RGB-LED er common-cathode i stedet for common-anode, skal 
+`rgb_set`-funktionen i `main.rs` ændres så den ikke inverterer værdierne 
+(fjern `100 -` foran `r`, `g`, `b`).
 
 ## Fejlfinding
 
@@ -313,3 +425,32 @@ størrelse.
 Husk at LED 7 er reserveret til CPU running-indikatoren og 
 kan ikke styres fra software. Tjek at du bruger de rigtige 
 bit-positioner i `led_write()`.
+
+### PWM-aktiverede LEDs lyser ikke, selvom `pwm_set` kaldes
+
+Tjek at `pwm_enable` er kaldt for den pågældende kanal. Duty cycle-værdier skrives til hardware-registrene uanset, men LED-outputtet bruger kun PWM-signalet hvis det tilsvarende enable-bit er sat. Eksempel: For at styre LED 0 med PWM skal bit 0 i `pwm_enable` være 1.
+
+```rust
+pwm_enable(0b0000_0000_0000_0001); // Aktiver PWM på LED 0
+pwm_set(0, 50);                     // Nu virker denne linje
+```
+
+### RGB-LED lyser modsat forventet (høj værdi = mørk)
+
+Din RGB-LED er sandsynligvis *common-cathode* i stedet for *common-anode*. HAL-funktionen `rgb_set` inverterer værdierne som standard fordi den antager common-anode. For en common-cathode LED skal du ændre `rgb_set` i `main.rs` så inverteringen fjernes:
+
+```rust
+fn rgb_set(r: u8, g: u8, b: u8) {
+    pwm_set(12, r);  // Ingen inversion
+    pwm_set(13, g);
+    pwm_set(14, b);
+}
+```
+
+### Almindelige `led_write`-skrivninger virker ikke efter `pwm_enable`
+
+Det er forventet adfærd. Når PWM er aktiveret for en LED, overtager PWM-modulet outputtet og ignorerer det almindelige LED-register for den kanal. For at skifte en LED tilbage til almindelig on/off-mode skal du rydde dens bit i enable-masken.
+
+```rust
+pwm_enable(0); // Slå PWM helt fra — alle LEDs tilbage til led_write()
+```
