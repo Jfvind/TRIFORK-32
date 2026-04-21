@@ -167,3 +167,4 @@ Static version from feb-2026.
 - Added WSL detection in src/main/scala/Util.scala for running tests in powershell.
 - Changed calling of make app to correct path for powershell calling (SimulatorTest, SingleCycleTest, WildcatTest, WildcatTestUart).
 - Added WSL detection in Makefile for binary compilation (riscv64 toolchain).
+- Implemented a real 64-bit cycle counter in src/main/scala/wildcat/pipeline/Csr.scala. Previously CYCLE/CYCLEH/TIME/TIMEH returned hardcoded stub values (1/2/3/4); they now return the low/high 32 bits of a counter that increments every clock cycle. This enables precise timing via `rdcycle` from Rust, which is needed for the I2C HAL.

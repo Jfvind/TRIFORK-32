@@ -363,18 +363,77 @@ end // initial
 `endif // SYNTHESIS
 endmodule
 module Csr(
+  input         clock,
+  input         reset,
   input  [11:0] io_address, // @[\\src\\main\\scala\\wildcat\\pipeline\\Csr.scala 14:14]
   output [31:0] io_data // @[\\src\\main\\scala\\wildcat\\pipeline\\Csr.scala 14:14]
 );
-  wire [31:0] _GEN_0 = 12'hf12 == io_address ? 32'h2f : 32'h0; // @[\\src\\main\\scala\\wildcat\\pipeline\\Csr.scala 22:22 48:12 19:25]
-  wire [31:0] _GEN_1 = 12'hb81 == io_address ? 32'h0 : _GEN_0; // @[\\src\\main\\scala\\wildcat\\pipeline\\Csr.scala 22:22 45:12]
-  wire [31:0] _GEN_2 = 12'hb01 == io_address ? 32'h0 : _GEN_1; // @[\\src\\main\\scala\\wildcat\\pipeline\\Csr.scala 22:22 42:12]
-  wire [31:0] _GEN_3 = 12'hb80 == io_address ? 32'h0 : _GEN_2; // @[\\src\\main\\scala\\wildcat\\pipeline\\Csr.scala 22:22 39:12]
-  wire [31:0] _GEN_4 = 12'hb00 == io_address ? 32'h0 : _GEN_3; // @[\\src\\main\\scala\\wildcat\\pipeline\\Csr.scala 22:22 36:12]
-  wire [31:0] _GEN_5 = 12'hc81 == io_address ? 32'h4 : _GEN_4; // @[\\src\\main\\scala\\wildcat\\pipeline\\Csr.scala 22:22 33:12]
-  wire [31:0] _GEN_6 = 12'hc01 == io_address ? 32'h3 : _GEN_5; // @[\\src\\main\\scala\\wildcat\\pipeline\\Csr.scala 22:22 30:12]
-  wire [31:0] _GEN_7 = 12'hc80 == io_address ? 32'h2 : _GEN_6; // @[\\src\\main\\scala\\wildcat\\pipeline\\Csr.scala 22:22 27:12]
-  assign io_data = 12'hc00 == io_address ? 32'h1 : _GEN_7; // @[\\src\\main\\scala\\wildcat\\pipeline\\Csr.scala 22:22 24:12]
+`ifdef RANDOMIZE_REG_INIT
+  reg [63:0] _RAND_0;
+`endif // RANDOMIZE_REG_INIT
+  reg [63:0] cycleCounter; // @[\\src\\main\\scala\\wildcat\\pipeline\\Csr.scala 22:29]
+  wire [63:0] _cycleCounter_T_1 = cycleCounter + 64'h1; // @[\\src\\main\\scala\\wildcat\\pipeline\\Csr.scala 23:32]
+  wire [31:0] _GEN_0 = 12'hf12 == io_address ? 32'h2f : 32'h0; // @[\\src\\main\\scala\\wildcat\\pipeline\\Csr.scala 28:22 54:12 25:25]
+  wire [31:0] _GEN_1 = 12'hb81 == io_address ? 32'h0 : _GEN_0; // @[\\src\\main\\scala\\wildcat\\pipeline\\Csr.scala 28:22 51:12]
+  wire [31:0] _GEN_2 = 12'hb01 == io_address ? 32'h0 : _GEN_1; // @[\\src\\main\\scala\\wildcat\\pipeline\\Csr.scala 28:22 48:12]
+  wire [31:0] _GEN_3 = 12'hb80 == io_address ? 32'h0 : _GEN_2; // @[\\src\\main\\scala\\wildcat\\pipeline\\Csr.scala 28:22 45:12]
+  wire [31:0] _GEN_4 = 12'hb00 == io_address ? 32'h0 : _GEN_3; // @[\\src\\main\\scala\\wildcat\\pipeline\\Csr.scala 28:22 42:12]
+  wire [31:0] _GEN_5 = 12'hc81 == io_address ? cycleCounter[63:32] : _GEN_4; // @[\\src\\main\\scala\\wildcat\\pipeline\\Csr.scala 28:22 39:12]
+  wire [31:0] _GEN_6 = 12'hc01 == io_address ? cycleCounter[31:0] : _GEN_5; // @[\\src\\main\\scala\\wildcat\\pipeline\\Csr.scala 28:22 36:12]
+  wire [31:0] _GEN_7 = 12'hc80 == io_address ? cycleCounter[63:32] : _GEN_6; // @[\\src\\main\\scala\\wildcat\\pipeline\\Csr.scala 28:22 33:12]
+  assign io_data = 12'hc00 == io_address ? cycleCounter[31:0] : _GEN_7; // @[\\src\\main\\scala\\wildcat\\pipeline\\Csr.scala 28:22 30:12]
+  always @(posedge clock) begin
+    if (reset) begin // @[\\src\\main\\scala\\wildcat\\pipeline\\Csr.scala 22:29]
+      cycleCounter <= 64'h0; // @[\\src\\main\\scala\\wildcat\\pipeline\\Csr.scala 22:29]
+    end else begin
+      cycleCounter <= _cycleCounter_T_1; // @[\\src\\main\\scala\\wildcat\\pipeline\\Csr.scala 23:16]
+    end
+  end
+// Register and memory initialization
+`ifdef RANDOMIZE_GARBAGE_ASSIGN
+`define RANDOMIZE
+`endif
+`ifdef RANDOMIZE_INVALID_ASSIGN
+`define RANDOMIZE
+`endif
+`ifdef RANDOMIZE_REG_INIT
+`define RANDOMIZE
+`endif
+`ifdef RANDOMIZE_MEM_INIT
+`define RANDOMIZE
+`endif
+`ifndef RANDOM
+`define RANDOM $random
+`endif
+`ifdef RANDOMIZE_MEM_INIT
+  integer initvar;
+`endif
+`ifndef SYNTHESIS
+`ifdef FIRRTL_BEFORE_INITIAL
+`FIRRTL_BEFORE_INITIAL
+`endif
+initial begin
+  `ifdef RANDOMIZE
+    `ifdef INIT_RANDOM
+      `INIT_RANDOM
+    `endif
+    `ifndef VERILATOR
+      `ifdef RANDOMIZE_DELAY
+        #`RANDOMIZE_DELAY begin end
+      `else
+        #0.002 begin end
+      `endif
+    `endif
+`ifdef RANDOMIZE_REG_INIT
+  _RAND_0 = {2{`RANDOM}};
+  cycleCounter = _RAND_0[63:0];
+`endif // RANDOMIZE_REG_INIT
+  `endif // RANDOMIZE
+end // initial
+`ifdef FIRRTL_AFTER_INITIAL
+`FIRRTL_AFTER_INITIAL
+`endif
+`endif // SYNTHESIS
 endmodule
 module ThreeCats(
   input         clock,
@@ -442,6 +501,8 @@ module ThreeCats(
   reg [4:0] regs_rs1Val_MPORT_addr_pipe_0;
   reg  regs_rs2Val_MPORT_en_pipe_0;
   reg [4:0] regs_rs2Val_MPORT_addr_pipe_0;
+  wire  csr_clock; // @[\\src\\main\\scala\\wildcat\\pipeline\\ThreeCats.scala 64:19]
+  wire  csr_reset; // @[\\src\\main\\scala\\wildcat\\pipeline\\ThreeCats.scala 64:19]
   wire [11:0] csr_io_address; // @[\\src\\main\\scala\\wildcat\\pipeline\\ThreeCats.scala 64:19]
   wire [31:0] csr_io_data; // @[\\src\\main\\scala\\wildcat\\pipeline\\ThreeCats.scala 64:19]
   reg  exFwdReg_valid; // @[\\src\\main\\scala\\wildcat\\pipeline\\ThreeCats.scala 36:25]
@@ -670,6 +731,8 @@ module ThreeCats(
   wire  wr = |_wr_T; // @[\\src\\main\\scala\\wildcat\\pipeline\\Functions.scala 369:28]
   wire [31:0] decEx_csrVal = csr_io_data; // @[\\src\\main\\scala\\wildcat\\pipeline\\ThreeCats.scala 70:19 91:16]
   Csr csr ( // @[\\src\\main\\scala\\wildcat\\pipeline\\ThreeCats.scala 64:19]
+    .clock(csr_clock),
+    .reset(csr_reset),
     .io_address(csr_io_address),
     .io_data(csr_io_data)
   );
@@ -689,6 +752,8 @@ module ThreeCats(
   assign io_dmem_wr = decOut_isStore & _T_14 & wr; // @[\\src\\main\\scala\\wildcat\\pipeline\\ThreeCats.scala 104:14 109:37 112:16]
   assign io_dmem_wrData = decOut_isStore & _T_14 ? wrData : data; // @[\\src\\main\\scala\\wildcat\\pipeline\\ThreeCats.scala 103:18 109:37 111:20]
   assign io_dmem_wrMask = decOut_isStore & _T_14 ? _wr_T : 4'h0; // @[\\src\\main\\scala\\wildcat\\pipeline\\ThreeCats.scala 105:18 109:37 113:20]
+  assign csr_clock = clock;
+  assign csr_reset = reset;
   assign csr_io_address = instrReg[31:20]; // @[\\src\\main\\scala\\wildcat\\pipeline\\ThreeCats.scala 65:29]
   always @(posedge clock) begin
     if (regs_MPORT_en & regs_MPORT_mask) begin

@@ -16,21 +16,27 @@ class Csr() extends Module {
     val data = Output(UInt(32.W))
   })
 
+  // 64-bit cycle counter that increments every clock cycle.
+  // Used by Rust code via rdcycle/rdcycleh for precise timing
+  // /(e.g. I2C bit timing, delay_us, delay_ms).
+  val cycleCounter = RegInit(0.U(64.W))
+  cycleCounter := cycleCounter + 1.U
+
   val data = WireDefault(0.U(32.W))
 
 
   switch(io.address) {
     is(CYCLE.U) {
-      data := 1.U
+      data := cycleCounter(31, 0)
     }
     is(CYCLEH.U) {
-      data := 2.U
+      data := cycleCounter(63, 32)
     }
     is(TIME.U) {
-      data := 3.U
+      data := cycleCounter(31, 0)
     }
     is(TIMEH.U) {
-      data := 4.U
+      data := cycleCounter(63, 32)
     }
     is(MCYCLE.U) {
       data := 0.U
