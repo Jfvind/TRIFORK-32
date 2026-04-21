@@ -23,37 +23,37 @@ const DONE_MAGIC:  u32 = 0xD0000000;
 const RESET_MAGIC: u32 = 0xDEADBEEF;
 const DEFAULT_BAUD: u32 = 115_200;
 
-// Small delay between bytes so the bootloader has time to process each one.
+/// Small delay between bytes so the bootloader has time to process each one.
 const INTER_BYTE_DELAY: Duration = Duration::from_millis(1);
 
 #[derive(Parser, Debug)]
 #[command(author, version, about = "Upload a binary to the FPGA via UART bootloader")]
 struct Args {
-    // Serial port (e.g. COM3, /dev/ttyUSB0)
+    /// Serial port (e.g. COM3, /dev/ttyUSB0)
     #[arg(long)]
     port: String,
 
-    // Path to binary file (.bin)
+    /// Path to binary file (.bin)
     #[arg(long)]
     binary: String,
 
-    // Baud rate
+    /// Baud rate
     #[arg(long, default_value_t = DEFAULT_BAUD)]
     baud: u32,
 
-    // Base address for the binary (accepts 0x prefix)
+    /// Base address for the binary (accepts 0x prefix)
     #[arg(long, default_value = "0", value_parser = parse_address)]
     base: u32,
 
-    // Listen for UART output for N seconds after upload
+    /// Listen for UART output for N seconds after upload
     #[arg(long, default_value_t = 0.0)]
     listen: f64,
 
-    // Expected string in UART output (for testing / CI)
+    /// Expected string in UART output (for testing / CI)
     #[arg(long)]
     expect: Option<String>,
 
-    // Timeout in seconds when using --expect
+    /// Timeout in seconds when using --expect
     #[arg(long, default_value_t = 5.0)]
     timeout: f64,
 }
@@ -68,7 +68,7 @@ fn parse_address(s: &str) -> Result<u32, String> {
     u32::from_str_radix(digits, radix).map_err(|e| format!("invalid address '{s}': {e}"))
 }
 
-// Write bytes one at a time with the inter-byte delay, mirroring the Python behaviour.
+/// Write bytes one at a time with the inter-byte delay, mirroring the Python behaviour.
 fn write_slow(port: &mut dyn SerialPort, bytes: &[u8]) -> Result<()> {
     for b in bytes {
         port.write_all(std::slice::from_ref(b))
@@ -90,7 +90,7 @@ fn send_start(port: &mut dyn SerialPort) -> Result<()> {
     Ok(())
 }
 
-// Send one (address, data) pair of 8 bytes to the bootloader (LE).
+/// Send one (address, data) pair of 8 bytes to the bootloader (LE).
 fn send_word(port: &mut dyn SerialPort, address: u32, data: u32) -> Result<()> {
     let mut payload = [0u8; 8];
     payload[0..4].copy_from_slice(&address.to_le_bytes());
