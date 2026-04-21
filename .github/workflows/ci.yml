@@ -99,8 +99,5 @@ jobs:
       - name: Build Rust test binary
         run: make rust-build
 
-      - name: Install Python dependencies
-        run: pip install -r sw/loader/requirements.txt
-
       - name: Upload test binary and verify UART output
         run: make hw-test SERIAL_PORT=COM4
