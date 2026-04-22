@@ -142,14 +142,14 @@ The test circuit below is the hardware setup used by the code currently running 
 | `0xF040_0004`  | PWM duty cycle for LED 0 (0-255, 8-bit)                          |
 | `0xF040_0008` — `0xF040_0044`  | PWM duty cycle for LED 1-15 (same format, offset 4 bytes per channel) |
 
-### 1. Clone repo
+### 1. Clone repo (requires git) OR download release zip
 ```bash
 git clone https://github.com/Jfvind/rust-riscv-soc
 cd rust-riscv-soc
 ```
 ### 2. Flash
 Build RustSoCTop.bin from wildcat/src/main/scala/rvsoc/RustSoCTop.scala and flash to Basys3
-- **Dependency:** Make sure Basys3 is connected and turned on (And 'Prerequisites & Installation' is completed)
+- **Dependency:** Make sure Basys3 is connected and turned on (And 'Prerequisites & Installation' is completed) and you terminal is in /rust-riscv-soc
 ```bash
 make flash
 ```
