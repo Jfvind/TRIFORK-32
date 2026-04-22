@@ -10,6 +10,12 @@ _Everything you need to write Rust programs and execute them on the FPGA._
 #### 1. Make (Build Tool)
 Required to run the automation scripts.
 
+**Check if installed:**
+```bash
+make --version
+```
+If you see a version number, Make is already installed — skip to the next tool. If not, proceed with installation:
+
 - Windows:
     - Option A (Recommended): Install via Chocolatey. Open PowerShell as Admin and run: ```choco install make```
     - Option B: Download GnuWin32 Make, install it, and add C:\Program Files (x86)\GnuWin32\bin to your PATH.
@@ -20,6 +26,12 @@ Required to run the automation scripts.
 #### 2. Xilinx Vivado (WebPACK Edition) !!Only needed if softcore is not already flashed to board!!
 Required for synthesizing the hardware and flashing the FPGA. Only needed once to program the non-volatile flash.
 
+**Check if installed:**
+```bash
+vivado -version
+```
+If you see version information, Vivado is already installed and in your PATH — skip to the next tool. If the command is not found, proceed with installation:
+
 - **Download:** Xilinx Unified Installer
 - **Install:** Select "Vivado Standard" or "WebPACK" (Free).
 - **Important:** During installation, ensure you install the Cable Drivers.
@@ -29,6 +41,13 @@ Required for synthesizing the hardware and flashing the FPGA. Only needed once t
 
 #### 3. Rust Toolchain
 Required to compile the Rust program that runs on the FPGA.
+
+**Check if installed:**
+```bash
+rustc --version
+cargo --version
+```
+If both commands show version numbers, Rust is already installed — verify the RISC-V target is added by running `rustc --print sysroot` and search the folder for `riscv32i-unknown-none-elf`. If Rust is not installed, proceed with installation:
 
 - **Install rustup:** [rustup.rs](https://rustup.rs/)
     ```bash
@@ -52,6 +71,12 @@ _Additional tools needed to modify the CPU hardware (Chisel) and run simulation 
 #### 4. Java 17+ (JDK)
 Required by sbt and the Chisel hardware generator.
 
+**Check if installed:**
+```bash
+java -version
+```
+If you see a version number that is 17 or higher (e.g., `17.0.x`, `21.0.x`), Java is installed — skip to the next tool. If not found or version is lower than 17, proceed with installation:
+
 - Windows/Linux: Download from [Adoptium](https://adoptium.net/) (Eclipse Temurin 17+).
 - Linux (Ubuntu): ```sudo apt install openjdk-17-jdk```
 - Verify: ```java -version```
@@ -59,12 +84,31 @@ Required by sbt and the Chisel hardware generator.
 #### 5. sbt (Scala Build Tool)
 Required to compile Chisel (`make generate-verilog`) and run simulation tests (`make sim-test`).
 
+**Check if installed:**
+```bash
+sbt --version
+```
+If you see a version number, sbt is already installed — skip to the next tool. If not found, proceed with installation:
+
 - All platforms: Follow the install guide at [scala-sbt.org](https://www.scala-sbt.org/download.html).
 - Linux (Ubuntu): ```sudo apt install sbt``` (after adding the sbt apt repository).
 - Verify: ```sbt --version```
 
 #### 6. RISC-V Assembler/Linker
 Required to assemble the simulation test programs (`make sim-test`). Not needed for building or flashing the FPGA.
+
+**Check if installed:**
+
+- **Windows (inside WSL):**
+  ```bash
+  wsl riscv64-linux-gnu-as --version
+  ```
+- **Linux:**
+  ```bash
+  riscv64-unknown-elf-as --version  # or
+  riscv64-linux-gnu-as --version
+  ```
+If you see version information, the RISC-V tools are installed — skip to the next section. If not found, proceed with installation:
 
 - **Windows:** WSL (Windows Subsystem for Linux) with the linux-gnu binutils:
     1. Install WSL (from an admin PowerShell): `wsl --install`
