@@ -70,6 +70,10 @@ Når først SoC'en er flashet, kan du uploade Rust-programmer (igen og igen) via
 **Itterer i jeres program design:**
 Efterfølgende ændringer i Rust-koden kan uploades ved at køre `make upload` igen. Det er ikke nødvændigt at reflashe SoC'en for at uplade nye programmer. 
 
+Testkredsløbet herunder er det hardware-setup, som bruges af koden der aktuelt kører i [sw/program/src/main.rs](sw/program/src/main.rs).
+
+![Test circuit for main.rs](Test-circuit.png)
+
 ## Systemarkitektur - CPU, hukommelse, boot-flow og memory map
 
 ### CPU: Wildcat ThreeCats
@@ -125,10 +129,6 @@ Når du udvikler programmer til denne SoCc, er dit workflow:
 1. Skriv eller rediger dit Rust-program i filen `sw/program/src/main.rs`
 2. Kør kommandoen `make upload SERIAL_PORT=<din_port>` fra roden af repoet (`.../rust-riscv-soc`)
 3. Dit program kompileres, uploades, og begynder at eksekvere automatisk.
-
-Testkredsløbet herunder er det hardware-setup, som bruges af koden der aktuelt kører i [sw/program/src/main.rs](sw/program/src/main.rs).
-
-![Test circuit for main.rs](Test-circuit.png)
 
 ### Hvad sker der på din pc?
 Kommandoen `make upload` automatiserer følgende kæde af handlinger:

@@ -128,20 +128,6 @@ The test circuit below is the hardware setup used by the code currently running 
 
 ![Test circuit for main.rs](Test-circuit.png)
 
-### Memory Map
-
-| Address        | Description                                      |
-|----------------|--------------------------------------------------|
-| `0x0000_0000`  | Scratchpad RAM (4 KB)                            |
-| `0xF000_0000`  | UART status (bit 0 = TX ready, bit 1 = RX ready)|
-| `0xF000_0004`  | UART data (read = RX, write = TX)                |
-| `0xF010_0000`  | LED register (bit 0-6 = LED 0-6, bit 7 = CPU running indicator (read-only), bit 8-15 = LED 8-15) |
-| `0xF020_0000`  | Button register (bit 0-3 = btnU, btnL, btnR, btnD, read-only) |
-| `0xF030_0000`  | Base address for JXADC analog inputs, offset for four total inputs (e.g. `0xF030_0004`) |
-| `0xF040_0000`  | PWM enable bitmask (bit N = 1 → LED N is PWM-controlled, bit 7 ignored) |
-| `0xF040_0004`  | PWM duty cycle for LED 0 (0-255, 8-bit)                          |
-| `0xF040_0008` — `0xF040_0044`  | PWM duty cycle for LED 1-15 (same format, offset 4 bytes per channel) |
-
 ### 1. Clone repo (requires git) OR download release zip
 ```bash
 git clone https://github.com/Jfvind/rust-riscv-soc
