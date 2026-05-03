@@ -52,8 +52,9 @@ fn build_hw(sh: &Shell) -> Result<(), xshell::Error> {
     // Check if RustSoCTop.scala changed
     if needs_rebuild(TOP_MODULE, V_FILE) {
         println!("--- Compiling to Verilog ---");
+        let sbt_cmd = if cfg!(target_os = "windows") { "sbt.bat" } else { "sbt" };
         let _dir = sh.push_dir(WILDCAT_DIR);
-        cmd!(sh, "sbt 'runMain rvsoc.RustSoCTopGen'").run()?;
+        cmd!(sh, "{sbt_cmd}").arg("runMain rvsoc.RustSoCTopGen").run()?;
     }
 
     // Run synthesis and implementation in Vivado
