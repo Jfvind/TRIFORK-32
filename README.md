@@ -121,8 +121,15 @@ After boot, the program prints "PASS" over UART and demonstrates all peripherals
 - **ADC bar-graph:** Onboard LEDs 0-6 light up as a bar-graph based on the first JXADC analaog input
 - **Buttons:** btnU, btnL, btnR, light up Pmod LEDs 8, 9, 10 respectively.
 - **RGB LED (PWM):** Pmod pins 12-14 drive a common-anode RGB LED that fades through red, green, and blue
+- **PMOD GPIO:** JA, JB, and JC are bidirectional GPIO banks. The Rust demo uses the new `Pmod` helper to drive outputs, read inputs, and route PWM to selected pins.
 
 **Note:** When CPU is running, LED 7 (leftmost onboard) is lit as a status indicator.
+
+### GPIO overview
+The hardware exposes three software-controlled PMOD GPIO banks in addition to the onboard LEDs, buttons, and ADC:
+- Each PMOD bank has direction, output, input, and PWM-enable registers.
+- The current Rust program uses JA for button mirroring and RGB PWM output.
+- GPIOs can be driven directly from Rust through the MMIO helpers in `sw/program/src/main.rs`.
 
 The test circuit below is the hardware setup used by the code currently running in [sw/program/src/main.rs](sw/program/src/main.rs).
 

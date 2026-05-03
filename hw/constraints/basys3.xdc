@@ -100,36 +100,36 @@ set_property PACKAGE_PIN A18 [get_ports io_tx]
 
 
 ##Pmod Header JA
-set_property PACKAGE_PIN J1 [get_ports {io_led[8]}]					
-set_property PACKAGE_PIN L2 [get_ports {io_led[9]}]					
-set_property PACKAGE_PIN J2 [get_ports {io_led[10]}]					
-set_property PACKAGE_PIN G2 [get_ports {io_led[11]}]					
-set_property PACKAGE_PIN H1 [get_ports {io_led[12]}]					
-set_property PACKAGE_PIN K2 [get_ports {io_led[13]}]					
-set_property PACKAGE_PIN H2 [get_ports {io_led[14]}]					
-set_property PACKAGE_PIN G3 [get_ports {io_led[15]}]					
+set_property PACKAGE_PIN J1 [get_ports {io_gpioJA[0]}]					
+set_property PACKAGE_PIN L2 [get_ports {io_gpioJA[1]}]					
+set_property PACKAGE_PIN J2 [get_ports {io_gpioJA[2]}]					
+set_property PACKAGE_PIN G2 [get_ports {io_gpioJA[3]}]					
+set_property PACKAGE_PIN H1 [get_ports {io_gpioJA[4]}]					
+set_property PACKAGE_PIN K2 [get_ports {io_gpioJA[5]}]					
+set_property PACKAGE_PIN H2 [get_ports {io_gpioJA[6]}]					
+set_property PACKAGE_PIN G3 [get_ports {io_gpioJA[7]}]					
 
 
 ##Pmod Header JB
-#set_property PACKAGE_PIN A14 [get_ports {JB[0]}]					
-#set_property PACKAGE_PIN A16 [get_ports {JB[1]}]					
-#set_property PACKAGE_PIN B15 [get_ports {JB[2]}]					
-#set_property PACKAGE_PIN B16 [get_ports {JB[3]}]					
-#set_property PACKAGE_PIN A15 [get_ports {JB[4]}]					
-#set_property PACKAGE_PIN A17 [get_ports {JB[5]}]					
-#set_property PACKAGE_PIN C15 [get_ports {JB[6]}]					
-#set_property PACKAGE_PIN C16 [get_ports {JB[7]}]					
+set_property PACKAGE_PIN A14 [get_ports {io_gpioJB[0]}]					
+set_property PACKAGE_PIN A16 [get_ports {io_gpioJB[1]}]					
+set_property PACKAGE_PIN B15 [get_ports {io_gpioJB[2]}]					
+set_property PACKAGE_PIN B16 [get_ports {io_gpioJB[3]}]					
+set_property PACKAGE_PIN A15 [get_ports {io_gpioJB[4]}]					
+set_property PACKAGE_PIN A17 [get_ports {io_gpioJB[5]}]					
+set_property PACKAGE_PIN C15 [get_ports {io_gpioJB[6]}]					
+set_property PACKAGE_PIN C16 [get_ports {io_gpioJB[7]}]					
  
 
 ##Pmod Header JC
-#set_property PACKAGE_PIN K17 [get_ports {JC[0]}]					
-#set_property PACKAGE_PIN M18 [get_ports {JC[1]}]					
-#set_property PACKAGE_PIN N17 [get_ports {JC[2]}]					
-#set_property PACKAGE_PIN P18 [get_ports {JC[3]}]					
-#set_property PACKAGE_PIN L17 [get_ports {JC[4]}]					
-#set_property PACKAGE_PIN M19 [get_ports {JC[5]}]					
-#set_property PACKAGE_PIN P17 [get_ports {JC[6]}]					
-#set_property PACKAGE_PIN R18 [get_ports {JC[7]}]
+set_property PACKAGE_PIN K17 [get_ports {io_gpioJC[0]}]					
+set_property PACKAGE_PIN M18 [get_ports {io_gpioJC[1]}]					
+set_property PACKAGE_PIN N17 [get_ports {io_gpioJC[2]}]					
+set_property PACKAGE_PIN P18 [get_ports {io_gpioJC[3]}]					
+set_property PACKAGE_PIN L17 [get_ports {io_gpioJC[4]}]					
+set_property PACKAGE_PIN M19 [get_ports {io_gpioJC[5]}]					
+set_property PACKAGE_PIN P17 [get_ports {io_gpioJC[6]}]					
+set_property PACKAGE_PIN R18 [get_ports {io_gpioJC[7]}]
 
 
 ##Pmod Header JXADC

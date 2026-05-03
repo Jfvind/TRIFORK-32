@@ -1,6 +1,6 @@
 # Manual: SoC for Basys-3 - MCU for embedded systems programming 02112 at DTU
 ## Introduktion - hvad systemet er og kan
-Dette projekt udgør en SoC (System on a Chip) som ved hjælp af implementeringen af en softcore (Wildcat) 3-trins pipelinet RISC-V processor på et Digilent Basys 3 Artix-7 FPGA, muliggør programmering af selvsamme processor og tilhørende periferienheder i Rust. Specifikke GPIO-enheder som LED, knapper og UART interageres med via prædefineret Memory-Mapped I/O. For at forenkle systemet er der udviklet et tilhørende abstraktionslag til føromtalte Memory-Mapped I/O, som leverer færdigbagte hjælpefunktioner der forenkler programmeringen af selvsamme.
+Dette projekt udgør en SoC (System on a Chip) som ved hjælp af implementeringen af en softcore (Wildcat) 3-trins pipelinet RISC-V processor på et Digilent Basys 3 Artix-7 FPGA, muliggør programmering af selvsamme processor og tilhørende periferienheder i Rust. Specifikke GPIO-enheder som LED, knapper, UART og de bidirektionelle PMOD-porte (JA/JB/JC) interageres med via prædefineret Memory-Mapped I/O. For at forenkle systemet er der udviklet et tilhørende abstraktionslag til føromtalte Memory-Mapped I/O, som leverer færdigbagte hjælpefunktioner der forenkler programmeringen af selvsamme.
 
 Med dette system kan du styre LEDs, aflæse knapper, samt sende og modtage data over seriel kommunikation (UART) — alt sammen fra Rust-programmer du selv skriver og uploader til boardet.
 
@@ -12,6 +12,15 @@ En normal processor er en fysisk siliciumchip hvor uforanderlige transistorer ud
 
 ### Hvad er GPIO (General Purpose Input/Output)
 GPIO refererer til de fysiske pins på boardet der kan bruges til at sende eller modtage elektriske signaler. En LED tilsluttet en GPIO-pin kan eksempelvis tændes og slukkes af software, eller en knaps input kan aflæses. "General Purpose" betyder at disse pins ikke er funktionsspecifikke, men derimod kan bruges til hvad end du kobler på dem.
+
+### Hvad er PMOD GPIO
+PMOD-porte på denne SoC er delt op i tre 8-bit GPIO-banker: JA, JB og JC. Hver bank har fire registre:
+- `DIR` til at vælge retning for hver pin
+- `OUT` til at skrive output-værdier
+- `IN` til at læse de aktuelle pin-niveauer
+- `PWM_EN` til at route PWM-signalet til specifikke pins
+
+Det betyder at du både kan styre almindelige digitale signaler og bruge de samme porte til dæmpede outputs, f.eks. en RGB-LED på PMOD-headeren.
 
 ### Hvad er Memory-Mapped I/O (MMIO)
 RISC-V arkitekturen som Wildcat-processoren er bygget på har kun load/store operationer til at kommunikere med hvad end der eksisterer uden for CPU'en selv. Derfor bruges memory-mapping til at kortlægge specifikke I/O-enheder til specifikke hukommelsesadresser. Når processoren under kørsel af et program skal interagere med forskellige I/O, laver den enten en read eller write operation på en af de specifikke hukommelsesadresser som den specifikke I/O korresponderer med. SoC'en har logik der forstår at for disse specifikke adresser skal den udføre instruktionerne på I/O-enhederne og ikke i den rigtige hukommelse - eksempelvis LED-registret.
@@ -122,6 +131,12 @@ Adresserummet er delt i to områder: adresser der starter med `0x0` peger på sc
 | `0xF040_0000` | PWM enable-bitmask (bit N = 1 → LED N styres af PWM, bit 7 ignoreres) | Læs + Skriv |
 | `0xF040_0004` | PWM duty cycle for LED 0 (8-bit værdi 0-255) | Læs + Skriv |
 | `0xF040_0008 – 0xF040_0044` | PWM duty cycle for LED 1-15 (samme format, offset 4 bytes per kanal) | Læs + Skriv |
+| `0xF050_0000` | PMOD JA DIR (bit 0–7 = direction per pin) | Læs + Skriv |
+| `0xF050_0004` | PMOD JA OUT (bit 0–7 = output value per pin) | Læs + Skriv |
+| `0xF050_0008` | PMOD JA IN (bit 0–7 = input value per pin) | Læs |
+| `0xF050_000C` | PMOD JA PWM_EN (bit 0–7 = PWM routing per pin) | Læs + Skriv |
+| `0xF060_0000` | PMOD JB DIR / OUT / IN / PWM_EN (samme layout som JA, offset 0x0/0x4/0x8/0xC) | Læs + Skriv |
+| `0xF070_0000` | PMOD JC DIR / OUT / IN / PWM_EN (samme layout som JA, offset 0x0/0x4/0x8/0xC) | Læs + Skriv |
 
 ## Workflow - fra Rust-kode til kørende program
 Når du udvikler programmer til denne SoCc, er dit workflow:
@@ -207,32 +222,44 @@ if adc_val[0] > 2048 { // Aflæser component i JXADC1, 7
 
 ### PWM: `pwm_enable(mask: u16)`
 
-Aktiverer PWM-mode for specifikke LEDs. Hvert bit i `mask` svarer til én LED — bit 0 = LED 0, bit 1 = LED 1, osv. Når en LED er PWM-enabled, styres dens lysstyrke af dens duty cycle-register i stedet for det almindelige LED-register.
+Aktiverer PWM-mode for specifikke kanaler i den globale PWM-controller. Hvert bit i `mask` svarer til én kanal — bit 0 = kanal 0, bit 1 = kanal 1, osv. Når en kanal er PWM-enabled, styres dens lysstyrke af dens duty cycle-register i stedet for et almindeligt digitalt output.
 
 ```rust
-pwm_enable(0b0000_0000_0111_1111); // PWM på LED 0-6 (onboard)
-pwm_enable(0b0111_0000_0000_0000); // PWM på LED 12-14 (RGB)
-pwm_enable(0); // Slå PWM fra for alle LEDs
+Pmod::JA.set_dir(0b0000_0111); // set JA[1..3] LEDs as output
+Pmod::JA.set_pwm_en(0b_0000_0011); // Enable PWM on JA[1..2] pins
 ```
 
-**Bemærk:** Bit 7 ignoreres af hardwaren, da LED 7 er reserveret til CPU running-indikatoren. LEDs der *ikke* er PWM-aktiverede opfører sig som normalt og styres af `led_write()`.
+**Bemærk:** Bit 7 ignoreres af hardwaren, da LED 7 er reserveret til CPU running-indikatoren. Kanaler der *ikke* er PWM-aktiverede opfører sig som normalt og styres af de relevante GPIO- eller LED-registre. For PMOD-pins skal du kombinere denne funktion med `Pmod::X.set_pwm_en(...)`.
 
-### PWM: `pwm_set(channel: u8, percent: u8)`
+### PMOD GPIO: `Pmod::JA`, `Pmod::JB`, `Pmod::JC`
+
+De tre PMOD-porte kan bruges som almindelige GPIO-banker fra Rust. Hver port understøtter retning, output, input og PWM-routing.
+
+```rust
+Pmod::JA.set_dir(0b1111_0000);      // Nederste 4 pins som input, øverste 4 som output
+Pmod::JA.set_out(0b1010_0000);      // Skriv output på de pins der er sat som output
+let input = Pmod::JA.read_in();     // Læs aktuelle niveauer
+Pmod::JA.set_pwm_en(0b0111_0000);   // Route PWM til pins 4-6
+```
+
+For PWM-drevne PMOD-pins bruger den tilhørende software typisk `pwm_set(...)` eller en wrapper som `rgb_set(...)` til at vælge duty cycle, mens `set_pwm_en(...)` bestemmer hvilke pins der faktisk lytter på PWM-signalet.
+
+### PWM: `pwm_set_duty(channel: u8, percent: u8)`
 
 Sætter lysstyrken af en PWM-aktiveret LED som en procentværdi. `channel` er LED-nummeret (0-6 eller 8-15), og `percent` er lysstyrken fra 0 (slukket) til 100 (fuld lysstyrke). Værdier over 100 clampes automatisk til 100.
 
 ```rust
-pwm_set(0, 100); // LED 0: fuld lysstyrke
-pwm_set(1, 50);  // LED 1: halv lysstyrke
-pwm_set(2, 10);  // LED 2: svagt lys
-pwm_set(3, 0);   // LED 3: slukket
+pwm_set(0, 100); // JA1: fuld lysstyrke
+pwm_set(1, 50);  // JA2: halv lysstyrke
+pwm_set(2, 10);  // JA3: svagt lys
+pwm_set(3, 0);   // JA4: slukket
 ```
 
-For at en `pwm_set`-skrivning faktisk påvirker en LED, skal den pågældende kanal være aktiveret via `pwm_enable`. Hvis ikke, gemmes duty cycle-værdien i registret men ignoreres af LED-outputtet.
+For at en `pwm_set_duty`-skrivning faktisk påvirker en LED, skal den pågældende kanal være aktiveret via jf. Pmod funktionen `set_pwm_en`. Hvis ikke, gemmes duty cycle-værdien i registret men ignoreres af LED-outputtet.
 
 ### RGB-LED: `rgb_set(r: u8, g: u8, b: u8)`
 
-Sætter farven af en RGB-LED tilsluttet pin 12, 13 og 14. Hver farvekanal angives som en procentværdi (0-100). Funktionen inverterer værdierne internt fordi RGB-LED'en er common-anode — så en høj `r`-værdi giver reelt høj rød lysstyrke, som forventet.
+Sætter farven af en RGB-LED tilsluttet PMOD GPIO-pins. Hver farvekanal angives som en procentværdi (0-100). Funktionen inverterer værdierne internt fordi RGB-LED'en er common-anode — så en høj `r`-værdi giver reelt høj rød lysstyrke, som forventet.
 
 ```rust
 rgb_set(100, 0, 0);   // Fuld rød
@@ -243,10 +270,10 @@ rgb_set(50, 0, 50);   // Lilla (halv rød + halv blå)
 rgb_set(0, 0, 0);     // Slukket
 ```
 
-**Forudsætning:** PWM skal være aktiveret for pin 12-14 før `rgb_set` virker:
+**Forudsætning:** PWM skal være aktiveret for de tre relevante PMOD-pins før `rgb_set` virker:
 
 ```rust
-pwm_enable(0b0111_0000_0000_0000); // Aktiver PWM på bit 12, 13, 14
+Pmod::JA.set_pwm_en(0b0111_0000); // Aktiver PWM på de tre RGB-pins
 ```
 
 ### UART: `print!()` og `println!()`

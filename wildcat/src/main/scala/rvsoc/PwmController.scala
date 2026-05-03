@@ -11,10 +11,10 @@ import chisel3.util._
 |* 
 |* At 100 MHz clock: PWM frequency = 100 MHz / 256 = 390 kHz
 |* 
-|* @param channels number of independents PWM outputs (deafault 16 for LED 0 - 15)
+|* @param channels number of independents PWM outputs (default 24)
 */
 
-class PwmController (channels: Int = 16) extends Module {
+class PwmController (channels: Int = 24) extends Module {
     val io = IO(new Bundle {
         val duty    = Input(Vec(channels, UInt(8.W))) // Each channel has 8-bit wide registers, for 8-bit (256 step) pwm-control resolution
         val pwmOut = Output(UInt(channels.W)) // One concuted "channel" bit wide signal
