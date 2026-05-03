@@ -21,9 +21,10 @@ import soc._
  * Boot sequence:
  *   1. After FPGA is programmed, the bootloader is active and the CPU is stalled.
  *   2. Host sends start magic 0xB00710AD over UART (little-endian).
- *   3. Host sends (address, data) word pairs. The bootloader writes each word
- *      into both instruction and data scratchpad memories.
- *   4. Host sends a "done" word with data = 0xD0000000 which releases the CPU.
+ *   3. Host sends (address, data) word pairs. The top-level routes each word
+ *      to IMEM or DMEM based on its address range.
+ *   4. Host sends a "done" word with address = 0 and data = 0xD0000000
+ *      which releases the CPU.
  *   5. CPU begins executing from address 0.
  *
  * Reset (for autonomous re-upload without pressing the FPGA button):
@@ -31,8 +32,9 @@ import soc._
  *   - A monitor detects this magic and resets the CPU + bootloader
  *     back to boot mode, ready for a fresh upload.
  *
- * Memory map (same as WildcatTop):
- *   0x0000_0000 – 0x0000_0FFF : Instruction/data scratchpad (4 KB default)
+ * Memory map:
+ *   0x0000_0000 – 0x0000_0FFF : Instruction scratchpad (IMEM, 4 KB default)
+ *   0x0000_1000 – 0x0000_1FFF : Data scratchpad (DMEM, 4 KB default)
  *   0xF000_0000               : UART status  (bit 0 = TX ready, bit 1 = RX data available)
  *   0xF000_0004               : UART data    (read = RX byte, write = TX byte)
  *   0xF010_0000               : LED register  (lower 8 bits drive LEDs)
@@ -90,7 +92,8 @@ class RustSoCTop(frequ: Int = 100000000, baudRate: Int = 115200, memBytes: Int =
 
   // ---- CPU Running ----
   val cpuRunning = withReset(combinedReset) { RegInit(false.B) }
-  val doneMagic = "hD0000000".U
+  val doneMagic = "hD0000000".U(32.W)
+  val doneAddr = 0.U(32.W)
 
   // ---- Bootloader ----
   // The bootloader has its own internal Rx module.
@@ -98,8 +101,13 @@ class RustSoCTop(frequ: Int = 100000000, baudRate: Int = 115200, memBytes: Int =
   val bootloader = withReset(combinedReset) { Module(new BootloaderTop(frequ, baudRate)) }
   bootloader.io.rx := Mux(cpuRunning, 1.U, io.rx)
 
+  val bootWrite = !cpuRunning && bootloader.io.wrEnabled === 1.U
+  val bootAddr = bootloader.io.instrAddr
+  val bootData = bootloader.io.instrData
+  val bootDone = bootWrite && bootAddr === doneAddr && bootData === doneMagic
+
   // Detecting the "done" word to start the CPU.
-  when(!cpuRunning && bootloader.io.wrEnabled === 1.U && bootloader.io.instrData === doneMagic) {
+  when(bootDone) {
     cpuRunning := true.B
   }
 
@@ -123,22 +131,42 @@ class RustSoCTop(frequ: Int = 100000000, baudRate: Int = 115200, memBytes: Int =
 
   // ---- Bootloader memory writes ----
   // When the bootloader asserts wrEnabled with a valid (non-done) word,
-  // write it into imem and dmem.
+  // route it by address range:
+  //   0x0000_0000 - 0x0000_0FFF -> IMEM
+  //   0x0000_1000 - 0x0000_1FFF -> DMEM
   // This overwrites the CPU lines when it is true.
-  when(!cpuRunning && bootloader.io.wrEnabled === 1.U && bootloader.io.instrData =/= doneMagic) {
-    // Instruction memory write
-    imem.io.address := bootloader.io.instrAddr
-    imem.io.wr      := true.B
-    imem.io.wrData  := bootloader.io.instrData
-    imem.io.wrMask  := "b1111".U
+  val imemLimit = memBytes.U(32.W)
+  val dmemBase = memBytes.U(32.W)
+  val dmemLimit = (memBytes * 2).U(32.W)
+
+  when(bootWrite && !bootDone) {
+    imem.io.address := 0.U
+    imem.io.wr      := false.B
+    imem.io.wrData  := 0.U
+    imem.io.wrMask  := 0.U
     imem.io.rd      := false.B
 
-    // Data memory write (same content)
-    dmem.io.address := bootloader.io.instrAddr
-    dmem.io.wr      := true.B
-    dmem.io.wrData  := bootloader.io.instrData
-    dmem.io.wrMask  := "b1111".U
+    dmem.io.address := 0.U
+    dmem.io.wr      := false.B
+    dmem.io.wrData  := 0.U
+    dmem.io.wrMask  := 0.U
     dmem.io.rd      := false.B
+
+    when(bootAddr < imemLimit) {
+      // Instruction memory write
+      imem.io.address := bootAddr
+      imem.io.wr      := true.B
+      imem.io.wrData  := bootData
+      imem.io.wrMask  := "b1111".U
+      imem.io.rd      := false.B
+    } .elsewhen(bootAddr >= dmemBase && bootAddr < dmemLimit) {
+      // Data memory write. DMEM is physically addressed from 0.
+      dmem.io.address := bootAddr - dmemBase
+      dmem.io.wr      := true.B
+      dmem.io.wrData  := bootData
+      dmem.io.wrMask  := "b1111".U
+      dmem.io.rd      := false.B
+    }
   }
 
   // ---- CPU stall when booting ----

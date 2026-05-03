@@ -1,19 +1,19 @@
 /* Linker script for Wildcat RISC-V SoC.
  *
  * Must match the scratchpad memory layout in RustSoCTop:
- *   - Text + data start at 0x0000 (loaded by bootloader)
- *   - Total available memory: 4 KB (0x0000 – 0x0FFF)
+ *   - IMEM: 4 KB at 0x0000_0000 for instructions
+ *   - DMEM: 4 KB at 0x0000_1000 for data, rodata, bss, and stack
  *
- * The bootloader uploads the flat binary starting at address 0x0000,
- * so .text must begin there. The entry point is _start.
+ * The entry point must stay at 0x0000_0000 because the CPU starts there.
  */
 
 ENTRY(_start)
 
 MEMORY
 {
-    /* 4 KB scratchpad — must match RustSoCTop's memBytes parameter */
-    RAM (rwx) : ORIGIN = 0x00000000, LENGTH = 4K
+    /* Must match RustSoCTop's memBytes parameter and bootloader routing. */
+    IMEM (rx)  : ORIGIN = 0x00000000, LENGTH = 4K
+    DMEM (rw)  : ORIGIN = 0x00001000, LENGTH = 4K
 }
 
 SECTIONS
@@ -22,28 +22,36 @@ SECTIONS
     {
         *(.text._start)    /* Entry point first */
         *(.text .text.*)
-    } > RAM
+    } > IMEM
 
     .rodata : ALIGN(4)
     {
         *(.rodata .rodata.*)
-    } > RAM
+        *(.srodata .srodata.*)
+    } > DMEM
 
     .data : ALIGN(4)
     {
         *(.data .data.*)
-    } > RAM
+        *(.sdata .sdata.*)
+    } > DMEM
 
-    .bss : ALIGN(4)
+    .bss (NOLOAD) : ALIGN(4)
     {
+        . = ALIGN(4);
         __bss_start = .;
         *(.bss .bss.*)
+        *(.sbss .sbss.*)
         *(COMMON)
+        . = ALIGN(4);
         __bss_end = .;
-    } > RAM
+    } > DMEM
 
-    /* Stack grows downward from top of RAM */
-    _stack_top = ORIGIN(RAM) + LENGTH(RAM);
+    /* Stack grows downward from top of DMEM. */
+    _stack_top = ORIGIN(DMEM) + LENGTH(DMEM);
+
+    ASSERT(ADDR(.text) + SIZEOF(.text) <= ORIGIN(IMEM) + LENGTH(IMEM), "IMEM overflow")
+    ASSERT(__bss_end <= ORIGIN(DMEM) + LENGTH(DMEM), "DMEM overflow")
 
     /DISCARD/ :
     {

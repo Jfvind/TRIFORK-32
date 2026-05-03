@@ -88,7 +88,7 @@ SoC'en har to seperate fysiske hukommelser - begge implementeret som scratchpad-
 
 De to hukommelser er på seperate busser, hvilket betyder at CPU'en kan hente en instruktion og tilgå data på samme clock-cyklus (mere effektivt).
 
-**OBS**: Ved upload skrives programmets indhold til begge hukommelser. Under kørsel bruger CPU'en kun IMEM til instruktioner og kun DMEM til data. Da kode og data deler det samme 4 KB adresserum for begge hukommelsestyper (0x0000_0000 – 0x0000_0FFF), skal programmets samlede størrelse (kode + data + stack) holdes inden for 4 KB.
+**OBS**: Ved upload routes hvert `(adresse, data)`-word efter adressen. Adresser i `0x0000_0000 – 0x0000_0FFF` skrives kun til IMEM, og adresser i `0x0000_1000 – 0x0000_1FFF` skrives kun til DMEM. Den rå binærfil kan stadig indeholde padding mellem de to områder, men hardwaren gemmer hvert word i den relevante hukommelse. Programmet kan derfor bruge op til 4 KB instruktioner i IMEM og op til 4 KB data/stack i DMEM.
 
 ### Boot-flow: Hvad sker der når boardet tændes
 **Når boardet tændes, gennemgår systemet følgende sekvens:**
@@ -101,7 +101,7 @@ De to hukommelser er på seperate busser, hvilket betyder at CPU'en kan hente en
    
    Dette sikrer at systemet er klar til at modtage et nyt program — uanset om boardet lige er tændt, eller om der allerede kører et program fra et tidligere upload.
 3. **Aktivering:** Upload-scriptet sender sender magic word `0xB00710AD` som aktiverer bootloaderen.
-4. **Upload:** Upload-scriptet sender Rust-programmet som (adresse, data)-par. Bootloaderen modtager hvert word over UART og skriver det direkte ind i både IMEM og DMEM.
+4. **Upload:** Upload-scriptet sender Rust-programmet som (adresse, data)-par. Bootloaderen modtager hvert word over UART, og SoC-toppen skriver wordet til IMEM eller DMEM ud fra adressen.
 5. **Start eksekvering:** Upload scriptet sender done signalet `0xD0000000` som frigiver CPU'en og starter programeksekvering fra adressen `0x0000_0000`.
  
 Bootloaderen er implementeret i hardware som en state machine - den er ikke software der kører på CPU'en. Den sidder og lytter på UART-linjen, modtager bytes, og skriver dem ind i hukommelsen.
@@ -110,10 +110,11 @@ Bootloaderen er implementeret i hardware som en state machine - den er ikke soft
 For at muliggøre hurtigere itterationer under developmenmt, er det muligt at re-uploade programmer uden at skulle genflashe hele softcoren. Upload-scriptet sender automatisk reset-signalet `0xDEADBEEF` over UART inden hvert upload. En dedikeret monitor-komponent i SoC'en lytter konstant efter denne sekvens og resetter CPU og bootloader tilbage til boot tilstand når denne detekteres. I overstående sekvens svarer det til at gennemgå punkt 2 - 5 forfra.
 
 ### Memory Map: Hvilke komponenter korrespondere til hvilke adresser?
-Adresserummet er delt i to områder: adresser der starter med `0x0` peger på scratchpad hukommelsen, og adresser der starter med `0xF` peger på I/O-enheder. For disse I/O-enheder er det bits 23-20 i adressen der specificerer hvilken enhed der tilgås.
+Adresserummet er delt i tre områder: IMEM til instruktioner, DMEM til data og stack, og I/O-enheder ved adresser der starter med `0xF`. For I/O-enheder er det bits 23-20 i adressen der specificerer hvilken enhed der tilgås.
 | Adresse | Enhed | Læs/Skriv |
 |---|---|---|
-| `0x0000_0000 – 0x0000_0FFF` | Scratchpad RAM (4 KB) | Læs + Skriv |
+| `0x0000_0000 – 0x0000_0FFF` | IMEM: instruction scratchpad (4 KB) | Læs |
+| `0x0000_1000 – 0x0000_1FFF` | DMEM: data scratchpad (4 KB) | Læs + Skriv |
 | `0xF000_0000` | UART status (bit 0 = TX klar, bit 1 = RX data tilgængelig) | Læs |
 | `0xF000_0004` | UART data (læs = modtag byte, skriv = send byte) | Læs + Skriv |
 | `0xF010_0000` | LED-register (bit 0–6, 8–15 = LEDs, bit 7 = CPU running indikator) | Skriv (bit 7 read-only) |
@@ -132,8 +133,8 @@ Når du udvikler programmer til denne SoCc, er dit workflow:
 ### Hvad sker der på din pc?
 Kommandoen `cargo xtask upload` automatiserer følgende kæde af handlinger:
 1. **Kompilering:** Cargo (Rusts build-system) kompilerer dit Rust-program til en RISC-V ELF-fil. ELF-formatet indeholder maskinkode plus metadata om programmets struktur (Hvor kode og data starter, symbolnavne osv.)
-2. **Konvertering:** `cargo objcopy` konverterer denne ELF-fil til en rå binærfil (`program.bin`). Denne fil indeholder udelukkende maskinkode uden metadata - det er de bytes der skal ligges ind i hukommelsen på din basys-3 FPGA.
-3. **Upload:** rust-craten `uploader` sender binærfilen over USB/UART til FPGA'en. Scriptet håndterer reset, aktivering af bootloader, og overførsel af programdata (se bootflow sektion for flere detaljer).
+2. **Konvertering:** `cargo objcopy` konverterer denne ELF-fil til en rå binærfil (`program.bin`). Filen indeholder bytes fra både IMEM- og DMEM-området og kan indeholde padding mellem områderne.
+3. **Upload:** rust-craten `uploader` sender binærfilen over USB/UART til FPGA'en. Scriptet håndterer reset, aktivering af bootloader, og overførsel af programdata. Hardwaren bruger adresserne til at skrive instruktioner til IMEM og data til DMEM.
 4. **Eksekvering:** Når upload er færdig, frigiver bootloaderen CPU'en og dit progream eksekveres fra adresse `0x0000_0000`.
 
 ### Filstruktur
@@ -141,7 +142,7 @@ Kommandoen `cargo xtask upload` automatiserer følgende kæde af handlinger:
 Dit Rust-program skrives i filen `sw/program/src/main.rs`. Det 
 er den eneste fil du behøver at redigere under normal brug.
 
-**Note:** Hvis du løber ind i hukommelsesbegrænsninger (4 KB), 
+**Note:** Hvis du løber ind i hukommelsesbegrænsninger (4 KB instruktioner eller 4 KB data/stack),
 er det muligt at udvide hukommelsen ved at ændre størrelsen i 
 `sw/program/linker.ld` og `wildcat/src/main/scala/rvsoc/RustSoCTop.scala`, 
 efterfulgt af et `cargo xtask flash`. Kontakt en underviser inden du 
@@ -413,11 +414,10 @@ Tjek følgende:
 
 ### Programmet kompilerer men gør ingenting på boardet
 
-Dit program fylder muligvis mere end 4 KB. Tjek størrelsen 
-af den kompilerede binær i 
-`sw/program/target/riscv32i-unknown-none-elf/release/program.bin`. 
-Hvis filen er over 4096 bytes, skal du reducere programmets 
-størrelse.
+Dit program fylder muligvis mere end den tilgængelige hukommelse. Kør
+`rust-size -A target/riscv32i-unknown-none-elf/release/program` fra repo-roden
+og tjek at `.text` holder sig under 4096 bytes, og at data-sektionerne samt
+stack kan være i DMEM-området.
 
 ### LEDs reagerer ikke
 
