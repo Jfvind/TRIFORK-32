@@ -1,0 +1,15 @@
+[workspace]
+members = [
+    "sw/program",
+    "sw/uploader",
+    "xtask"
+]
+resolver = "2"
+
+[profile.release]
+opt-level = "s"       # Optimize for size (scratchpad is only 4 KB)
+lto = true            # Link-time optimization — smaller binary
+panic = "abort"       # No unwinding on panic (saves space, no_std anyway)
+
+[profile.dev]
+panic = "abort"

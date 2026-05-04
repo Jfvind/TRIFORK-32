@@ -1,0 +1,46 @@
+@startuml
+title Workflow: Student runs Rust code on the MCU
+
+start
+
+partition "Student" {
+  :Open the repo in VS Code;
+  :Install/verify prerequisites;
+}
+
+partition "FPGA / MCU" {
+  if (Softcore already flashed?) then (yes)
+    :MCU image stays on board;
+  else (no)
+    :Connect Basys-3 via USB;
+    :Run `cargo xtask flash`;
+    :Program FPGA flash;
+    :Press PROG button;
+  endif
+
+  :MCU boots and waits for UART upload;
+}
+
+repeat
+  partition "Student" {
+    :Edit `sw/program/src/main.rs`;
+    :Find the COM port;
+    :Run `cargo xtask upload <COM_PORT>`;
+  }
+
+  partition "PC toolchain" {
+    :Build Rust for `riscv32i-unknown-none-elf`;
+    :Create `program.bin`;
+    :Send reset + activate + payload + done over UART;
+  }
+
+  partition "FPGA / MCU" {
+    :Bootloader writes program to IMEM and DMEM;
+    :Release CPU from reset;
+    :Execute program;
+    :Print output via UART / drive LEDs / read peripherals;
+  }
+repeat while (Need another iteration?) is (yes)
+
+stop
+@enduml

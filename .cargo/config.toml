@@ -1,0 +1,5 @@
+[alias]
+xtask = "run --package xtask --"
+
+[target.riscv32i-unknown-none-elf]
+rustflags = ["-C", "link-arg=-Tsw/program/linker.ld"]

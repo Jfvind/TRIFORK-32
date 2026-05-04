@@ -1,6 +1,6 @@
 # Manual: SoC for Basys-3 - MCU for embedded systems programming 02112 at DTU
 ## Introduktion - hvad systemet er og kan
-Dette projekt udgør en SoC (System on a Chip) som ved hjælp af implementeringen af en softcore (Wildcat) 3-trins pipelinet RISC-V processor på et Digilent Basys 3 Artix-7 FPGA, muliggør programmering af selvsamme processor og tilhørende periferienheder i Rust. Specifikke GPIO-enheder som LED, knapper og UART interageres med via prædefineret Memory-Mapped I/O. For at forenkle systemet er der udviklet et tilhørende abstraktionslag til føromtalte Memory-Mapped I/O, som leverer færdigbagte hjælpefunktioner der forenkler programmeringen af selvsamme.
+Dette projekt udgør en SoC (System on a Chip) som ved hjælp af implementeringen af en softcore (Wildcat) 3-trins pipelinet RISC-V processor på et Digilent Basys 3 Artix-7 FPGA, muliggør programmering af selvsamme processor og tilhørende periferienheder i Rust. Specifikke GPIO-enheder som LED, knapper, UART og de bidirektionelle PMOD-porte (JA/JB/JC) interageres med via prædefineret Memory-Mapped I/O. For at forenkle systemet er der udviklet et tilhørende abstraktionslag til føromtalte Memory-Mapped I/O, som leverer færdigbagte hjælpefunktioner der forenkler programmeringen af selvsamme.
 
 Med dette system kan du styre LEDs, aflæse knapper, samt sende og modtage data over seriel kommunikation (UART) — alt sammen fra Rust-programmer du selv skriver og uploader til boardet.
 
@@ -12,6 +12,16 @@ En normal processor er en fysisk siliciumchip hvor uforanderlige transistorer ud
 
 ### Hvad er GPIO (General Purpose Input/Output)
 GPIO refererer til de fysiske pins på boardet der kan bruges til at sende eller modtage elektriske signaler. En LED tilsluttet en GPIO-pin kan eksempelvis tændes og slukkes af software, eller en knaps input kan aflæses. "General Purpose" betyder at disse pins ikke er funktionsspecifikke, men derimod kan bruges til hvad end du kobler på dem.
+
+### Hvad er PMOD GPIO
+PMOD-porte på denne SoC er delt op i tre 8-bit GPIO-banker: JA, JB og JC. Hver bank har fem registre:
+- `DIR` til at vælge retning for hver pin
+- `OUT` til at skrive output-værdier
+- `IN` til at læse de aktuelle pin-niveauer
+- `PWM_EN` til at route PWM-signalet til specifikke pins
+- `IN_DEBOUNCED` til at læse stabile knap-inputs uden bounce
+
+Det betyder at du både kan styre almindelige digitale signaler og bruge de samme porte til dæmpede outputs, f.eks. en RGB-LED på PMOD-headeren.
 
 ### Hvad er Memory-Mapped I/O (MMIO)
 RISC-V arkitekturen som Wildcat-processoren er bygget på har kun load/store operationer til at kommunikere med hvad end der eksisterer uden for CPU'en selv. Derfor bruges memory-mapping til at kortlægge specifikke I/O-enheder til specifikke hukommelsesadresser. Når processoren under kørsel af et program skal interagere med forskellige I/O, laver den enten en read eller write operation på en af de specifikke hukommelsesadresser som den specifikke I/O korresponderer med. SoC'en har logik der forstår at for disse specifikke adresser skal den udføre instruktionerne på I/O-enhederne og ikke i den rigtige hukommelse - eksempelvis LED-registret.
@@ -32,18 +42,17 @@ En RGB-LED er tre separate enkeltfarvede LEDs (rød, grøn, blå) pakket ind i �
 RGB-LEDs findes i to varianter: *common-anode* hvor den fælles pin er +3.3V og hver farvekanal tændes ved at trække den til ground, og *common-cathode* hvor det er omvendt. I common-anode betyder det at en *lav* duty cycle giver *høj* lysstyrke — hvilket HAL-funktionen `rgb_set` tager højde for automatisk.
 
 ## Forudsætninger og opsætning
-Forudsætningerne for at og flashe projektets softcore arkitektur over på en Basys-3 FPGA for tilsidst at uploade og køre det Rust program der udgør logikken for dit miljø-overvågningssystem er beskrevet i den installationsguide du finder i projektetes `READEME.md`-fil. 
+Forudsætningerne for at og flashe projektets softcore arkitektur over på en Basys-3 FPGA for tilsidst at uploade og køre det Rust program der udgør logikken for dit miljø-overvågningssystem er beskrevet i den installationsguide du finder i projektetes `README.md`-fil. 
+
+![Workflow for a uploade rust-kode til MCU på FPGA (Basys-3)](docs/diagrams/Rust-on-MCU-manual.svg)
 
 Herunder en forklaring af hvad hver værktøj bruges til.
 
 ### **Forudsætninger:** Værktøjer der skal være installeret
 | Værktøj | Formål |
 |---|---|
-| Make | Er et build-automatiseringsværktøj. Når du skriver en kommando som `make flash` eller `make upload`, eksekverer Make automatisk en sekvens af underliggende kommandoer i den rigtige rækkefølge. Uden Make skulle du manuelt køre hver enkelt kommando selv. |
 | Vivado | Er Xilinx' udviklingsmiljø til FPGA'er. Det tager SoC-designets hardwarebeskrivelse (genereret Verilog-kode), syntetiserer det ned til en bitstream, og flasher bitstreamen på FPGA'en. Når SoC'en er flashet, ligger den i FPGA'ens non-volatile hukommelse og overlever både genstart og slukning. Du skal kun bruge Vivado én gang — medmindre selve hardwaredesignet ændres. |
 | Rust toolchain | Er compileren der oversætter dine Rust-programmer til RISC-V maskinkode. Compileren er konfigureret med target `riscv32i-unknown-none-elf`, som fortæller den at den skal producere kode til en 32-bit RISC-V processor uden operativsystem — præcis hvad Wildcat-processoren er. |
-| Python + pyserial | Bruges af upload-scriptet (`upload.py`). Scriptet tager dit kompilerede program og sender det til boardet over en seriel USB-forbindelse (UART). Python er kun nødvendigt fordi upload-scriptet er skrevet i Python. |
-| Git | Bruges til at klone projektets repository så du har adgang til al kildekode, build-scripts, og denne manual. |
 
 Sørg for at du har installeret overstående ved at følge projektets `README.md`-fil under sektionen **"Prerequisites & Installation"** før du går videre til at flashe SoC'en ned på dit board.
 
@@ -53,7 +62,7 @@ Efter værktøjerne er installeret og repoet er klonet, skal SoC'en flahes på F
 **Flash SoC'en ved at**:
 1. Tilslut Basys-3 boardet via USB og tænd det
 2. I din terminal, naviger til roden af repoet, så du står i mappen `.../rust-riscv-soc`
-3. Kør nu kommandoen `make flash` i terminalen
+3. Kør nu kommandoen `cargo xtask flash` i terminalen
 4. SoC'en flashes: Vent på at processen færdiggøres (dette kan tage flere minutter)
 5. Tryk på PROG-knappen på FPGA (rød knap i øverste højre hjørne af boardet)
 6. Efter 5-10 sekunder bør CPU'en køre - den venstre LED lyser som indikation
@@ -64,11 +73,15 @@ Når først SoC'en er flashet, kan du uploade Rust-programmer (igen og igen) via
 1. Find din serielle port:
     - **Windows:** `Get-PnpDevice -Class Ports -PresentOnly`
     - **Linux:** `ls /dev/ttyUSB* /dev/ttyACM*`
-2. Upload programmet ved at skrive kommandoen `make upload SERIAL_PORT=<din_port>` i terminalen
+2. Upload programmet ved at skrive kommandoen `cargo xtask upload <din_port>` i terminalen
 3. Programmet kompilere automatisk, uploades, og begynder at køre. Output fra programmet vises i terminalen.
 
 **Itterer i jeres program design:**
-Efterfølgende ændringer i Rust-koden kan uploades ved at køre `make upload` igen. Det er ikke nødvændigt at reflashe SoC'en for at uplade nye programmer. 
+Efterfølgende ændringer i Rust-koden kan uploades ved at køre `cargo xtask upload <din_port>` igen. Det er ikke nødvændigt at reflashe SoC'en for at uplade nye programmer. 
+
+Testkredsløbet herunder er det hardware-setup, som bruges af koden der aktuelt kører i [sw/program/src/main.rs](sw/program/src/main.rs).
+
+![Test circuit for main.rs](Test-circuit.png)
 
 ## Systemarkitektur - CPU, hukommelse, boot-flow og memory map
 
@@ -85,7 +98,7 @@ SoC'en har to seperate fysiske hukommelser - begge implementeret som scratchpad-
 
 De to hukommelser er på seperate busser, hvilket betyder at CPU'en kan hente en instruktion og tilgå data på samme clock-cyklus (mere effektivt).
 
-**OBS**: Ved upload skrives programmets indhold til begge hukommelser. Under kørsel bruger CPU'en kun IMEM til instruktioner og kun DMEM til data. Da kode og data deler det samme 4 KB adresserum for begge hukommelsestyper (0x0000_0000 – 0x0000_0FFF), skal programmets samlede størrelse (kode + data + stack) holdes inden for 4 KB.
+**OBS**: Ved upload routes hvert `(adresse, data)`-word efter adressen. Adresser i `0x0000_0000 – 0x0000_0FFF` skrives kun til IMEM, og adresser i `0x0000_1000 – 0x0000_1FFF` skrives kun til DMEM. Den rå binærfil kan stadig indeholde padding mellem de to områder, men hardwaren gemmer hvert word i den relevante hukommelse. Programmet kan derfor bruge op til 4 KB instruktioner i IMEM og op til 4 KB data/stack i DMEM.
 
 ### Boot-flow: Hvad sker der når boardet tændes
 **Når boardet tændes, gennemgår systemet følgende sekvens:**
@@ -98,7 +111,7 @@ De to hukommelser er på seperate busser, hvilket betyder at CPU'en kan hente en
    
    Dette sikrer at systemet er klar til at modtage et nyt program — uanset om boardet lige er tændt, eller om der allerede kører et program fra et tidligere upload.
 3. **Aktivering:** Upload-scriptet sender sender magic word `0xB00710AD` som aktiverer bootloaderen.
-4. **Upload:** Upload-scriptet sender Rust-programmet som (adresse, data)-par. Bootloaderen modtager hvert word over UART og skriver det direkte ind i både IMEM og DMEM.
+4. **Upload:** Upload-scriptet sender Rust-programmet som (adresse, data)-par. Bootloaderen modtager hvert word over UART, og SoC-toppen skriver wordet til IMEM eller DMEM ud fra adressen.
 5. **Start eksekvering:** Upload scriptet sender done signalet `0xD0000000` som frigiver CPU'en og starter programeksekvering fra adressen `0x0000_0000`.
  
 Bootloaderen er implementeret i hardware som en state machine - den er ikke software der kører på CPU'en. Den sidder og lytter på UART-linjen, modtager bytes, og skriver dem ind i hukommelsen.
@@ -107,34 +120,38 @@ Bootloaderen er implementeret i hardware som en state machine - den er ikke soft
 For at muliggøre hurtigere itterationer under developmenmt, er det muligt at re-uploade programmer uden at skulle genflashe hele softcoren. Upload-scriptet sender automatisk reset-signalet `0xDEADBEEF` over UART inden hvert upload. En dedikeret monitor-komponent i SoC'en lytter konstant efter denne sekvens og resetter CPU og bootloader tilbage til boot tilstand når denne detekteres. I overstående sekvens svarer det til at gennemgå punkt 2 - 5 forfra.
 
 ### Memory Map: Hvilke komponenter korrespondere til hvilke adresser?
-Adresserummet er delt i to områder: adresser der starter med `0x0` peger på scratchpad hukommelsen, og adresser der starter med `0xF` peger på I/O-enheder. For disse I/O-enheder er det bits 23-20 i adressen der specificerer hvilken enhed der tilgås.
+Adresserummet er delt i tre områder: IMEM til instruktioner, DMEM til data og stack, og I/O-enheder ved adresser der starter med `0xF`. For I/O-enheder er det bits 23-20 i adressen der specificerer hvilken enhed der tilgås.
 | Adresse | Enhed | Læs/Skriv |
 |---|---|---|
-| `0x0000_0000 – 0x0000_0FFF` | Scratchpad RAM (4 KB) | Læs + Skriv |
+| `0x0000_0000 – 0x0000_0FFF` | IMEM: instruction scratchpad (4 KB) | Læs |
+| `0x0000_1000 – 0x0000_1FFF` | DMEM: data scratchpad (4 KB) | Læs + Skriv |
 | `0xF000_0000` | UART status (bit 0 = TX klar, bit 1 = RX data tilgængelig) | Læs |
 | `0xF000_0004` | UART data (læs = modtag byte, skriv = send byte) | Læs + Skriv |
 | `0xF010_0000` | LED-register (bit 0–6, 8–15 = LEDs, bit 7 = CPU running indikator) | Skriv (bit 7 read-only) |
-| `0xF020_0000` | Button-register (bit 0–3 = btnU, btnL, btnR, btnD) | Læs |
+| `0xF020_0000` | Debounced button-register (bit 0–3 = btnU, btnL, btnR, btnD) | Læs |
 | `0xF030_0000`  | Base address for JXADC analog inputs, offset for four total inputs (e.g. `0xF030_0004`) | Læs |
 | `0xF040_0000` | PWM enable-bitmask (bit N = 1 → LED N styres af PWM, bit 7 ignoreres) | Læs + Skriv |
 | `0xF040_0004` | PWM duty cycle for LED 0 (8-bit værdi 0-255) | Læs + Skriv |
 | `0xF040_0008 – 0xF040_0044` | PWM duty cycle for LED 1-15 (samme format, offset 4 bytes per kanal) | Læs + Skriv |
+| `0xF050_0000` | PMOD JA DIR (bit 0–7 = direction per pin) | Læs + Skriv |
+| `0xF050_0004` | PMOD JA OUT (bit 0–7 = output value per pin) | Læs + Skriv |
+| `0xF050_0008` | PMOD JA IN (bit 0–7 = input value per pin) | Læs |
+| `0xF050_000C` | PMOD JA PWM_EN (bit 0–7 = PWM routing per pin) | Læs + Skriv |
+| `0xF050_0010` | PMOD JA IN_DEBOUNCED (bit 0–7 = debounced input value per pin) | Læs |
+| `0xF060_0000` | PMOD JB DIR / OUT / IN / PWM_EN / IN_DEBOUNCED (samme layout som JA, offset 0x0/0x4/0x8/0xC/0x10) | Læs + Skriv |
+| `0xF070_0000` | PMOD JC DIR / OUT / IN / PWM_EN / IN_DEBOUNCED (samme layout som JA, offset 0x0/0x4/0x8/0xC/0x10) | Læs + Skriv |
 
 ## Workflow - fra Rust-kode til kørende program
 Når du udvikler programmer til denne SoCc, er dit workflow:
 1. Skriv eller rediger dit Rust-program i filen `sw/program/src/main.rs`
-2. Kør kommandoen `make upload SERIAL_PORT=<din_port>` fra roden af repoet (`.../rust-riscv-soc`)
+2. Kør kommandoen `cargo xtask upload <din_port>` fra roden af repoet (`.../rust-riscv-soc`)
 3. Dit program kompileres, uploades, og begynder at eksekvere automatisk.
 
-Testkredsløbet herunder er det hardware-setup, som bruges af koden der aktuelt kører i [sw/program/src/main.rs](sw/program/src/main.rs).
-
-![Test circuit for main.rs](Test-circuit.png)
-
 ### Hvad sker der på din pc?
-Kommandoen `make upload` automatiserer følgende kæde af handlinger:
+Kommandoen `cargo xtask upload` automatiserer følgende kæde af handlinger:
 1. **Kompilering:** Cargo (Rusts build-system) kompilerer dit Rust-program til en RISC-V ELF-fil. ELF-formatet indeholder maskinkode plus metadata om programmets struktur (Hvor kode og data starter, symbolnavne osv.)
-2. **Konvertering:** `cargo objcopy` konverterer denne ELF-fil til en rå binærfil (`program.bin`). Denne fil indeholder udelukkende maskinkode uden metadata - det er de bytes der skal ligges ind i hukommelsen på din basys-3 FPGA.
-3. **Upload:** Python-scriptet `upload.py` sender binærfilen over USB/UART til FPGA'en. Scriptet håndterer reset, aktivering af bootloader, og overførsel af programdata (se bootflow sektion for flere detaljer).
+2. **Konvertering:** `cargo objcopy` konverterer denne ELF-fil til en rå binærfil (`program.bin`). Filen indeholder bytes fra både IMEM- og DMEM-området og kan indeholde padding mellem områderne.
+3. **Upload:** rust-craten `uploader` sender binærfilen over USB/UART til FPGA'en. Scriptet håndterer reset, aktivering af bootloader, og overførsel af programdata. Hardwaren bruger adresserne til at skrive instruktioner til IMEM og data til DMEM.
 4. **Eksekvering:** Når upload er færdig, frigiver bootloaderen CPU'en og dit progream eksekveres fra adresse `0x0000_0000`.
 
 ### Filstruktur
@@ -142,10 +159,10 @@ Kommandoen `make upload` automatiserer følgende kæde af handlinger:
 Dit Rust-program skrives i filen `sw/program/src/main.rs`. Det 
 er den eneste fil du behøver at redigere under normal brug.
 
-**Note:** Hvis du løber ind i hukommelsesbegrænsninger (4 KB), 
+**Note:** Hvis du løber ind i hukommelsesbegrænsninger (4 KB instruktioner eller 4 KB data/stack),
 er det muligt at udvide hukommelsen ved at ændre størrelsen i 
 `sw/program/linker.ld` og `wildcat/src/main/scala/rvsoc/RustSoCTop.scala`, 
-efterfulgt af et `make flash`. Kontakt en underviser inden du 
+efterfulgt af et `cargo xtask flash`. Kontakt en underviser inden du 
 gør dette.
 
 ## HAL-reference: tilgængelige funktioner og adresser
@@ -171,7 +188,7 @@ og bit 8–15 styrer LEDs tilsluttet via Pmod-headeren.
 
 ### Knapper: `btn_read() -> u32`
 
-Returnerer den aktuelle tilstand af de fire retningsknapper. 
+Returnerer den debounced tilstand af de fire retningsknapper.
 Bit 0–3 svarer til de fire knapper — 1 betyder trykket, 
 0 betyder ikke trykket.
 ```rust
@@ -208,32 +225,57 @@ if adc_val[0] > 2048 { // Aflæser component i JXADC1, 7
 
 ### PWM: `pwm_enable(mask: u16)`
 
-Aktiverer PWM-mode for specifikke LEDs. Hvert bit i `mask` svarer til én LED — bit 0 = LED 0, bit 1 = LED 1, osv. Når en LED er PWM-enabled, styres dens lysstyrke af dens duty cycle-register i stedet for det almindelige LED-register.
+Aktiverer PWM-mode for specifikke kanaler i den globale PWM-controller. Hvert bit i `mask` svarer til én kanal — bit 0 = kanal 0, bit 1 = kanal 1, osv. Når en kanal er PWM-enabled, styres dens lysstyrke af dens duty cycle-register i stedet for et almindeligt digitalt output.
 
 ```rust
-pwm_enable(0b0000_0000_0111_1111); // PWM på LED 0-6 (onboard)
-pwm_enable(0b0111_0000_0000_0000); // PWM på LED 12-14 (RGB)
-pwm_enable(0); // Slå PWM fra for alle LEDs
+Pmod::JA.set_dir(0b0000_0111); // set JA[1..3] LEDs as output
+Pmod::JA.set_pwm_en(0b_0000_0011); // Enable PWM on JA[1..2] pins
 ```
 
-**Bemærk:** Bit 7 ignoreres af hardwaren, da LED 7 er reserveret til CPU running-indikatoren. LEDs der *ikke* er PWM-aktiverede opfører sig som normalt og styres af `led_write()`.
+**Bemærk:** Bit 7 ignoreres af hardwaren, da LED 7 er reserveret til CPU running-indikatoren. Kanaler der *ikke* er PWM-aktiverede opfører sig som normalt og styres af de relevante GPIO- eller LED-registre. For PMOD-pins skal du kombinere denne funktion med `Pmod::X.set_pwm_en(...)`.
 
-### PWM: `pwm_set(channel: u8, percent: u8)`
+### PMOD GPIO: `Pmod::JA`, `Pmod::JB`, `Pmod::JC`
+
+De tre PMOD-porte kan bruges som almindelige GPIO-banker fra Rust. Hver port understøtter retning, output, input og PWM-routing.
+
+```rust
+Pmod::JA.set_dir(0b1111_0000);      // Nederste 4 pins som input, øverste 4 som output
+Pmod::JA.set_out(0b1010_0000);      // Skriv output på de pins der er sat som output
+let input = Pmod::JA.read_in();     // Læs aktuelle niveauer
+let stable = Pmod::JA.read_debounced(); // Læs debounced niveauer
+Pmod::JA.set_pwm_en(0b0111_0000);   // Route PWM til pins 4-6
+```
+
+For PWM-drevne PMOD-pins bruger den tilhørende software typisk `pwm_set(...)` eller en wrapper som `rgb_set(...)` til at vælge duty cycle, mens `set_pwm_en(...)` bestemmer hvilke pins der faktisk lytter på PWM-signalet.
+
+For knapper på PMOD sættes pinnen som input. Alle PMOD GPIO-pins har interne pullups, så en simpel knap kan forbindes mellem PMOD-pinnen og GND. Brug `button_pressed(bit)` for aktiv-lav knaplogik:
+
+```rust
+Pmod::JA.set_dir(0b0000_0000); // JA som input
+
+if Pmod::JA.button_pressed(0) {
+    println!("JA[0] knap er trykket");
+}
+```
+
+`read_in()` er raw input og kan bounce. `read_debounced()` og `button_pressed()` er beregnet til knapper.
+
+### PWM: `pwm_set_duty(channel: u8, percent: u8)`
 
 Sætter lysstyrken af en PWM-aktiveret LED som en procentværdi. `channel` er LED-nummeret (0-6 eller 8-15), og `percent` er lysstyrken fra 0 (slukket) til 100 (fuld lysstyrke). Værdier over 100 clampes automatisk til 100.
 
 ```rust
-pwm_set(0, 100); // LED 0: fuld lysstyrke
-pwm_set(1, 50);  // LED 1: halv lysstyrke
-pwm_set(2, 10);  // LED 2: svagt lys
-pwm_set(3, 0);   // LED 3: slukket
+pwm_set(0, 100); // JA1: fuld lysstyrke
+pwm_set(1, 50);  // JA2: halv lysstyrke
+pwm_set(2, 10);  // JA3: svagt lys
+pwm_set(3, 0);   // JA4: slukket
 ```
 
-For at en `pwm_set`-skrivning faktisk påvirker en LED, skal den pågældende kanal være aktiveret via `pwm_enable`. Hvis ikke, gemmes duty cycle-værdien i registret men ignoreres af LED-outputtet.
+For at en `pwm_set_duty`-skrivning faktisk påvirker en LED, skal den pågældende kanal være aktiveret via jf. Pmod funktionen `set_pwm_en`. Hvis ikke, gemmes duty cycle-værdien i registret men ignoreres af LED-outputtet.
 
 ### RGB-LED: `rgb_set(r: u8, g: u8, b: u8)`
 
-Sætter farven af en RGB-LED tilsluttet pin 12, 13 og 14. Hver farvekanal angives som en procentværdi (0-100). Funktionen inverterer værdierne internt fordi RGB-LED'en er common-anode — så en høj `r`-værdi giver reelt høj rød lysstyrke, som forventet.
+Sætter farven af en RGB-LED tilsluttet PMOD GPIO-pins. Hver farvekanal angives som en procentværdi (0-100). Funktionen inverterer værdierne internt fordi RGB-LED'en er common-anode — så en høj `r`-værdi giver reelt høj rød lysstyrke, som forventet.
 
 ```rust
 rgb_set(100, 0, 0);   // Fuld rød
@@ -244,10 +286,10 @@ rgb_set(50, 0, 50);   // Lilla (halv rød + halv blå)
 rgb_set(0, 0, 0);     // Slukket
 ```
 
-**Forudsætning:** PWM skal være aktiveret for pin 12-14 før `rgb_set` virker:
+**Forudsætning:** PWM skal være aktiveret for de tre relevante PMOD-pins før `rgb_set` virker:
 
 ```rust
-pwm_enable(0b0111_0000_0000_0000); // Aktiver PWM på bit 12, 13, 14
+Pmod::JA.set_pwm_en(0b0111_0000); // Aktiver PWM på de tre RGB-pins
 ```
 
 ### UART: `print!()` og `println!()`
@@ -260,7 +302,7 @@ println!("Tallet er: {}", 42);
 println!("Knapper: 0x{:X}", btn_read());
 ```
 
-Output kan ses i terminalen efter `make upload`, eller med et 
+Output kan ses i terminalen efter `cargo xtask upload <din_port>`, eller med et 
 serielt terminalprogram (115200 baud, 8N1).
 
 ### Avanceret: Direkte MMIO
@@ -289,6 +331,9 @@ De prædefinerede adresser er:
 | `BTN_REG` | `0xF020_0000` | `*const u32` | Button-register |
 | `ADC_BASE` | `0xF030_0000` | `*const u32` | ADC-base (4 kanaler, offset 0-12) |
 | `PWM_BASE` | `0xF040_0000` | `*mut u32` | PWM-base (enable + 16 duty registre) |
+| `PMOD_JA_BASE` | `0xF050_0000` | GPIO bank | DIR/OUT/IN/PWM_EN/IN_DEBOUNCED |
+| `PMOD_JB_BASE` | `0xF060_0000` | GPIO bank | Samme layout som JA |
+| `PMOD_JC_BASE` | `0xF070_0000` | GPIO bank | Samme layout som JA |
 
 
 ## Eksempler på programmering
@@ -377,11 +422,11 @@ fn main() {
 
 ## Fejlfinding
 
-### "make upload" fejler med "Could not open port"
+### "cargo xtask upload" fejler med "Could not open port"
 
 Seriel porten er enten forkert angivet eller i brug af et 
 andet program. Tjek at du har angivet den rigtige port med 
-`SERIAL_PORT=<din_port>`. Luk eventuelle andre programmer 
+`cargo xtask upload <din_port>`. Luk eventuelle andre programmer 
 der bruger porten (serielle terminaler, andre upload-scripts).
 
 ### Ingen output i terminalen efter upload
@@ -389,15 +434,15 @@ der bruger porten (serielle terminaler, andre upload-scripts).
 Tjek at din serielle port er korrekt. Tjek at boardet er 
 tændt og at SoC'en er flashet (venstre LED skal lyse). 
 Prøv at trykke på PROG-knappen og vent 5-10 sekunder 
-inden du kører `make upload` igen.
+inden du kører `cargo xtask upload <din_port>` igen.
 
 ### Programmet virker ikke efter ændringer i koden
 
-Sørg for at du gemmer filen inden du kører `make upload`. 
+Sørg for at du gemmer filen inden du kører `cargo xtask upload <din_port>`. 
 Tjek terminalens output for kompileringsfejl — Rust-compileren 
 giver typisk præcise fejlbeskeder med linjenummer.
 
-### "make flash" fejler
+### "cargo xtask flash" fejler
 
 Tjek følgende:
 - **Er Vivado installeret?** Følg installationsguiden i README
@@ -414,11 +459,10 @@ Tjek følgende:
 
 ### Programmet kompilerer men gør ingenting på boardet
 
-Dit program fylder muligvis mere end 4 KB. Tjek størrelsen 
-af den kompilerede binær i 
-`sw/program/target/riscv32i-unknown-none-elf/release/program.bin`. 
-Hvis filen er over 4096 bytes, skal du reducere programmets 
-størrelse.
+Dit program fylder muligvis mere end den tilgængelige hukommelse. Kør
+`rust-size -A target/riscv32i-unknown-none-elf/release/program` fra repo-roden
+og tjek at `.text` holder sig under 4096 bytes, og at data-sektionerne samt
+stack kan være i DMEM-området.
 
 ### LEDs reagerer ikke
 

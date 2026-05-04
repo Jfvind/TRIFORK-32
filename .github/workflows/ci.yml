@@ -9,14 +9,11 @@ on:
 jobs:
   # ────────────────────────────────────────────────────────────
   # Job 1: Simulation tests (in Github cloud)
-  # Runs sbt test on the Wildcat tests
+  # Runs the Wildcat simulation tests via cargo xtask
   # ────────────────────────────────────────────────────────────
   simulate:
     name: Chisel Simulation Tests
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: wildcat
 
     steps:
       - name: Checkout repository
@@ -59,16 +56,11 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-sbt-
 
-      - name: Clone RISC-V test vectors
-        run: |
-          if [ ! -d "risc-v-lab" ]; then
-            make risc-v-lab
-          fi
-
       - name: Run all simulation tests
-        run: sbt test
+        run: cargo xtask sim-test
 
       - name: Generate Verilog (verify RustSoCTop compiles)
+        working-directory: wildcat
         run: sbt "runMain rvsoc.RustSoCTopGen"
 
       - name: Upload generated Verilog as artifact
@@ -97,10 +89,7 @@ jobs:
           submodules: recursive
 
       - name: Build Rust test binary
-        run: make rust-build
-
-      - name: Install Python dependencies
-        run: pip install -r sw/loader/requirements.txt
+        run: cargo xtask build-rust
 
       - name: Upload test binary and verify UART output
-        run: make hw-test SERIAL_PORT=COM4
+        run: cargo xtask hw-test COM4

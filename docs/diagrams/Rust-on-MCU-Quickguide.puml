@@ -1,0 +1,17 @@
+@startuml
+title Rust-on-MCU Quick Workflow
+
+start
+if (MCU already flashed?) then (yes)
+else (no)
+  :Run `cargo xtask flash`;
+  :Press PROG on the board;
+endif
+
+:Edit `sw/program/src/main.rs`;
+:Run `cargo xtask upload <COM_PORT>`;
+:Build and upload program;
+:MCU executes code;
+:Observe UART output / LEDs;
+stop
+@enduml

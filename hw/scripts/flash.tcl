@@ -11,7 +11,7 @@ create_hw_cfgmem -hw_device $device -mem_dev [lindex [get_cfgmem_parts mx25l3273
 
 set mem_device [get_property PROGRAM.HW_CFGMEM [lindex [get_hw_devices] 0]]
 
-# Set the file to flash (passed as an argument from Makefile)
+# Set the file to flash (passed as an argument from xtask)
 set bin_file [lindex $argv 0]
 set_property PROGRAM.FILES [list $bin_file] $mem_device
 

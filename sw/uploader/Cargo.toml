@@ -1,0 +1,14 @@
+[package]
+name = "uploader"
+version = "0.1.0"
+edition = "2021"
+description = "UART bootloader upload tool for RustSoCTop"
+
+[[bin]]
+name = "uploader"
+path = "src/main.rs"
+
+[dependencies]
+serialport = "4.3"
+clap = { version = "4.5", features = ["derive"] }
+anyhow = "1.0"
