@@ -122,16 +122,18 @@ After boot, the program prints "PASS" over UART and demonstrates all peripherals
 - **Buttons:** btnU, btnL, btnR, light up Pmod LEDs 8, 9, 10 respectively.
 - **RGB LED (PWM):** Pmod pins 12-14 drive a common-anode RGB LED that fades through red, green, and blue
 - **PMOD GPIO:** JA, JB, and JC are bidirectional GPIO banks. The Rust demo uses the new `Pmod` helper to drive outputs, read inputs, and route PWM to selected pins.
+- **I2C (AM2320 sensor):** Pmod JC[2]/[3] form an I2C bus. The Rust demo reads temperature and humidity from an AM2320 sensor every ~2 seconds and prints the values over UART.
 
 **Note:** When CPU is running, LED 7 (leftmost onboard) is lit as a status indicator.
 
 ### GPIO overview
-The hardware exposes three software-controlled PMOD GPIO banks in addition to the onboard LEDs, buttons, and ADC:
+The hardware exposes three software-controlled PMOD GPIO banks in addition to the onboard LEDs, buttons, ADC, and I2C controller:
 - Each PMOD bank has direction, output, input, and PWM-enable registers.
 - Each PMOD bank also has a debounced input register for button-style reads.
-- The current Rust program uses JA for button mirroring and RGB PWM output.
+- The current Rust program uses JA for button mirroring and RGB PWM output, and JC[2]/JC[3] for I2C communication with an AM2320 temperature/humidity sensor.
 - GPIOs can be driven directly from Rust through the MMIO helpers in `sw/program/src/main.rs`.
 - PMOD buttons can be wired from a GPIO pin to GND; internal pullups keep the idle state high.
+- The I2C controller drives JC[2] (SDA) and JC[3] (SCL); these pins are not available as general-purpose GPIO.
 
 The test circuit below is the hardware setup used by the code currently running in [sw/program/src/main.rs](sw/program/src/main.rs).
 

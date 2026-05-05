@@ -1,5 +1,5 @@
-C:\DTU-local\Repos\rust-riscv-soc\wildcat\generated\TriStateBuffer8.v
-C:\DTU-local\Repos\rust-riscv-soc\wildcat\generated\RustSoCTop.ScratchPadMem.MEM.v
-C:\DTU-local\Repos\rust-riscv-soc\wildcat\generated\RustSoCTop.ScratchPadMem.MEM_1.v
-C:\DTU-local\Repos\rust-riscv-soc\wildcat\generated\RustSoCTop.ScratchPadMem.MEM_2.v
-C:\DTU-local\Repos\rust-riscv-soc\wildcat\generated\RustSoCTop.ScratchPadMem.MEM_3.v
+C:\Dev (GIT proj)\DTU\4. Sem\Fagprojekt\rust-riscv-soc\wildcat\generated\TriStateBuffer8.v
+C:\Dev (GIT proj)\DTU\4. Sem\Fagprojekt\rust-riscv-soc\wildcat\generated\RustSoCTop.ScratchPadMem.MEM.v
+C:\Dev (GIT proj)\DTU\4. Sem\Fagprojekt\rust-riscv-soc\wildcat\generated\RustSoCTop.ScratchPadMem.MEM_1.v
+C:\Dev (GIT proj)\DTU\4. Sem\Fagprojekt\rust-riscv-soc\wildcat\generated\RustSoCTop.ScratchPadMem.MEM_2.v
+C:\Dev (GIT proj)\DTU\4. Sem\Fagprojekt\rust-riscv-soc\wildcat\generated\RustSoCTop.ScratchPadMem.MEM_3.v
