@@ -474,22 +474,31 @@ fn main() {
                 // Wait at least 1.5 ms for the sensor to prepare its reply.
                 delay_cycles(500_000); // 5 ms
 
-                // DIAGNOSTIC: read only 1 byte instead of 8 to isolate whether
-                // the FF FF FF problem is in the first-byte read or in
-                // byte-to-byte synchronization. Expected first byte: 0x03
-                // (function code echo).
-                let mut response = [0u8; 1];
+                // Read 8-byte response:
+                // [0]=0x03 [1]=0x04 [2-3]=humidity [4-5]=temperature [6-7]=CRC
+                let mut response = [0u8; 8];
                 let read_ok = i2c_read_bytes(0x5C, &mut response);
 
                 println!("Read OK: {}", read_ok);
-                println!("Byte: {:02X} (expected: 03)", response[0]);
+                println!("Bytes: {:02X} {:02X} {:02X} {:02X} {:02X} {:02X} {:02X} {:02X}",
+                    response[0], response[1], response[2], response[3],
+                    response[4], response[5], response[6], response[7]);
 
-                if response[0] == 0x03 {
-                    println!("First byte OK - bug is in successive byte reads");
-                } else if response[0] == 0xFF {
-                    println!("First byte FF - bug is in first-byte read itself");
+                if response[0] == 0x03 && response[1] == 0x04 {
+                    println!("Header OK (expected 03 04)");
+
+                    let humidity = ((response[2] as u16) << 8) | (response[3] as u16);
+                    let temperature = (((response[4] as u16) << 8) | (response[5] as u16)) as i16;
+
+                    let temp_int = temperature / 10;
+                    let temp_frac = (temperature % 10).abs();
+                    let hum_int = humidity / 10;
+                    let hum_frac = humidity % 10;
+
+                    println!("Hum={}.{}% Temp={}.{}C", hum_int, hum_frac, temp_int, temp_frac);
                 } else {
-                    println!("Unexpected first byte - investigate");
+                    println!("Header BAD (expected 03 04, got {:02X} {:02X})",
+                        response[0], response[1]);
                 }
             }
         }
