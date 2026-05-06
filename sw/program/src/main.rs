@@ -476,13 +476,11 @@ fn main() {
 
                 // Read 8-byte response:
                 // [0]=0x03 [1]=0x04 [2-3]=humidity [4-5]=temperature [6-7]=CRC
-                let mut response = [0u8; 8];
+                let mut response = [0u8; 1];
                 let read_ok = i2c_read_bytes(0x5C, &mut response);
 
                 println!("Read OK: {}", read_ok);
-                println!("Bytes: {:02X} {:02X} {:02X} {:02X} {:02X} {:02X} {:02X} {:02X}",
-                    response[0], response[1], response[2], response[3],
-                    response[4], response[5], response[6], response[7]);
+                println!("Bytes: {:02X}", response[0]);
 
                 if response[0] == 0x03 && response[1] == 0x04 {
                     println!("Header OK (expected 03 04)");
