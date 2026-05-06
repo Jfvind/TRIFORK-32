@@ -141,9 +141,11 @@ class I2cController(systemClockHz: Int = 100_000_000,
   // -------- State machine --------
   switch(state) {
     is(sIdle) {
-      // Both lines released (pull-ups hold the HIGH)
-      sdaOeReg := false.B
-      sclOeReg := false.B
+      // Bus state (sdaOeReg, sclOeReg) is preserved from the previous state.
+      // Releasing the lines here would let pull-ups raise SDA while SCL is
+      // still high after a START or between bytes, which I2C interprets as
+      // an unintended STOP condition. Each terminating state (sStop) must
+      // explicitly release the lines when the transaction is genuinely done.
       busyReg := false.B
 
       // Reset counter so new command starts fresh

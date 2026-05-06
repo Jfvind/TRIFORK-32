@@ -286,6 +286,12 @@ fn i2c_read_bytes(addr: u8, buf: &mut [u8]) -> bool {
         i2c_stop();
         return false;
     }
+    // Wait at least 30 microseconds after the address byte before clocking
+    // the first data bit. Required by AM2320-class slaves that need time
+    // to prepare data after acknowledging their address. Standard slaves
+    // would clock-stretch instead, but some quirky chips do not.
+    // 5000 cycles at 100 MHz = 50 microseconds, comfortably above the minimum.
+    delay_cycles(5_000);
     let last = buf.len() - 1;
     for i in 0..buf.len() {
         let send_ack = i != last;
@@ -310,12 +316,15 @@ fn i2c_write_read(addr: u8, write_data: &[u8], read_buf: &mut [u8]) -> bool {
             return false;
         }
     }
-    // Repeated START - vi sender START igen uden at have lavet STOP først.
+    // Repeated START - new START without STOP first
     i2c_start();
     if !i2c_write_byte((addr << 1) | 1) {
         i2c_stop();
         return false;
     }
+    // Wait at least 30 microseconds after the read address byte. See
+    // i2c_read_bytes for full explanation.
+    delay_cycles(5_000);
     if !read_buf.is_empty() {
         let last = read_buf.len() - 1;
         for i in 0..read_buf.len() {
@@ -355,6 +364,20 @@ fn main() {
 
     // Configure I2C bus to 100 kHz (standard mode)
     i2c_set_clkdiv(500);
+
+    // Sanity check: NACK detection.
+    // Send a WRITE to address 0x42 (no slave should exist there). If our
+    // controller correctly detects the missing ACK, we should get false.
+    // If we get true, something is wrong with our controller and any
+    // subsequent results are suspect.
+    i2c_start();
+    let fake_acked = i2c_write_byte((0x42 << 1) | 0);
+    i2c_stop();
+    if fake_acked {
+        println!("NACK detection: FAIL (got ACK from nonexistent 0x42)");
+    } else {
+        println!("NACK detection: PASS");
+    }
 
     // set JA LEDs as output
     Pmod::JA.set_dir(0b0111_0111);
@@ -419,49 +442,64 @@ fn main() {
         if am2320_counter >= AM2320_INTERVAL {
             am2320_counter = 0;
 
-            // Wake-up: send a write to address 0x5c and ignore the NACK.
-            // The sensor is in deep sleep and will not ACK this byte; this is
-            // expected and documented in the AM2320 datasheet.
-            i2c_start();
-            let _ = i2c_write_byte((0x5C << 1) | 0);
-            i2c_stop();
+            println!("--- AM2320 read ---");
 
-            // Wait at least 800 µs but no more than 3 ms before the read command.
-            // 100_000 cycles at 100 MHz = 1 ms.
-            delay_cycles(1_000_000);
-            
+            // Wake-up via clock divider trick. Lower the I2C clock to ~10 kHz
+            // so the wake address byte takes ~900 microseconds on the bus.
+            // The AM2320 datasheet requires SDA to be held low for at least
+            // 800 microseconds during the wake transaction; this satisfies
+            // that requirement without needing a dedicated hardware state.
+            i2c_wait_idle();
+            i2c_set_clkdiv(5000);
+
+            i2c_start();
+            let wake_acked = i2c_write_byte((0x5C << 1) | 0);
+            i2c_stop();
+            println!("Wake ACK: {} (expected: false)", wake_acked);
+
+            // Restore standard 100 kHz for the actual read transaction.
+            i2c_wait_idle();
+            i2c_set_clkdiv(500);
+
+            // Small delay before next transaction to let the sensor settle.
+            delay_cycles(200_000); // 2 ms
+
             // Send Modbus read command: function 0x03, start register 0x00, length 4.
             // This requests humidity (regs 0-1) and temperature (regs 2-3).
             let cmd = [0x03u8, 0x00, 0x04];
             let cmd_ok = i2c_write_bytes(0x5C, &cmd);
+            println!("Cmd ACK: {} (expected: true)", cmd_ok);
 
             if cmd_ok {
                 // Wait at least 1.5 ms for the sensor to prepare its reply.
-                delay_cycles(500_000); // 2 ms
+                delay_cycles(500_000); // 5 ms
 
                 // Read 8-byte response:
                 // [0]=0x03 [1]=0x04 [2-3]=humidity [4-5]=temperature [6-7]=CRC
                 let mut response = [0u8; 8];
                 let read_ok = i2c_read_bytes(0x5C, &mut response);
 
-                if read_ok && response[0] == 0x03 && response[1] == 0x04 {
-                    // Combine MSB and LSB into 16-bit values.
+                println!("Read OK: {}", read_ok);
+                println!("Bytes: {:02X} {:02X} {:02X} {:02X} {:02X} {:02X} {:02X} {:02X}",
+                    response[0], response[1], response[2], response[3],
+                    response[4], response[5], response[6], response[7]);
+
+                if response[0] == 0x03 && response[1] == 0x04 {
+                    println!("Header OK (expected 03 04)");
+
                     let humidity = ((response[2] as u16) << 8) | (response[3] as u16);
                     let temperature = (((response[4] as u16) << 8) | (response[5] as u16)) as i16;
 
-                    // Values are in tenths: 234 means 23.4 °C.
                     let temp_int = temperature / 10;
                     let temp_frac = (temperature % 10).abs();
                     let hum_int = humidity / 10;
                     let hum_frac = humidity % 10;
 
-                    println!("AM2320: {}.{} C, {}.{} %RH", temp_int, temp_frac, hum_int, hum_frac);
+                    println!("Hum={}.{}% Temp={}.{}C", hum_int, hum_frac, temp_int, temp_frac);
                 } else {
-                    println!("AM2320: read failed");
-                    println!("Response: {:02X?}", &response);
+                    println!("Header BAD (expected 03 04, got {:02X} {:02X})",
+                        response[0], response[1]);
                 }
-            } else {
-                println!("AM2320: command failed (no ACK)");
             }
         }
 
