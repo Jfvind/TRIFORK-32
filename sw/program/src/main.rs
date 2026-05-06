@@ -220,6 +220,11 @@ fn i2c_wait_idle() {
     }
 }
 
+/// Read raw status register. Useful for debugging - shows BUSY/NACK/BUS_ERR bits.
+fn i2c_status() -> u32 {
+    unsafe { I2C_STATUS.read_volatile() }
+}
+
 // Generate START condition on the BUS. Needs to be called at the start of every transaction.
 fn i2c_start() {
     unsafe { I2C_CMD.write_volatile(I2C_CMD_START); }
@@ -474,31 +479,52 @@ fn main() {
                 // Wait at least 1.5 ms for the sensor to prepare its reply.
                 delay_cycles(500_000); // 5 ms
 
-                // Read 8-byte response:
-                // [0]=0x03 [1]=0x04 [2-3]=humidity [4-5]=temperature [6-7]=CRC
-                let mut response = [0u8; 8];
-                let read_ok = i2c_read_bytes(0x5C, &mut response);
+                // ===== TEST 1: Read 8 bytes with status print after each byte =====
+                // This shows whether BUS_ERR or unexpected NACK arises during
+                // the read, and lets us distinguish between sensor failure and
+                // controller failure mid-read.
+                println!("Test 1: read 8 bytes with status print");
 
-                println!("Read OK: {}", read_ok);
-                println!("Bytes: {:02X} {:02X} {:02X} {:02X} {:02X} {:02X} {:02X} {:02X}",
+                let mut response = [0u8; 8];
+
+                // Open the read transaction manually so we can poke status
+                // between each i2c_read_byte() call.
+                i2c_start();
+                let addr_ok = i2c_write_byte((0x5C << 1) | 1);
+                println!("  Addr ACK: {} status={:02X}", addr_ok, i2c_status());
+
+                if addr_ok {
+                    delay_cycles(5_000); // 50 us, AM2320 30us minimum
+                    for i in 0..8 {
+                        let send_ack = i != 7;
+                        response[i] = i2c_read_byte(send_ack);
+                        println!("  Byte {}: {:02X} status={:02X}", i, response[i], i2c_status());
+                    }
+                }
+                i2c_stop();
+
+                println!("Test 1 result: {:02X} {:02X} {:02X} {:02X} {:02X} {:02X} {:02X} {:02X}",
                     response[0], response[1], response[2], response[3],
                     response[4], response[5], response[6], response[7]);
 
-                if response[0] == 0x03 && response[1] == 0x04 {
-                    println!("Header OK (expected 03 04)");
+                // ===== TEST 2: Second read transaction without new wake =====
+                // Wait 100 ms then try to read 8 more bytes. If byte 0 is still
+                // 0x03, the sensor is still awake. If 0xFF, it has gone to sleep.
+                println!("Test 2: 100ms pause, then second read without wake");
+                delay_cycles(10_000_000); // 100 ms
 
-                    let humidity = ((response[2] as u16) << 8) | (response[3] as u16);
-                    let temperature = (((response[4] as u16) << 8) | (response[5] as u16)) as i16;
+                // Send Modbus read command again (no wake first)
+                let cmd2_ok = i2c_write_bytes(0x5C, &cmd);
+                println!("  Cmd2 ACK: {} status={:02X}", cmd2_ok, i2c_status());
 
-                    let temp_int = temperature / 10;
-                    let temp_frac = (temperature % 10).abs();
-                    let hum_int = humidity / 10;
-                    let hum_frac = humidity % 10;
-
-                    println!("Hum={}.{}% Temp={}.{}C", hum_int, hum_frac, temp_int, temp_frac);
-                } else {
-                    println!("Header BAD (expected 03 04, got {:02X} {:02X})",
-                        response[0], response[1]);
+                if cmd2_ok {
+                    delay_cycles(500_000); // 5 ms
+                    let mut response2 = [0u8; 8];
+                    let read2_ok = i2c_read_bytes(0x5C, &mut response2);
+                    println!("  Read2 OK: {}", read2_ok);
+                    println!("Test 2 result: {:02X} {:02X} {:02X} {:02X} {:02X} {:02X} {:02X} {:02X}",
+                        response2[0], response2[1], response2[2], response2[3],
+                        response2[4], response2[5], response2[6], response2[7]);
                 }
             }
         }
