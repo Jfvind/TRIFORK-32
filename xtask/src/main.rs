@@ -16,7 +16,7 @@ const RUST_TARGET:   &str = "riscv32i-unknown-none-elf";
 const RUST_RELEASE:  &str = "target/riscv32i-unknown-none-elf/release/program";
 const DEFAULT_PORT:  &str = "COM5";
 
-const VIVADO:        &str = "C:/Xilinx/Vivado/2024.1/bin/vivado.bat";
+const VIVADO:        &str = "C:/AMDDesignTools/2025.2/Vivado/bin/vivado.bat";
 
 
 fn main() -> Result<(), xshell::Error> {

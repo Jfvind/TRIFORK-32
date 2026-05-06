@@ -428,7 +428,7 @@ fn main() {
 
             // Wait at least 800 µs but no more than 3 ms before the read command.
             // 100_000 cycles at 100 MHz = 1 ms.
-            delay_cycles(100_000);
+            delay_cycles(1_000_000);
             
             // Send Modbus read command: function 0x03, start register 0x00, length 4.
             // This requests humidity (regs 0-1) and temperature (regs 2-3).
@@ -437,7 +437,7 @@ fn main() {
 
             if cmd_ok {
                 // Wait at least 1.5 ms for the sensor to prepare its reply.
-                delay_cycles(200_000); // 2 ms
+                delay_cycles(500_000); // 2 ms
 
                 // Read 8-byte response:
                 // [0]=0x03 [1]=0x04 [2-3]=humidity [4-5]=temperature [6-7]=CRC
@@ -458,6 +458,7 @@ fn main() {
                     println!("AM2320: {}.{} C, {}.{} %RH", temp_int, temp_frac, hum_int, hum_frac);
                 } else {
                     println!("AM2320: read failed");
+                    println!("Response: {:02X?}", &response);
                 }
             } else {
                 println!("AM2320: command failed (no ACK)");
