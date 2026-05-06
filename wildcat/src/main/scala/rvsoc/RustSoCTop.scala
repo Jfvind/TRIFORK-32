@@ -49,7 +49,7 @@ class TriStateBuffer8 extends HasBlackBoxInline {
  *   - Holds the CPU stalled while the bootloader is active (by ack deassertion).
  *   - Enable on-board button inputs
  *   - Reads Analog values from JXADC inputs
- *   - JA, JB, JC are used as GPIOs
+ *   - JA, JB, JC are used as GPIOs.
  *
  * Boot sequence:
  *   1. After FPGA is programmed, the bootloader is active and the CPU is stalled.
