@@ -478,29 +478,27 @@ fn main() {
             if cmd_ok {
                 delay_cycles(500_000); // 5 ms
 
-                // ===== Sensor liveness test after ACK on byte 0 =====
-                // Read byte 0 with ACK, then issue a repeated START + addr+R.
-                // If the sensor is still awake, it ACKs the re-addressing.
-                // If it has gone to sleep (despite no STOP), it NACKs.
-                // This isolates whether the byte 1+ FF problem is sensor-side
-                // (sleep) or controller-side (read sampling).
-                println!("Liveness test: read byte 0, then re-address sensor");
+                // ===== Pure sReadAck test =====
+                // Read 2 bytes back-to-back without any repeated START.
+                // Byte 0 is ACK'ed (more bytes coming), byte 1 is NACK'ed
+                // (last byte). If the sReadAck fix works, byte 1 should be
+                // actual sensor data (probably 0x04 = Modbus byte count).
+                // If byte 1 is still 0xFF, the fix did not take effect.
+                println!("Pure sReadAck test: read 2 bytes back-to-back");
 
                 i2c_start();
                 let addr_ok = i2c_write_byte((0x5C << 1) | 1);
-                println!("  Initial addr ACK: {} status={:02X}", addr_ok, i2c_status());
+                println!("  Addr+R ACK: {} status={:02X}", addr_ok, i2c_status());
 
                 if addr_ok {
                     delay_cycles(5_000); // 50 us
-                    let byte0 = i2c_read_byte(true); // ACK to byte 0
+
+                    let byte0 = i2c_read_byte(true);  // ACK to byte 0
                     println!("  Byte 0: {:02X} status={:02X}", byte0, i2c_status());
 
-                    // Repeated START - new START without STOP first.
-                    // Sensor should ACK if still awake.
-                    i2c_start();
-                    let readdr_ok = i2c_write_byte((0x5C << 1) | 1);
-                    println!("  Re-addr ACK: {} status={:02X} (true = sensor awake, false = sleep)",
-                        readdr_ok, i2c_status());
+                    let byte1 = i2c_read_byte(false); // NACK to byte 1 (last)
+                    println!("  Byte 1: {:02X} status={:02X}", byte1, i2c_status());
+                    println!("  Verdict: byte1=FF means sReadAck STILL broken, anything else means FIXED");
                 }
                 i2c_stop();
             }
