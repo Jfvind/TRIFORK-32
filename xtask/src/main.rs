@@ -16,8 +16,6 @@ const RUST_TARGET:   &str = "riscv32i-unknown-none-elf";
 const RUST_RELEASE:  &str = "target/riscv32i-unknown-none-elf/release/program";
 const DEFAULT_PORT:  &str = "COM5";
 
-const VIVADO:        &str = "C:/Xilinx/Vivado/2024.1/bin/vivado.bat";
-
 
 fn main() -> Result<(), xshell::Error> {
     // Running shell commands in the root
@@ -60,7 +58,8 @@ fn build_hw(sh: &Shell) -> Result<(), xshell::Error> {
     // Run synthesis and implementation in Vivado
     if needs_rebuild(V_FILE, BIN_FILE) {
         println!("--- Building FPGA Bitstream ---");
-        cmd!(sh, "{VIVADO} -mode batch -notrace -source hw/scripts/build.tcl").run()?;
+        let vivado_cmd = if cfg!(target_os = "windows") { "vivado.bat" } else { "vivado" };
+        cmd!(sh, "{vivado_cmd} -mode batch -notrace -source hw/scripts/build.tcl").run()?;
     } else {
         println!("--- Bitstream is up to date ---");
     }
@@ -76,7 +75,8 @@ fn flash(sh: &Shell) -> Result<(), xshell::Error> {
     }
 
     println!("--- Flashing FPGA ---");
-    cmd!(sh, "{VIVADO} -mode batch -notrace -source hw/scripts/flash.tcl -tclargs {BIN_FILE}").run()?;
+    let vivado_cmd = if cfg!(target_os = "windows") { "vivado.bat" } else { "vivado" };
+    cmd!(sh, "{vivado_cmd} -mode batch -notrace -source hw/scripts/flash.tcl -tclargs {BIN_FILE}").run()?;
     
     Ok(())
 }
