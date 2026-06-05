@@ -16,7 +16,7 @@ vivado -version
 ```
 If you see version information, Vivado is already installed and in your PATH — skip to the next tool. If the command is not found, proceed with installation:
 
-- **Download:** Xilinx Unified Installer
+- **Download:** Xilinx Unified Installer (https://www.amd.com/en/products/software/adaptive-socs-and-fpgas/vivado.html)
 - **Install:** Select "Vivado Standard" or "WebPACK" (Free).
 - **Important:** During installation, ensure you install the Cable Drivers.
 - **System PATH:** After installation, add the Vivado bin folder to your system PATH so the terminal can find the *vivado* command.
