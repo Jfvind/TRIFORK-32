@@ -5,8 +5,56 @@ on:
     branches: [main]
   push:
     branches: [main]
+  workflow_dispatch:
+    inputs:
+      com_port:
+        description: "Serial port for the FPGA hardware test (overrides the FPGA_COM_PORT repo variable)"
+        required: false
+        default: ""
 
 jobs:
+  # ────────────────────────────────────────────────────────────
+  # Job 0: Rust build, lint, and host unit tests (Github cloud)
+  # Runs the uploader protocol tests, and compile-checks the on-device program.
+  # ────────────────────────────────────────────────────────────
+  rust:
+    name: Rust Build & Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: riscv32i-unknown-none-elf
+          components: rustfmt, clippy
+
+      - name: Install serialport build deps
+        # The uploader depends on `serialport`, which needs libudev + pkg-config on Linux.
+        run: sudo apt-get update && sudo apt-get install -y libudev-dev pkg-config
+
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock', '**/Cargo.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+
+      - name: Clippy (host tools)
+        run: cargo clippy -p uploader -p xtask -- -D warnings
+
+      - name: Unit tests (uploader protocol + xtask)
+        run: cargo test -p uploader -p xtask
+
+      - name: Compile-check on-device program (RISC-V target)
+        run: cargo build -p program --target riscv32i-unknown-none-elf --release
+
   # ────────────────────────────────────────────────────────────
   # Job 1: Simulation tests (in Github cloud)
   # Runs the Wildcat simulation tests via cargo xtask
@@ -77,10 +125,11 @@ jobs:
   # ────────────────────────────────────────────────────────────
   hardware-test:
     name: FPGA Hardware Test
-    needs: simulate
+    needs: [rust, simulate]
     runs-on: [self-hosted, fpga]
-    # Only run on PRs to main (not on push)
-    if: github.event_name == 'pull_request'
+    # Run on PRs to main, or on manual dispatch (so the board can be exercised
+    # on demand). Not on push.
+    if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
 
     steps:
       - name: Checkout repository
@@ -88,8 +137,18 @@ jobs:
         with:
           submodules: recursive
 
+      - name: Resolve FPGA serial port
+        id: port
+        shell: powershell
+        run: |
+          $port = "${{ github.event.inputs.com_port }}"
+          if (-not $port) { $port = "${{ vars.FPGA_COM_PORT }}" }
+          if (-not $port) { $port = "COM5" }
+          Write-Host "Using serial port: $port"
+          Add-Content -Path $env:GITHUB_OUTPUT -Value "port=$port"
+
       - name: Build Rust test binary
         run: cargo xtask build-rust
 
       - name: Upload test binary and verify UART output
-        run: cargo xtask hw-test COM4
+        run: cargo xtask hw-test ${{ steps.port.outputs.port }}

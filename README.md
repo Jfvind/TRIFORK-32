@@ -45,11 +45,11 @@ Verify the RISC-V target is added by running `rustc --print sysroot` and search 
     ```
 
 - **Install cargo-binutils** (for `cargo objcopy`):
-Check if already installed:
+    Check if already installed:
     ```bash
     cargo objcopy --version
     ```
-If not found, install:
+    If not found, install:
     ```bash
     cargo install cargo-binutils
     rustup component add llvm-tools
