@@ -27,7 +27,11 @@ const DEFAULT_BAUD: u32 = 115_200;
 const INTER_BYTE_DELAY: Duration = Duration::from_millis(1);
 
 #[derive(Parser, Debug)]
-#[command(author, version, about = "Upload a binary to the FPGA via UART bootloader")]
+#[command(
+    author,
+    version,
+    about = "Upload a binary to the FPGA via UART bootloader"
+)]
 struct Args {
     /// Serial port (e.g. COM3, /dev/ttyUSB0)
     #[arg(long)]
@@ -61,7 +65,8 @@ struct Args {
 
 fn parse_address(s: &str) -> Result<u32, String> {
     let s = s.trim();
-    let (radix, digits) = if let Some(rest) = s.strip_prefix("0x").or_else(|| s.strip_prefix("0X")) {
+    let (radix, digits) = if let Some(rest) = s.strip_prefix("0x").or_else(|| s.strip_prefix("0X"))
+    {
         (16, rest)
     } else {
         (10, s)
