@@ -1122,74 +1122,74 @@ module ScratchPadMem(
   reg [31:0] _RAND_11;
   reg [31:0] _RAND_12;
 `endif // RANDOMIZE_REG_INIT
-  reg [7:0] MEM [0:2047]; // @[\\src\\main\\scala\\wildcat\\pipeline\\ScratchPadMem.scala 16:16]
+  reg [7:0] MEM [0:4095]; // @[\\src\\main\\scala\\wildcat\\pipeline\\ScratchPadMem.scala 16:16]
   wire  MEM_io_rdData_MPORT_3_en; // @[\\src\\main\\scala\\wildcat\\pipeline\\ScratchPadMem.scala 16:16]
-  wire [10:0] MEM_io_rdData_MPORT_3_addr; // @[\\src\\main\\scala\\wildcat\\pipeline\\ScratchPadMem.scala 16:16]
+  wire [11:0] MEM_io_rdData_MPORT_3_addr; // @[\\src\\main\\scala\\wildcat\\pipeline\\ScratchPadMem.scala 16:16]
   wire [7:0] MEM_io_rdData_MPORT_3_data; // @[\\src\\main\\scala\\wildcat\\pipeline\\ScratchPadMem.scala 16:16]
   wire [7:0] MEM_MPORT_data; // @[\\src\\main\\scala\\wildcat\\pipeline\\ScratchPadMem.scala 16:16]
-  wire [10:0] MEM_MPORT_addr; // @[\\src\\main\\scala\\wildcat\\pipeline\\ScratchPadMem.scala 16:16]
+  wire [11:0] MEM_MPORT_addr; // @[\\src\\main\\scala\\wildcat\\pipeline\\ScratchPadMem.scala 16:16]
   wire  MEM_MPORT_mask; // @[\\src\\main\\scala\\wildcat\\pipeline\\ScratchPadMem.scala 16:16]
   wire  MEM_MPORT_en; // @[\\src\\main\\scala\\wildcat\\pipeline\\ScratchPadMem.scala 16:16]
   reg  MEM_io_rdData_MPORT_3_en_pipe_0;
-  reg [10:0] MEM_io_rdData_MPORT_3_addr_pipe_0;
-  reg [7:0] MEM_1 [0:2047]; // @[\\src\\main\\scala\\wildcat\\pipeline\\ScratchPadMem.scala 17:16]
+  reg [11:0] MEM_io_rdData_MPORT_3_addr_pipe_0;
+  reg [7:0] MEM_1 [0:4095]; // @[\\src\\main\\scala\\wildcat\\pipeline\\ScratchPadMem.scala 17:16]
   wire  MEM_1_io_rdData_MPORT_2_en; // @[\\src\\main\\scala\\wildcat\\pipeline\\ScratchPadMem.scala 17:16]
-  wire [10:0] MEM_1_io_rdData_MPORT_2_addr; // @[\\src\\main\\scala\\wildcat\\pipeline\\ScratchPadMem.scala 17:16]
+  wire [11:0] MEM_1_io_rdData_MPORT_2_addr; // @[\\src\\main\\scala\\wildcat\\pipeline\\ScratchPadMem.scala 17:16]
   wire [7:0] MEM_1_io_rdData_MPORT_2_data; // @[\\src\\main\\scala\\wildcat\\pipeline\\ScratchPadMem.scala 17:16]
   wire [7:0] MEM_1_MPORT_1_data; // @[\\src\\main\\scala\\wildcat\\pipeline\\ScratchPadMem.scala 17:16]
-  wire [10:0] MEM_1_MPORT_1_addr; // @[\\src\\main\\scala\\wildcat\\pipeline\\ScratchPadMem.scala 17:16]
+  wire [11:0] MEM_1_MPORT_1_addr; // @[\\src\\main\\scala\\wildcat\\pipeline\\ScratchPadMem.scala 17:16]
   wire  MEM_1_MPORT_1_mask; // @[\\src\\main\\scala\\wildcat\\pipeline\\ScratchPadMem.scala 17:16]
   wire  MEM_1_MPORT_1_en; // @[\\src\\main\\scala\\wildcat\\pipeline\\ScratchPadMem.scala 17:16]
   reg  MEM_1_io_rdData_MPORT_2_en_pipe_0;
-  reg [10:0] MEM_1_io_rdData_MPORT_2_addr_pipe_0;
-  reg [7:0] MEM_2 [0:2047]; // @[\\src\\main\\scala\\wildcat\\pipeline\\ScratchPadMem.scala 18:16]
+  reg [11:0] MEM_1_io_rdData_MPORT_2_addr_pipe_0;
+  reg [7:0] MEM_2 [0:4095]; // @[\\src\\main\\scala\\wildcat\\pipeline\\ScratchPadMem.scala 18:16]
   wire  MEM_2_io_rdData_MPORT_1_en; // @[\\src\\main\\scala\\wildcat\\pipeline\\ScratchPadMem.scala 18:16]
-  wire [10:0] MEM_2_io_rdData_MPORT_1_addr; // @[\\src\\main\\scala\\wildcat\\pipeline\\ScratchPadMem.scala 18:16]
+  wire [11:0] MEM_2_io_rdData_MPORT_1_addr; // @[\\src\\main\\scala\\wildcat\\pipeline\\ScratchPadMem.scala 18:16]
   wire [7:0] MEM_2_io_rdData_MPORT_1_data; // @[\\src\\main\\scala\\wildcat\\pipeline\\ScratchPadMem.scala 18:16]
   wire [7:0] MEM_2_MPORT_2_data; // @[\\src\\main\\scala\\wildcat\\pipeline\\ScratchPadMem.scala 18:16]
-  wire [10:0] MEM_2_MPORT_2_addr; // @[\\src\\main\\scala\\wildcat\\pipeline\\ScratchPadMem.scala 18:16]
+  wire [11:0] MEM_2_MPORT_2_addr; // @[\\src\\main\\scala\\wildcat\\pipeline\\ScratchPadMem.scala 18:16]
   wire  MEM_2_MPORT_2_mask; // @[\\src\\main\\scala\\wildcat\\pipeline\\ScratchPadMem.scala 18:16]
   wire  MEM_2_MPORT_2_en; // @[\\src\\main\\scala\\wildcat\\pipeline\\ScratchPadMem.scala 18:16]
   reg  MEM_2_io_rdData_MPORT_1_en_pipe_0;
-  reg [10:0] MEM_2_io_rdData_MPORT_1_addr_pipe_0;
-  reg [7:0] MEM_3 [0:2047]; // @[\\src\\main\\scala\\wildcat\\pipeline\\ScratchPadMem.scala 19:16]
+  reg [11:0] MEM_2_io_rdData_MPORT_1_addr_pipe_0;
+  reg [7:0] MEM_3 [0:4095]; // @[\\src\\main\\scala\\wildcat\\pipeline\\ScratchPadMem.scala 19:16]
   wire  MEM_3_io_rdData_MPORT_en; // @[\\src\\main\\scala\\wildcat\\pipeline\\ScratchPadMem.scala 19:16]
-  wire [10:0] MEM_3_io_rdData_MPORT_addr; // @[\\src\\main\\scala\\wildcat\\pipeline\\ScratchPadMem.scala 19:16]
+  wire [11:0] MEM_3_io_rdData_MPORT_addr; // @[\\src\\main\\scala\\wildcat\\pipeline\\ScratchPadMem.scala 19:16]
   wire [7:0] MEM_3_io_rdData_MPORT_data; // @[\\src\\main\\scala\\wildcat\\pipeline\\ScratchPadMem.scala 19:16]
   wire [7:0] MEM_3_MPORT_3_data; // @[\\src\\main\\scala\\wildcat\\pipeline\\ScratchPadMem.scala 19:16]
-  wire [10:0] MEM_3_MPORT_3_addr; // @[\\src\\main\\scala\\wildcat\\pipeline\\ScratchPadMem.scala 19:16]
+  wire [11:0] MEM_3_MPORT_3_addr; // @[\\src\\main\\scala\\wildcat\\pipeline\\ScratchPadMem.scala 19:16]
   wire  MEM_3_MPORT_3_mask; // @[\\src\\main\\scala\\wildcat\\pipeline\\ScratchPadMem.scala 19:16]
   wire  MEM_3_MPORT_3_en; // @[\\src\\main\\scala\\wildcat\\pipeline\\ScratchPadMem.scala 19:16]
   reg  MEM_3_io_rdData_MPORT_en_pipe_0;
-  reg [10:0] MEM_3_io_rdData_MPORT_addr_pipe_0;
+  reg [11:0] MEM_3_io_rdData_MPORT_addr_pipe_0;
   wire [23:0] _io_rdData_T_10 = {MEM_3_io_rdData_MPORT_data,MEM_2_io_rdData_MPORT_1_data,MEM_1_io_rdData_MPORT_2_data}; // @[\\src\\main\\scala\\wildcat\\pipeline\\ScratchPadMem.scala 60:40]
   reg  io_ack_REG; // @[\\src\\main\\scala\\wildcat\\pipeline\\ScratchPadMem.scala 75:20]
   assign MEM_io_rdData_MPORT_3_en = MEM_io_rdData_MPORT_3_en_pipe_0;
   assign MEM_io_rdData_MPORT_3_addr = MEM_io_rdData_MPORT_3_addr_pipe_0;
   assign MEM_io_rdData_MPORT_3_data = MEM[MEM_io_rdData_MPORT_3_addr]; // @[\\src\\main\\scala\\wildcat\\pipeline\\ScratchPadMem.scala 16:16]
   assign MEM_MPORT_data = io_wrData[7:0];
-  assign MEM_MPORT_addr = io_address[12:2];
+  assign MEM_MPORT_addr = io_address[13:2];
   assign MEM_MPORT_mask = 1'h1;
   assign MEM_MPORT_en = io_wrMask[0] & io_wr;
   assign MEM_1_io_rdData_MPORT_2_en = MEM_1_io_rdData_MPORT_2_en_pipe_0;
   assign MEM_1_io_rdData_MPORT_2_addr = MEM_1_io_rdData_MPORT_2_addr_pipe_0;
   assign MEM_1_io_rdData_MPORT_2_data = MEM_1[MEM_1_io_rdData_MPORT_2_addr]; // @[\\src\\main\\scala\\wildcat\\pipeline\\ScratchPadMem.scala 17:16]
   assign MEM_1_MPORT_1_data = io_wrData[15:8];
-  assign MEM_1_MPORT_1_addr = io_address[12:2];
+  assign MEM_1_MPORT_1_addr = io_address[13:2];
   assign MEM_1_MPORT_1_mask = 1'h1;
   assign MEM_1_MPORT_1_en = io_wrMask[1] & io_wr;
   assign MEM_2_io_rdData_MPORT_1_en = MEM_2_io_rdData_MPORT_1_en_pipe_0;
   assign MEM_2_io_rdData_MPORT_1_addr = MEM_2_io_rdData_MPORT_1_addr_pipe_0;
   assign MEM_2_io_rdData_MPORT_1_data = MEM_2[MEM_2_io_rdData_MPORT_1_addr]; // @[\\src\\main\\scala\\wildcat\\pipeline\\ScratchPadMem.scala 18:16]
   assign MEM_2_MPORT_2_data = io_wrData[23:16];
-  assign MEM_2_MPORT_2_addr = io_address[12:2];
+  assign MEM_2_MPORT_2_addr = io_address[13:2];
   assign MEM_2_MPORT_2_mask = 1'h1;
   assign MEM_2_MPORT_2_en = io_wrMask[2] & io_wr;
   assign MEM_3_io_rdData_MPORT_en = MEM_3_io_rdData_MPORT_en_pipe_0;
   assign MEM_3_io_rdData_MPORT_addr = MEM_3_io_rdData_MPORT_addr_pipe_0;
   assign MEM_3_io_rdData_MPORT_data = MEM_3[MEM_3_io_rdData_MPORT_addr]; // @[\\src\\main\\scala\\wildcat\\pipeline\\ScratchPadMem.scala 19:16]
   assign MEM_3_MPORT_3_data = io_wrData[31:24];
-  assign MEM_3_MPORT_3_addr = io_address[12:2];
+  assign MEM_3_MPORT_3_addr = io_address[13:2];
   assign MEM_3_MPORT_3_mask = 1'h1;
   assign MEM_3_MPORT_3_en = io_wrMask[3] & io_wr;
   assign io_rdData = {_io_rdData_T_10,MEM_io_rdData_MPORT_3_data}; // @[\\src\\main\\scala\\wildcat\\pipeline\\ScratchPadMem.scala 61:40]
@@ -1200,28 +1200,28 @@ module ScratchPadMem(
     end
     MEM_io_rdData_MPORT_3_en_pipe_0 <= 1'h1;
     if (1'h1) begin
-      MEM_io_rdData_MPORT_3_addr_pipe_0 <= io_address[12:2];
+      MEM_io_rdData_MPORT_3_addr_pipe_0 <= io_address[13:2];
     end
     if (MEM_1_MPORT_1_en & MEM_1_MPORT_1_mask) begin
       MEM_1[MEM_1_MPORT_1_addr] <= MEM_1_MPORT_1_data; // @[\\src\\main\\scala\\wildcat\\pipeline\\ScratchPadMem.scala 17:16]
     end
     MEM_1_io_rdData_MPORT_2_en_pipe_0 <= 1'h1;
     if (1'h1) begin
-      MEM_1_io_rdData_MPORT_2_addr_pipe_0 <= io_address[12:2];
+      MEM_1_io_rdData_MPORT_2_addr_pipe_0 <= io_address[13:2];
     end
     if (MEM_2_MPORT_2_en & MEM_2_MPORT_2_mask) begin
       MEM_2[MEM_2_MPORT_2_addr] <= MEM_2_MPORT_2_data; // @[\\src\\main\\scala\\wildcat\\pipeline\\ScratchPadMem.scala 18:16]
     end
     MEM_2_io_rdData_MPORT_1_en_pipe_0 <= 1'h1;
     if (1'h1) begin
-      MEM_2_io_rdData_MPORT_1_addr_pipe_0 <= io_address[12:2];
+      MEM_2_io_rdData_MPORT_1_addr_pipe_0 <= io_address[13:2];
     end
     if (MEM_3_MPORT_3_en & MEM_3_MPORT_3_mask) begin
       MEM_3[MEM_3_MPORT_3_addr] <= MEM_3_MPORT_3_data; // @[\\src\\main\\scala\\wildcat\\pipeline\\ScratchPadMem.scala 19:16]
     end
     MEM_3_io_rdData_MPORT_en_pipe_0 <= 1'h1;
     if (1'h1) begin
-      MEM_3_io_rdData_MPORT_addr_pipe_0 <= io_address[12:2];
+      MEM_3_io_rdData_MPORT_addr_pipe_0 <= io_address[13:2];
     end
     if (reset) begin // @[\\src\\main\\scala\\wildcat\\pipeline\\ScratchPadMem.scala 75:20]
       io_ack_REG <= 1'h0; // @[\\src\\main\\scala\\wildcat\\pipeline\\ScratchPadMem.scala 75:20]
@@ -1266,35 +1266,35 @@ initial begin
     `endif
 `ifdef RANDOMIZE_MEM_INIT
   _RAND_0 = {1{`RANDOM}};
-  for (initvar = 0; initvar < 2048; initvar = initvar+1)
+  for (initvar = 0; initvar < 4096; initvar = initvar+1)
     MEM[initvar] = _RAND_0[7:0];
   _RAND_3 = {1{`RANDOM}};
-  for (initvar = 0; initvar < 2048; initvar = initvar+1)
+  for (initvar = 0; initvar < 4096; initvar = initvar+1)
     MEM_1[initvar] = _RAND_3[7:0];
   _RAND_6 = {1{`RANDOM}};
-  for (initvar = 0; initvar < 2048; initvar = initvar+1)
+  for (initvar = 0; initvar < 4096; initvar = initvar+1)
     MEM_2[initvar] = _RAND_6[7:0];
   _RAND_9 = {1{`RANDOM}};
-  for (initvar = 0; initvar < 2048; initvar = initvar+1)
+  for (initvar = 0; initvar < 4096; initvar = initvar+1)
     MEM_3[initvar] = _RAND_9[7:0];
 `endif // RANDOMIZE_MEM_INIT
 `ifdef RANDOMIZE_REG_INIT
   _RAND_1 = {1{`RANDOM}};
   MEM_io_rdData_MPORT_3_en_pipe_0 = _RAND_1[0:0];
   _RAND_2 = {1{`RANDOM}};
-  MEM_io_rdData_MPORT_3_addr_pipe_0 = _RAND_2[10:0];
+  MEM_io_rdData_MPORT_3_addr_pipe_0 = _RAND_2[11:0];
   _RAND_4 = {1{`RANDOM}};
   MEM_1_io_rdData_MPORT_2_en_pipe_0 = _RAND_4[0:0];
   _RAND_5 = {1{`RANDOM}};
-  MEM_1_io_rdData_MPORT_2_addr_pipe_0 = _RAND_5[10:0];
+  MEM_1_io_rdData_MPORT_2_addr_pipe_0 = _RAND_5[11:0];
   _RAND_7 = {1{`RANDOM}};
   MEM_2_io_rdData_MPORT_1_en_pipe_0 = _RAND_7[0:0];
   _RAND_8 = {1{`RANDOM}};
-  MEM_2_io_rdData_MPORT_1_addr_pipe_0 = _RAND_8[10:0];
+  MEM_2_io_rdData_MPORT_1_addr_pipe_0 = _RAND_8[11:0];
   _RAND_10 = {1{`RANDOM}};
   MEM_3_io_rdData_MPORT_en_pipe_0 = _RAND_10[0:0];
   _RAND_11 = {1{`RANDOM}};
-  MEM_3_io_rdData_MPORT_addr_pipe_0 = _RAND_11[10:0];
+  MEM_3_io_rdData_MPORT_addr_pipe_0 = _RAND_11[11:0];
   _RAND_12 = {1{`RANDOM}};
   io_ack_REG = _RAND_12[0:0];
 `endif // RANDOMIZE_REG_INIT
@@ -2859,21 +2859,21 @@ module RustSoCTop(
   wire  bootWrite = ~cpuRunning & bootloader_io_wrEnabled; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 149:31]
   wire  bootDone = bootWrite & bootloader_io_instrAddr == 32'h0 & bootloader_io_instrData == 32'hd0000000; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 152:53]
   wire  _GEN_3 = bootDone | cpuRunning; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 155:18 156:16 137:54]
-  wire  _T_3 = bootloader_io_instrAddr < 32'h2000; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 208:19]
-  wire  _T_6 = bootloader_io_instrAddr >= 32'h2000 & bootloader_io_instrAddr < 32'h4000; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 215:38]
-  wire [31:0] _dmem_io_address_T_1 = bootloader_io_instrAddr - 32'h2000; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 217:35]
-  wire [31:0] _GEN_4 = bootloader_io_instrAddr >= 32'h2000 & bootloader_io_instrAddr < 32'h4000 ? _dmem_io_address_T_1
+  wire  _T_3 = bootloader_io_instrAddr < 32'h4000; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 208:19]
+  wire  _T_6 = bootloader_io_instrAddr >= 32'h4000 & bootloader_io_instrAddr < 32'h8000; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 215:38]
+  wire [31:0] _dmem_io_address_T_1 = bootloader_io_instrAddr - 32'h4000; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 217:35]
+  wire [31:0] _GEN_4 = bootloader_io_instrAddr >= 32'h4000 & bootloader_io_instrAddr < 32'h8000 ? _dmem_io_address_T_1
      : 32'h0; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 202:21 215:63 217:23]
-  wire [31:0] _GEN_6 = bootloader_io_instrAddr >= 32'h2000 & bootloader_io_instrAddr < 32'h4000 ?
+  wire [31:0] _GEN_6 = bootloader_io_instrAddr >= 32'h4000 & bootloader_io_instrAddr < 32'h8000 ?
     bootloader_io_instrData : 32'h0; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 204:21 215:63 219:23]
-  wire [3:0] _GEN_7 = bootloader_io_instrAddr >= 32'h2000 & bootloader_io_instrAddr < 32'h4000 ? 4'hf : 4'h0; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 205:21 215:63 220:23]
-  wire [31:0] _GEN_9 = bootloader_io_instrAddr < 32'h2000 ? bootloader_io_instrAddr : 32'h0; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 196:21 208:32 210:23]
-  wire [31:0] _GEN_11 = bootloader_io_instrAddr < 32'h2000 ? bootloader_io_instrData : 32'h0; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 198:21 208:32 212:23]
-  wire [3:0] _GEN_12 = bootloader_io_instrAddr < 32'h2000 ? 4'hf : 4'h0; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 199:21 208:32 213:23]
-  wire [31:0] _GEN_14 = bootloader_io_instrAddr < 32'h2000 ? 32'h0 : _GEN_4; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 202:21 208:32]
-  wire  _GEN_15 = bootloader_io_instrAddr < 32'h2000 ? 1'h0 : _T_6; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 203:21 208:32]
-  wire [31:0] _GEN_16 = bootloader_io_instrAddr < 32'h2000 ? 32'h0 : _GEN_6; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 204:21 208:32]
-  wire [3:0] _GEN_17 = bootloader_io_instrAddr < 32'h2000 ? 4'h0 : _GEN_7; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 205:21 208:32]
+  wire [3:0] _GEN_7 = bootloader_io_instrAddr >= 32'h4000 & bootloader_io_instrAddr < 32'h8000 ? 4'hf : 4'h0; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 205:21 215:63 220:23]
+  wire [31:0] _GEN_9 = bootloader_io_instrAddr < 32'h4000 ? bootloader_io_instrAddr : 32'h0; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 196:21 208:32 210:23]
+  wire [31:0] _GEN_11 = bootloader_io_instrAddr < 32'h4000 ? bootloader_io_instrData : 32'h0; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 198:21 208:32 212:23]
+  wire [3:0] _GEN_12 = bootloader_io_instrAddr < 32'h4000 ? 4'hf : 4'h0; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 199:21 208:32 213:23]
+  wire [31:0] _GEN_14 = bootloader_io_instrAddr < 32'h4000 ? 32'h0 : _GEN_4; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 202:21 208:32]
+  wire  _GEN_15 = bootloader_io_instrAddr < 32'h4000 ? 1'h0 : _T_6; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 203:21 208:32]
+  wire [31:0] _GEN_16 = bootloader_io_instrAddr < 32'h4000 ? 32'h0 : _GEN_6; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 204:21 208:32]
+  wire [3:0] _GEN_17 = bootloader_io_instrAddr < 32'h4000 ? 4'h0 : _GEN_7; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 205:21 208:32]
   wire  _GEN_25 = bootWrite & ~bootDone ? _GEN_15 : cpu_io_dmem_wr; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 181:15 195:32]
   wire [31:0] _GEN_31 = _bootWrite_T ? 32'h0 : dmem_io_rdData; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 181:15 230:21 233:24]
   reg [15:0] pwmEnable; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 254:53]

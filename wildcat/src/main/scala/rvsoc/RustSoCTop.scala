@@ -84,7 +84,7 @@ class TriStateBuffer8 extends HasBlackBoxInline {
  * @param baudRate  UART baud rate (default 115200)
  * @param memBytes  scratchpad memory size in bytes (default 8192)
  */
-class RustSoCTop(frequ: Int = 100000000, baudRate: Int = 115200, memBytes: Int = 8192) extends Module {
+class RustSoCTop(frequ: Int = 100000000, baudRate: Int = 115200, memBytes: Int = 16384) extends Module {
 
   val io = IO(new Bundle {
     val gpioJA      = Analog(8.W)

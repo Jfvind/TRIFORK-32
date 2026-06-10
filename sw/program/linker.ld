@@ -12,8 +12,8 @@ ENTRY(_start)
 MEMORY
 {
     /* Must match RustSoCTop's memBytes parameter and bootloader routing. */
-    IMEM (rx)  : ORIGIN = 0x00000000, LENGTH = 8K
-    DMEM (rw)  : ORIGIN = 0x00002000, LENGTH = 8K
+    IMEM (rx)  : ORIGIN = 0x00000000, LENGTH = 16K
+    DMEM (rw)  : ORIGIN = 0x00004000, LENGTH = 16K
 }
 
 SECTIONS
