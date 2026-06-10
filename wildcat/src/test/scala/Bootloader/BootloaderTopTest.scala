@@ -49,6 +49,10 @@ class BootloaderTopTestByte extends AnyFlatSpec with
   }
 }
 
+/**
+* Test for TRIFORK-32 
+* Authors: Jeppe, Frederik, Nikolai
+*/
 class BootloaderTopTestScala extends AnyFlatSpec with
   ChiselScalatestTester {
   "BootloaderTop" should "Receive entire instruction and addr and enable writing" in {
@@ -89,15 +93,33 @@ class BootloaderTopTestScala extends AnyFlatSpec with
 
         send32bit(instrAddr) //First send address
         dut.io.instrData.expect(instrAddr) //instrAddr should be in instrData space now
-        send32bit(instrData) //Then send the instrData
+        // Send the data word one cycle at a time, watching for the single-cycle
+        // wrEnabled pulse (it can fire mid-byte and be stepped over otherwise),
+        // and capture the decoded address/data at that moment.
+        var capturedAddr: BigInt = -1
+        var capturedData: BigInt = -1
+        def stepWatch(n: Int): Unit =
+          for (_ <- 0 until n) {
+            if (dut.io.wrEnabled.peekInt() == 1) {
+              capturedAddr = dut.io.instrAddr.peekInt()
+              capturedData = dut.io.instrData.peekInt()
+            }
+            dut.clock.step(1)
+          }
+        def sendByteWatched(n: UInt): Unit = {
+          dut.io.rx.poke(1.U); stepWatch(BIT_CNT)
+          dut.io.rx.poke(0.U); stepWatch(BIT_CNT)
+          for (j <- 0 until 8) { dut.io.rx.poke(n(j)); stepWatch(BIT_CNT) }
+        }
+        sendByteWatched(instrData(7, 0))
+        sendByteWatched(instrData(15, 8))
+        sendByteWatched(instrData(23, 16))
+        sendByteWatched(instrData(31, 24))
+        stepWatch(BIT_CNT * 2) // flush so the final pulse is observed
 
-/*
-        dut.io.instrAddr.expect(instrAddr)
-        dut.io.instrData.expect(instrData)
-        dut.io.wrEnabled.expect(1.U) //This is not timed to the clock so will always fail
-
-*/
-
+        assert(capturedData != -1, "wrEnabled pulse was never asserted for the (addr, data) frame")
+        assert(capturedAddr == instrAddr.litValue, s"instrAddr mismatch: 0x${capturedAddr.toString(16)}")
+        assert(capturedData == instrData.litValue, s"instrData mismatch: 0x${capturedData.toString(16)}")
       }
   }
 

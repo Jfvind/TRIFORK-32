@@ -18,9 +18,9 @@ use std::process::ExitCode;
 use std::thread::sleep;
 use std::time::{Duration, Instant};
 
-const START_MAGIC: u32 = 0xB00710AD;
-const DONE_MAGIC: u32 = 0xD0000000;
-const RESET_MAGIC: u32 = 0xDEADBEEF;
+const START_MAGIC:  u32 = 0xB00710AD;
+const DONE_MAGIC:   u32 = 0xD0000000;
+const RESET_MAGIC:  u32 = 0xDEADBEEF;
 const DEFAULT_BAUD: u32 = 115_200;
 
 /// Small delay between bytes so the bootloader has time to process each one.
@@ -53,9 +53,10 @@ struct Args {
     #[arg(long, default_value_t = 0.0)]
     listen: f64,
 
-    /// Expected string in UART output (for testing / CI)
+    /// Expected string in UART output (for testing / CI). May be given multiple
+    /// times; all must be present for the run to pass.
     #[arg(long)]
-    expect: Option<String>,
+    expect: Vec<String>,
 
     /// Timeout in seconds when using --expect
     #[arg(long, default_value_t = 5.0)]
@@ -95,12 +96,46 @@ fn send_start(port: &mut dyn SerialPort) -> Result<()> {
     Ok(())
 }
 
-/// Send one (address, data) pair of 8 bytes to the bootloader (LE).
-fn send_word(port: &mut dyn SerialPort, address: u32, data: u32) -> Result<()> {
+/// Encode one (address, data) pair as the 8-byte bootloader frame: [address LE][data LE].
+/// No I/O so the wire encoding can be verified in unit tests.
+fn word_payload(address: u32, data: u32) -> [u8; 8] {
     let mut payload = [0u8; 8];
     payload[0..4].copy_from_slice(&address.to_le_bytes());
     payload[4..8].copy_from_slice(&data.to_le_bytes());
-    write_slow(port, &payload)
+    payload
+}
+
+/// Split a raw binary image into the (address, data) word pairs the bootloader expects.
+/// The image is zero-padded up to a 4-byte boundary and each word is decoded
+/// little-endian. Addresses start at `base_address` and increment by 4; the SoC
+/// routes them to IMEM (`< 0x1000`) or DMEM (`>= 0x1000`) by range. No I/O so the 
+/// framing can be verified in unit tests.
+fn frame_binary(data: &[u8], base_address: u32) -> Vec<(u32, u32)> {
+    let mut data = data.to_vec();
+    let pad = (4 - data.len() % 4) % 4;
+    data.resize(data.len() + pad, 0);
+
+    (0..data.len() / 4)
+        .map(|i| {
+            let address = base_address.wrapping_add((i as u32) * 4);
+            let word = u32::from_le_bytes(data[i * 4..i * 4 + 4].try_into().unwrap());
+            (address, word)
+        })
+        .collect()
+}
+
+/// Returns the first expected marker that is absent from `output`, or `None` if
+/// every marker is present. Pure function so the CI pass/fail rule is testable.
+fn first_missing<'a>(output: &str, expected: &'a [String]) -> Option<&'a str> {
+    expected
+        .iter()
+        .map(String::as_str)
+        .find(|marker| !output.contains(marker))
+}
+
+/// Send one (address, data) pair of 8 bytes to the bootloader (LE).
+fn send_word(port: &mut dyn SerialPort, address: u32, data: u32) -> Result<()> {
+    write_slow(port, &word_payload(address, data))
 }
 
 fn send_done(port: &mut dyn SerialPort) -> Result<()> {
@@ -110,24 +145,19 @@ fn send_done(port: &mut dyn SerialPort) -> Result<()> {
 }
 
 fn upload_binary(port: &mut dyn SerialPort, binary_path: &str, base_address: u32) -> Result<usize> {
-    let mut data = fs::read(binary_path)
+    let data = fs::read(binary_path)
         .with_context(|| format!("failed to read binary file {binary_path}"))?;
 
-    // Pad to 4-byte boundary
-    let pad = (4 - data.len() % 4) % 4;
-    data.extend(std::iter::repeat(0u8).take(pad));
-
-    let num_words = data.len() / 4;
+    let words = frame_binary(&data, base_address);
+    let num_words = words.len();
     println!(
         "[loader] Uploading {}: {} bytes ({} words)",
         binary_path,
-        data.len(),
+        num_words * 4,
         num_words
     );
 
-    for i in 0..num_words {
-        let address = base_address.wrapping_add((i as u32) * 4);
-        let word = u32::from_le_bytes(data[i * 4..i * 4 + 4].try_into().unwrap());
+    for (i, &(address, word)) in words.iter().enumerate() {
         send_word(port, address, word)?;
 
         if (i + 1) % 64 == 0 || (i + 1) == num_words {
@@ -203,15 +233,18 @@ fn run() -> Result<ExitCode> {
     println!("[loader] Upload complete. CPU started. ({num_words} words loaded)");
 
     // Step 4: listen / expect
-    if let Some(expected) = args.expect.as_ref() {
+    if !args.expect.is_empty() {
         let output = listen_output(&mut *port, Duration::from_secs_f64(args.timeout))?;
-        if output.contains(expected) {
-            println!("[loader] PASS: Found expected output '{expected}'");
-            Ok(ExitCode::SUCCESS)
-        } else {
-            eprintln!("[loader] FAIL: Expected '{expected}' not found in output");
-            eprintln!("[loader] Got: '{output}'");
-            Ok(ExitCode::from(1))
+        match first_missing(&output, &args.expect) {
+            None => {
+                println!("[loader] PASS: found all {} expected marker(s)", args.expect.len());
+                Ok(ExitCode::SUCCESS)
+            }
+            Some(missing) => {
+                eprintln!("[loader] FAIL: expected marker '{missing}' not found in output");
+                eprintln!("[loader] Got: '{output}'");
+                Ok(ExitCode::from(1))
+            }
         }
     } else if args.listen > 0.0 {
         listen_output(&mut *port, Duration::from_secs_f64(args.listen))?;
@@ -229,5 +262,88 @@ fn main() -> ExitCode {
             eprintln!("[loader] ERROR: {e:#}");
             ExitCode::from(1)
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// The bootloader protocol magics must stay fixed and distinct — the SoC matches
+    /// these exact little-endian byte sequences.
+    #[test]
+    fn protocol_magics_are_fixed() {
+        assert_eq!(START_MAGIC.to_le_bytes(), [0xAD, 0x10, 0x07, 0xB0]);
+        assert_eq!(DONE_MAGIC.to_le_bytes(), [0x00, 0x00, 0x00, 0xD0]);
+        assert_eq!(RESET_MAGIC.to_le_bytes(), [0xEF, 0xBE, 0xAD, 0xDE]);
+    }
+
+    /// A frame is [address LE][data LE]. This is the exact wire encoding the
+    /// BootloaderTop decodes, so a regression here corrupts every instruction.
+    #[test]
+    fn word_payload_is_address_then_data_little_endian() {
+        assert_eq!(
+            word_payload(0x0000_1004, 0x0000_0013),
+            [0x04, 0x10, 0x00, 0x00, 0x13, 0x00, 0x00, 0x00]
+        );
+    }
+
+    /// The done word that releases the CPU: address 0, data = DONE_MAGIC.
+    #[test]
+    fn done_word_encoding() {
+        assert_eq!(
+            word_payload(0x0000_0000, DONE_MAGIC),
+            [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xD0]
+        );
+    }
+
+    /// Instruction words are decoded little-endian and paired with incrementing
+    /// word addresses — i.e. the bytes the Rust toolchain emitted are the words
+    /// sent to the core, in order.
+    #[test]
+    fn frame_decodes_words_little_endian_in_order() {
+        // addi x0, x0, 0 (0x0000_0013) then add x0, x0, x0 (0x0000_0033)
+        let bin = [0x13, 0x00, 0x00, 0x00, 0x33, 0x00, 0x00, 0x00];
+        assert_eq!(
+            frame_binary(&bin, 0),
+            vec![(0x0000_0000, 0x0000_0013), (0x0000_0004, 0x0000_0033)]
+        );
+    }
+
+    /// A non-word-multiple image is zero-padded up to the next word.
+    #[test]
+    fn frame_pads_partial_trailing_word_with_zeros() {
+        let bin = [0xAA, 0xBB, 0xCC]; // 3 bytes -> one padded word
+        assert_eq!(frame_binary(&bin, 0), vec![(0x0000_0000, 0x00CC_BBAA)]);
+    }
+
+    /// Addresses track the base and cross the IMEM→DMEM boundary (0x1000) cleanly,
+    /// so .data words are routed to DMEM by the SoC's address decode.
+    #[test]
+    fn frame_addresses_cross_imem_dmem_boundary() {
+        let bin = vec![0u8; 8]; // two words
+        let words = frame_binary(&bin, 0x0000_0FFC);
+        assert_eq!(words[0].0, 0x0000_0FFC); // last IMEM word
+        assert_eq!(words[1].0, 0x0000_1000); // first DMEM word
+    }
+
+    /// An empty image produces no words (and must not panic).
+    #[test]
+    fn frame_empty_image_is_no_words() {
+        assert!(frame_binary(&[], 0).is_empty());
+    }
+
+    /// The CI pass rule: all expected markers must be present, in any order.
+    #[test]
+    fn first_missing_requires_every_marker() {
+        let output = "=== DTU MCU Booted ===\nSRAM Size: 4096 bytes\nStatus: PASS\n";
+        let all = vec!["=== DTU MCU Booted ===".to_string(), "PASS".to_string()];
+        assert_eq!(first_missing(output, &all), None);
+
+        let with_absent = vec!["PASS".to_string(), "NOPE".to_string()];
+        assert_eq!(first_missing(output, &with_absent), Some("NOPE"));
+
+        // No markers configured -> nothing missing.
+        assert_eq!(first_missing(output, &[]), None);
     }
 }

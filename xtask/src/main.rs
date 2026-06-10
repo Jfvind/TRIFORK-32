@@ -126,7 +126,11 @@ fn upload(sh: &Shell, port: &str, is_test: bool) -> Result<(), xshell::Error> {
     println!("--- Uploading via {} ---", port);
 
     if is_test {
-        cmd!(sh, "cargo run --release --package uploader -- --port {port} --binary {bin_path} --expect PASS --timeout 10").run()?;
+        // Verify the program actually ran its UART startup (boot banner), not
+        // just that "PASS" appeared. Interpolated args are passed whole, so the
+        // banner string's spaces are preserved.
+        let banner = "=== DTU MCU Booted ===";
+        cmd!(sh, "cargo run --release --package uploader -- --port {port} --binary {bin_path} --expect {banner} --expect PASS --timeout 10").run()?;
     } else {
         cmd!(
             sh,
@@ -164,23 +168,22 @@ fn clean(sh: &Shell) -> Result<(), xshell::Error> {
     let paths_to_remove = vec![BUILD_DIR, ".Xil", "target"];
 
     for path in paths_to_remove {
-        if sh.path_exists(path) {
-            if let Err(e) = sh.remove_path(path) {
-                eprintln!(
-                    "Warning: failed to remove '{}': {}\n  - Ensure no programs (editors, terminals, cargo/rustc) are using files inside the directory.\n  - Try closing VS Code, stopping background cargo processes, or run the shell as Administrator.\n  - You can also remove the folder manually: `Remove-Item -Recurse -Force {}` (PowerShell)",
-                    path, e, path
-                );
-            }
+        if !sh.path_exists(path) {
+            continue;
+        }
+        if let Err(e) = sh.remove_path(path) {
+            eprintln!("Warning: failed to remove '{path}': {e}\n  - Ensure no programs (editors, terminals, cargo/rustc) are using files inside the directory.\n  - Try closing VS Code, stopping background cargo processes, or run the shell as Administrator.\n  - You can also remove the folder manually: `Remove-Item -Recurse -Force {path}` (PowerShell)");
         }
     }
 
     // Clean up vivado logs
     for file in sh.read_dir(".")? {
         let name = file.to_string_lossy().into_owned();
-        if name.ends_with(".log") || name.ends_with(".jou") {
-            if let Err(e) = sh.remove_path(file) {
-                eprintln!("Warning: failed to remove file '{}': {}", name, e);
-            }
+        if !name.ends_with(".log") && !name.ends_with(".jou") {
+            continue;
+        }
+        if let Err(e) = sh.remove_path(file) {
+            eprintln!("Warning: failed to remove file '{name}': {e}");
         }
     }
 
@@ -216,7 +219,7 @@ fn check_rust(sh: &Shell) -> Result<(), xshell::Error> {
 
 fn print_help() {
     println!("Usage: cargo xtask <command> [args]");
-    println!("");
+    println!();
     println!("Commands:");
     println!("  build-hw          Generate Verilog and create bitstream with Vivado");
     println!("  flash             Flash the bitstream to the FPGA (Basys3)");
