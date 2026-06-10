@@ -1,5 +1,6 @@
 [workspace]
 members = [
+    "sw/mcu-rt",
     "sw/mcu-hal",
     "sw/program",
     "sw/uploader",

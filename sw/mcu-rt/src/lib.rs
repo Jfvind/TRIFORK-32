@@ -1,9 +1,13 @@
+#![no_std]
+
 use core::arch::global_asm;
 use core::panic::PanicInfo;
 
 extern "C" {
     static mut __bss_start: u32;
     static mut __bss_end: u32;
+
+    fn __mcu_app_main() -> !;
 }
 
 global_asm!(
@@ -24,7 +28,7 @@ pub unsafe extern "C" fn rust_entry() -> ! {
         bss_ptr = bss_ptr.offset(1);
     }
 
-    crate::app::main()
+    __mcu_app_main()
 }
 
 #[panic_handler]
