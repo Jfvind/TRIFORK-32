@@ -476,24 +476,31 @@ fn main() {
             println!("Cmd ACK: {} (expected: true)", cmd_ok);            
 
             if cmd_ok {
+                // Wait at least 1.5 ms for the sensor to prepare its reply.
                 delay_cycles(500_000); // 5 ms
-                
-                println!("Repeated START test: read byte 0, then re-address sensor");
 
-                i2c_start();
-                let addr_ok = i2c_write_byte((0x5C << 1) | 1);
-                println!("  Initial addr ACK: {} status={:02X}", addr_ok, i2c_status());
+                // Read 8-byte response:
+                // [0]=0x03 [1]=0x04 [2-3]=humidity [4-5]=temperature [6-7]=CRC
+                let mut response = [0u8; 8];
+                let read_ok = i2c_read_bytes(0x5C, &mut response);
 
-                if addr_ok {
-                    delay_cycles(5_000);
-                    let byte0 = i2c_read_byte(true);
-                    println!("  Byte 0: {:02X} status={:02X}", byte0, i2c_status());
+                if read_ok && response[0] == 0x03 && response[1] == 0x04 {
+                    // Combine MSB and LSB into 16-bit values.
+                    let humidity = ((response[2] as u16) << 8) | (response[3] as u16);
+                    let temperature = (((response[4] as u16) << 8) | (response[5] as u16)) as i16;
 
-                    i2c_start(); // Repeated START
-                    let readdr_ok = i2c_write_byte((0x5C << 1) | 1);
-                    println!("  Re-addr ACK: {} status={:02X}", readdr_ok, i2c_status());
+                    // Values are in tenths: 234 means 23.4 C.
+                    let temp_int = temperature / 10;
+                    let temp_frac = (temperature % 10).abs();
+                    let hum_int = humidity / 10;
+                    let hum_frac = humidity % 10;
+
+                    println!("AM2320: {}.{} C, {}.{} %RH", temp_int, temp_frac, hum_int, hum_frac);
+                } else {
+                    println!("AM2320: read failed");
                 }
-                i2c_stop();
+            } else {
+                println!("AM2320: command failed (no ACK)");
             }
         }
 
