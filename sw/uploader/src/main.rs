@@ -19,7 +19,7 @@ use std::thread::sleep;
 use std::time::{Duration, Instant};
 
 const START_MAGIC: u32 = 0xB00710AD;
-const DONE_MAGIC:  u32 = 0xD0000000;
+const DONE_MAGIC: u32 = 0xD0000000;
 const RESET_MAGIC: u32 = 0xDEADBEEF;
 const DEFAULT_BAUD: u32 = 115_200;
 
@@ -27,7 +27,11 @@ const DEFAULT_BAUD: u32 = 115_200;
 const INTER_BYTE_DELAY: Duration = Duration::from_millis(1);
 
 #[derive(Parser, Debug)]
-#[command(author, version, about = "Upload a binary to the FPGA via UART bootloader")]
+#[command(
+    author,
+    version,
+    about = "Upload a binary to the FPGA via UART bootloader"
+)]
 struct Args {
     /// Serial port (e.g. COM3, /dev/ttyUSB0)
     #[arg(long)]
@@ -60,7 +64,8 @@ struct Args {
 
 fn parse_address(s: &str) -> Result<u32, String> {
     let s = s.trim();
-    let (radix, digits) = if let Some(rest) = s.strip_prefix("0x").or_else(|| s.strip_prefix("0X")) {
+    let (radix, digits) = if let Some(rest) = s.strip_prefix("0x").or_else(|| s.strip_prefix("0X"))
+    {
         (16, rest)
     } else {
         (10, s)
@@ -127,7 +132,12 @@ fn upload_binary(port: &mut dyn SerialPort, binary_path: &str, base_address: u32
 
         if (i + 1) % 64 == 0 || (i + 1) == num_words {
             let pct = (i + 1) * 100 / num_words;
-            print!("\r[loader] Progress: {}/{} words ({}%)", i + 1, num_words, pct);
+            print!(
+                "\r[loader] Progress: {}/{} words ({}%)",
+                i + 1,
+                num_words,
+                pct
+            );
             std::io::stdout().flush().ok();
         }
     }
