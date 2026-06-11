@@ -66,8 +66,8 @@ class TriStateBuffer8 extends HasBlackBoxInline {
  *     back to boot mode, ready for a fresh upload.
  *
  * Memory map:
- *   0x0000_0000 – 0x0000_0FFF : Instruction scratchpad (IMEM, 4 KB default)
- *   0x0000_1000 – 0x0000_1FFF : Data scratchpad (DMEM, 4 KB default)
+*   0x0000_0000 – 0x0000_3FFF : Instruction scratchpad (IMEM, 16 KB default)
+ *   0x0000_4000 – 0x0000_7FFF : Data scratchpad (DMEM, 16 KB default)
  *   0xF000_0000               : UART status  (bit 0 = TX ready, bit 1 = RX data available)
  *   0xF000_0004               : UART data    (read = RX byte, write = TX byte)
  *   0xF010_0000               : on-board LEDs (lower 7 bits drive LEDs)
@@ -77,16 +77,18 @@ class TriStateBuffer8 extends HasBlackBoxInline {
  *   0xF050_000X               : PMOD JA (0=DIR, 4=OUT, 8=IN, C=PWM_EN, 10=IN_DEBOUNCED)
  *   0xF060_000X               : PMOD JB (0=DIR, 4=OUT, 8=IN, C=PWM_EN, 10=IN_DEBOUNCED)
  *   0xF070_000X               : PMOD JC (0=DIR, 4=OUT, 8=IN, C=PWM_EN, 10=IN_DEBOUNCED)
+ *                               Note: JC[2]=SDA and JC[3]=SCL are reserved for I2C and not usable as GPIO
+ *   0xF080_000X               : I2C (0=CMD, 4=DATA, 8=STATUS, C=CLKDIV)
  *
  * @param frequ     system clock frequency in Hz (default 100 MHz for Basys3)
  * @param baudRate  UART baud rate (default 115200)
- * @param memBytes  scratchpad memory size in bytes (default 4096)
+ * @param memBytes  scratchpad memory size in bytes (default 16384)
  */
 // `sim`: when true, the Analog tri-state GPIO pads and the Vivado XADC BlackBox
 // are replaced by simulation-friendly models so the whole SoC can run on any
 // chiseltest backend (e.g. Treadle). Production builds use the default
 // `sim = false`, so the generated Verilog (and bitstream) is unchanged.
-class RustSoCTop(frequ: Int = 100000000, baudRate: Int = 115200, memBytes: Int = 4096, sim: Boolean = false) extends Module {
+class RustSoCTop(frequ: Int = 100000000, baudRate: Int = 115200, memBytes: Int = 16384, sim: Boolean = false) extends Module {
 
   val io = IO(new Bundle {
     // Analog tri-state pads only exist in hardware builds; in simulation the
@@ -264,6 +266,28 @@ class RustSoCTop(frequ: Int = 100000000, baudRate: Int = 115200, memBytes: Int =
   }
 
   // ====================================
+  // I2C Controller
+  // ====================================
+  // Single-master I2C controller. Drives JC[2] (SDA) and JC[3] (SCL).
+  // The CPU writes commands to memory-mapped registers at 0xF080_xxxx
+  // the controller handles bit-level timing, START/STOP conditions, ACK/NACK, and clock stretching.
+  val i2c = withReset(combinedReset) { Module(new I2cController()) }
+
+  // CPU-facing registers (set deafaults; actual writes hapen in the MMIO decoder below)
+  val i2cDataReg = withReset(combinedReset) { RegInit(0.U(8.W)) } // Byte to transmit (DATA register)
+  val i2cClkDivReg = withReset(combinedReset) { RegInit(0.U(16.W)) } // Clock divider (0 = use deafault)
+  val i2cCmdValid = WireDefault(false.B) // Pulses high for one cycle on CMD write
+
+  // Default CPU side wiring
+  i2c.io.cmd := 0.U // Will be overriden by MMIO decoder when cmd is written
+  i2c.io.cmdValid := i2cCmdValid
+  i2c.io.dataIn := i2cDataReg
+  i2c.io.clkDiv := i2cClkDivReg
+
+  // Bus-side: SDA and SCL inputs come from the JC tristate buffer.
+  // We assign these later, after bufJC is instantiatied. 
+
+  // ====================================
   // UART for CPU
   // ====================================
   // With combinedReset so any Tx/Rx is aborted on software reset.
@@ -337,25 +361,53 @@ class RustSoCTop(frequ: Int = 100000000, baudRate: Int = 115200, memBytes: Int =
   gpioJBDebouncer.io.in := gpioJBIn
   gpioJBDebounced := gpioJBDebouncer.io.out
 
-  // JC - PWM channels 16-23
+  // JC - PWM channels 16-23 (with I2C overlay on JC[2]=SDA, JC[3]=SCL)
   val gpioJCDirReg = withReset(combinedReset) { RegInit(0.U(8.W)) } // 0xF070_0000
   val gpioJCOutReg = withReset(combinedReset) { RegInit(0.U(8.W)) } // 0xF070_0004
   val gpioJCIn     = Wire(UInt(8.W))                                // 0xF070_0008
   val gpioJCPwmEn  = withReset(combinedReset) { RegInit(0.U(8.W)) } // 0xF070_000C
   val gpioJCDebounced = Wire(UInt(8.W))                              // 0xF070_0010
+  
   if (sim) {
     gpioJCIn := 0.U // no Analog pads in simulation
+    // Tie off I2C bus inputs in simulation (idle bus = both lines HIGH)
+    i2c.io.sdaIn := true.B
+    i2c.io.sclIn := true.B
   } else {
     val bufJC = Module(new TriStateBuffer8)
     attach(io.gpioJC.get, bufJC.io.pad)
-    bufJC.io.dir := gpioJCDirReg
+
+    // Build per-bit DIR and OUT vectors. For each pin we choose between
+    // I2C (bit 2 = SDA, bit 3 = SCL) and the normal GPIO/PWM behaviour.
+    val finalJCDir = Wire(Vec(8, Bool()))
     val finalJCOut = Wire(Vec(8, Bool()))
     for (i <- 0 until 8) {
-      finalJCOut(i) := Mux(gpioJCPwmEn(i), pwm.io.pwmOut(i + 16), gpioJCOutReg(i))
+      if (i == 2) {
+        // JC[2] = SDA: I2C controller drives both DIR and OUT
+        finalJCDir(i) := i2c.io.sdaOe
+        finalJCOut(i) := i2c.io.sdaOut
+      } else if (i == 3) {
+        // JC[3] = SCL: I2C controller drives both DIR and OUT
+        finalJCDir(i) := i2c.io.sclOe
+        finalJCOut(i) := i2c.io.sclOut
+      } else {
+        // Normal GPIO/PWM behaviour for the other pins
+        finalJCDir(i) := gpioJCDirReg(i)
+        finalJCOut(i) := Mux(gpioJCPwmEn(i), pwm.io.pwmOut(i + 16), gpioJCOutReg(i))
+      }
     }
+    bufJC.io.dir := finalJCDir.asUInt
     bufJC.io.out := finalJCOut.asUInt
+
+    // Read pin states back
     gpioJCIn  := bufJC.io.in
+
+    // Feed the actual SDA/SCL pin states back into the I2C controller
+    // This is needed for clock stretching detection and ACK reading
+    i2c.io.sdaIn := bufJC.io.in(2)
+    i2c.io.sclIn := bufJC.io.in(3)
   }
+    
   val gpioJCDebouncer = withReset(combinedReset) { Module(new ButtonDebouncer(8, debounceCycles, initialValue = 0xff)) }
   gpioJCDebouncer.io.in := gpioJCIn
   gpioJCDebounced := gpioJCDebouncer.io.out
@@ -398,6 +450,23 @@ class RustSoCTop(frequ: Int = 100000000, baudRate: Int = 115200, memBytes: Int =
         when(offset === 0.U) { gpioJCDirReg := cpu.io.dmem.wrData(7, 0) }
         .elsewhen(offset === 4.U) { gpioJCOutReg := cpu.io.dmem.wrData(7, 0) }
         .elsewhen(offset === 12.U) { gpioJCPwmEn := cpu.io.dmem.wrData(7, 0) }
+      }
+      is(8.U) { // I2C (0xF080)
+        when (offset === 0.U) {
+          // Write to CMD register: latch the command and pulse cmdValid
+          i2c.io.cmd := cpu.io.dmem.wrData(7, 0)
+          i2cCmdValid := true.B
+        }
+        .elsewhen(offset === 4.U) {
+          // Write to DATA register: store byte to transmit
+          i2cDataReg := cpu.io.dmem.wrData(7, 0)
+        }
+        .elsewhen(offset === 12.U) {
+          // Write to CLKDIV register: change I2C clock speed
+          i2cClkDivReg := cpu.io.dmem.wrData(15, 0)
+        }
+        // Note: STATUS register (offset 8) is read-only, writes are ignored
+
       }
     }
     dmem.io.wr := false.B // prevent IO writes from currupting RAM
@@ -449,6 +518,21 @@ class RustSoCTop(frequ: Int = 100000000, baudRate: Int = 115200, memBytes: Int =
         .elsewhen(offset === 8.U)  { cpu.io.dmem.rdData := gpioJCIn }
         .elsewhen(offset === 12.U) { cpu.io.dmem.rdData := gpioJCPwmEn }
         .elsewhen(offset === 16.U) { cpu.io.dmem.rdData := gpioJCDebounced }
+      }
+      is(8.U) {
+        when(offset === 4.U) {
+          // Read Data register: byte received from last READ operation
+          cpu.io.dmem.rdData := i2c.io.dataOut
+        }
+        .elsewhen(offset === 8.U) {
+          // Read STATUS register: BUST/NACK/BUS_ERR flags
+          cpu.io.dmem.rdData := i2c.io.status
+        }
+        .elsewhen(offset === 12.U) {
+          // Read CLKDIV register: current clock divider value
+          cpu.io.dmem.rdData := i2cClkDivReg
+        }
+        // Note:  CMD register (offset 0) is write-only, reads return default 0
       }
     }
   }

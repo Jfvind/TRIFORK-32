@@ -363,18 +363,77 @@ end // initial
 `endif // SYNTHESIS
 endmodule
 module Csr(
+  input         clock,
+  input         reset,
   input  [11:0] io_address, // @[\\src\\main\\scala\\wildcat\\pipeline\\Csr.scala 14:14]
   output [31:0] io_data // @[\\src\\main\\scala\\wildcat\\pipeline\\Csr.scala 14:14]
 );
-  wire [31:0] _GEN_0 = 12'hf12 == io_address ? 32'h2f : 32'h0; // @[\\src\\main\\scala\\wildcat\\pipeline\\Csr.scala 22:22 48:12 19:25]
-  wire [31:0] _GEN_1 = 12'hb81 == io_address ? 32'h0 : _GEN_0; // @[\\src\\main\\scala\\wildcat\\pipeline\\Csr.scala 22:22 45:12]
-  wire [31:0] _GEN_2 = 12'hb01 == io_address ? 32'h0 : _GEN_1; // @[\\src\\main\\scala\\wildcat\\pipeline\\Csr.scala 22:22 42:12]
-  wire [31:0] _GEN_3 = 12'hb80 == io_address ? 32'h0 : _GEN_2; // @[\\src\\main\\scala\\wildcat\\pipeline\\Csr.scala 22:22 39:12]
-  wire [31:0] _GEN_4 = 12'hb00 == io_address ? 32'h0 : _GEN_3; // @[\\src\\main\\scala\\wildcat\\pipeline\\Csr.scala 22:22 36:12]
-  wire [31:0] _GEN_5 = 12'hc81 == io_address ? 32'h4 : _GEN_4; // @[\\src\\main\\scala\\wildcat\\pipeline\\Csr.scala 22:22 33:12]
-  wire [31:0] _GEN_6 = 12'hc01 == io_address ? 32'h3 : _GEN_5; // @[\\src\\main\\scala\\wildcat\\pipeline\\Csr.scala 22:22 30:12]
-  wire [31:0] _GEN_7 = 12'hc80 == io_address ? 32'h2 : _GEN_6; // @[\\src\\main\\scala\\wildcat\\pipeline\\Csr.scala 22:22 27:12]
-  assign io_data = 12'hc00 == io_address ? 32'h1 : _GEN_7; // @[\\src\\main\\scala\\wildcat\\pipeline\\Csr.scala 22:22 24:12]
+`ifdef RANDOMIZE_REG_INIT
+  reg [63:0] _RAND_0;
+`endif // RANDOMIZE_REG_INIT
+  reg [63:0] cycleCounter; // @[\\src\\main\\scala\\wildcat\\pipeline\\Csr.scala 22:29]
+  wire [63:0] _cycleCounter_T_1 = cycleCounter + 64'h1; // @[\\src\\main\\scala\\wildcat\\pipeline\\Csr.scala 23:32]
+  wire [31:0] _GEN_0 = 12'hf12 == io_address ? 32'h2f : 32'h0; // @[\\src\\main\\scala\\wildcat\\pipeline\\Csr.scala 28:22 54:12 25:25]
+  wire [31:0] _GEN_1 = 12'hb81 == io_address ? 32'h0 : _GEN_0; // @[\\src\\main\\scala\\wildcat\\pipeline\\Csr.scala 28:22 51:12]
+  wire [31:0] _GEN_2 = 12'hb01 == io_address ? 32'h0 : _GEN_1; // @[\\src\\main\\scala\\wildcat\\pipeline\\Csr.scala 28:22 48:12]
+  wire [31:0] _GEN_3 = 12'hb80 == io_address ? 32'h0 : _GEN_2; // @[\\src\\main\\scala\\wildcat\\pipeline\\Csr.scala 28:22 45:12]
+  wire [31:0] _GEN_4 = 12'hb00 == io_address ? 32'h0 : _GEN_3; // @[\\src\\main\\scala\\wildcat\\pipeline\\Csr.scala 28:22 42:12]
+  wire [31:0] _GEN_5 = 12'hc81 == io_address ? cycleCounter[63:32] : _GEN_4; // @[\\src\\main\\scala\\wildcat\\pipeline\\Csr.scala 28:22 39:12]
+  wire [31:0] _GEN_6 = 12'hc01 == io_address ? cycleCounter[31:0] : _GEN_5; // @[\\src\\main\\scala\\wildcat\\pipeline\\Csr.scala 28:22 36:12]
+  wire [31:0] _GEN_7 = 12'hc80 == io_address ? cycleCounter[63:32] : _GEN_6; // @[\\src\\main\\scala\\wildcat\\pipeline\\Csr.scala 28:22 33:12]
+  assign io_data = 12'hc00 == io_address ? cycleCounter[31:0] : _GEN_7; // @[\\src\\main\\scala\\wildcat\\pipeline\\Csr.scala 28:22 30:12]
+  always @(posedge clock) begin
+    if (reset) begin // @[\\src\\main\\scala\\wildcat\\pipeline\\Csr.scala 22:29]
+      cycleCounter <= 64'h0; // @[\\src\\main\\scala\\wildcat\\pipeline\\Csr.scala 22:29]
+    end else begin
+      cycleCounter <= _cycleCounter_T_1; // @[\\src\\main\\scala\\wildcat\\pipeline\\Csr.scala 23:16]
+    end
+  end
+// Register and memory initialization
+`ifdef RANDOMIZE_GARBAGE_ASSIGN
+`define RANDOMIZE
+`endif
+`ifdef RANDOMIZE_INVALID_ASSIGN
+`define RANDOMIZE
+`endif
+`ifdef RANDOMIZE_REG_INIT
+`define RANDOMIZE
+`endif
+`ifdef RANDOMIZE_MEM_INIT
+`define RANDOMIZE
+`endif
+`ifndef RANDOM
+`define RANDOM $random
+`endif
+`ifdef RANDOMIZE_MEM_INIT
+  integer initvar;
+`endif
+`ifndef SYNTHESIS
+`ifdef FIRRTL_BEFORE_INITIAL
+`FIRRTL_BEFORE_INITIAL
+`endif
+initial begin
+  `ifdef RANDOMIZE
+    `ifdef INIT_RANDOM
+      `INIT_RANDOM
+    `endif
+    `ifndef VERILATOR
+      `ifdef RANDOMIZE_DELAY
+        #`RANDOMIZE_DELAY begin end
+      `else
+        #0.002 begin end
+      `endif
+    `endif
+`ifdef RANDOMIZE_REG_INIT
+  _RAND_0 = {2{`RANDOM}};
+  cycleCounter = _RAND_0[63:0];
+`endif // RANDOMIZE_REG_INIT
+  `endif // RANDOMIZE
+end // initial
+`ifdef FIRRTL_AFTER_INITIAL
+`FIRRTL_AFTER_INITIAL
+`endif
+`endif // SYNTHESIS
 endmodule
 module ThreeCats(
   input         clock,
@@ -442,6 +501,8 @@ module ThreeCats(
   reg [4:0] regs_rs1Val_MPORT_addr_pipe_0;
   reg  regs_rs2Val_MPORT_en_pipe_0;
   reg [4:0] regs_rs2Val_MPORT_addr_pipe_0;
+  wire  csr_clock; // @[\\src\\main\\scala\\wildcat\\pipeline\\ThreeCats.scala 64:19]
+  wire  csr_reset; // @[\\src\\main\\scala\\wildcat\\pipeline\\ThreeCats.scala 64:19]
   wire [11:0] csr_io_address; // @[\\src\\main\\scala\\wildcat\\pipeline\\ThreeCats.scala 64:19]
   wire [31:0] csr_io_data; // @[\\src\\main\\scala\\wildcat\\pipeline\\ThreeCats.scala 64:19]
   reg  exFwdReg_valid; // @[\\src\\main\\scala\\wildcat\\pipeline\\ThreeCats.scala 36:25]
@@ -670,6 +731,8 @@ module ThreeCats(
   wire  wr = |_wr_T; // @[\\src\\main\\scala\\wildcat\\pipeline\\Functions.scala 369:28]
   wire [31:0] decEx_csrVal = csr_io_data; // @[\\src\\main\\scala\\wildcat\\pipeline\\ThreeCats.scala 70:19 91:16]
   Csr csr ( // @[\\src\\main\\scala\\wildcat\\pipeline\\ThreeCats.scala 64:19]
+    .clock(csr_clock),
+    .reset(csr_reset),
     .io_address(csr_io_address),
     .io_data(csr_io_data)
   );
@@ -689,6 +752,8 @@ module ThreeCats(
   assign io_dmem_wr = decOut_isStore & _T_14 & wr; // @[\\src\\main\\scala\\wildcat\\pipeline\\ThreeCats.scala 104:14 109:37 112:16]
   assign io_dmem_wrData = decOut_isStore & _T_14 ? wrData : data; // @[\\src\\main\\scala\\wildcat\\pipeline\\ThreeCats.scala 103:18 109:37 111:20]
   assign io_dmem_wrMask = decOut_isStore & _T_14 ? _wr_T : 4'h0; // @[\\src\\main\\scala\\wildcat\\pipeline\\ThreeCats.scala 105:18 109:37 113:20]
+  assign csr_clock = clock;
+  assign csr_reset = reset;
   assign csr_io_address = instrReg[31:20]; // @[\\src\\main\\scala\\wildcat\\pipeline\\ThreeCats.scala 65:29]
   always @(posedge clock) begin
     if (regs_MPORT_en & regs_MPORT_mask) begin
@@ -1057,74 +1122,74 @@ module ScratchPadMem(
   reg [31:0] _RAND_11;
   reg [31:0] _RAND_12;
 `endif // RANDOMIZE_REG_INIT
-  reg [7:0] MEM [0:1023]; // @[\\src\\main\\scala\\wildcat\\pipeline\\ScratchPadMem.scala 16:16]
+  reg [7:0] MEM [0:4095]; // @[\\src\\main\\scala\\wildcat\\pipeline\\ScratchPadMem.scala 16:16]
   wire  MEM_io_rdData_MPORT_3_en; // @[\\src\\main\\scala\\wildcat\\pipeline\\ScratchPadMem.scala 16:16]
-  wire [9:0] MEM_io_rdData_MPORT_3_addr; // @[\\src\\main\\scala\\wildcat\\pipeline\\ScratchPadMem.scala 16:16]
+  wire [11:0] MEM_io_rdData_MPORT_3_addr; // @[\\src\\main\\scala\\wildcat\\pipeline\\ScratchPadMem.scala 16:16]
   wire [7:0] MEM_io_rdData_MPORT_3_data; // @[\\src\\main\\scala\\wildcat\\pipeline\\ScratchPadMem.scala 16:16]
   wire [7:0] MEM_MPORT_data; // @[\\src\\main\\scala\\wildcat\\pipeline\\ScratchPadMem.scala 16:16]
-  wire [9:0] MEM_MPORT_addr; // @[\\src\\main\\scala\\wildcat\\pipeline\\ScratchPadMem.scala 16:16]
+  wire [11:0] MEM_MPORT_addr; // @[\\src\\main\\scala\\wildcat\\pipeline\\ScratchPadMem.scala 16:16]
   wire  MEM_MPORT_mask; // @[\\src\\main\\scala\\wildcat\\pipeline\\ScratchPadMem.scala 16:16]
   wire  MEM_MPORT_en; // @[\\src\\main\\scala\\wildcat\\pipeline\\ScratchPadMem.scala 16:16]
   reg  MEM_io_rdData_MPORT_3_en_pipe_0;
-  reg [9:0] MEM_io_rdData_MPORT_3_addr_pipe_0;
-  reg [7:0] MEM_1 [0:1023]; // @[\\src\\main\\scala\\wildcat\\pipeline\\ScratchPadMem.scala 17:16]
+  reg [11:0] MEM_io_rdData_MPORT_3_addr_pipe_0;
+  reg [7:0] MEM_1 [0:4095]; // @[\\src\\main\\scala\\wildcat\\pipeline\\ScratchPadMem.scala 17:16]
   wire  MEM_1_io_rdData_MPORT_2_en; // @[\\src\\main\\scala\\wildcat\\pipeline\\ScratchPadMem.scala 17:16]
-  wire [9:0] MEM_1_io_rdData_MPORT_2_addr; // @[\\src\\main\\scala\\wildcat\\pipeline\\ScratchPadMem.scala 17:16]
+  wire [11:0] MEM_1_io_rdData_MPORT_2_addr; // @[\\src\\main\\scala\\wildcat\\pipeline\\ScratchPadMem.scala 17:16]
   wire [7:0] MEM_1_io_rdData_MPORT_2_data; // @[\\src\\main\\scala\\wildcat\\pipeline\\ScratchPadMem.scala 17:16]
   wire [7:0] MEM_1_MPORT_1_data; // @[\\src\\main\\scala\\wildcat\\pipeline\\ScratchPadMem.scala 17:16]
-  wire [9:0] MEM_1_MPORT_1_addr; // @[\\src\\main\\scala\\wildcat\\pipeline\\ScratchPadMem.scala 17:16]
+  wire [11:0] MEM_1_MPORT_1_addr; // @[\\src\\main\\scala\\wildcat\\pipeline\\ScratchPadMem.scala 17:16]
   wire  MEM_1_MPORT_1_mask; // @[\\src\\main\\scala\\wildcat\\pipeline\\ScratchPadMem.scala 17:16]
   wire  MEM_1_MPORT_1_en; // @[\\src\\main\\scala\\wildcat\\pipeline\\ScratchPadMem.scala 17:16]
   reg  MEM_1_io_rdData_MPORT_2_en_pipe_0;
-  reg [9:0] MEM_1_io_rdData_MPORT_2_addr_pipe_0;
-  reg [7:0] MEM_2 [0:1023]; // @[\\src\\main\\scala\\wildcat\\pipeline\\ScratchPadMem.scala 18:16]
+  reg [11:0] MEM_1_io_rdData_MPORT_2_addr_pipe_0;
+  reg [7:0] MEM_2 [0:4095]; // @[\\src\\main\\scala\\wildcat\\pipeline\\ScratchPadMem.scala 18:16]
   wire  MEM_2_io_rdData_MPORT_1_en; // @[\\src\\main\\scala\\wildcat\\pipeline\\ScratchPadMem.scala 18:16]
-  wire [9:0] MEM_2_io_rdData_MPORT_1_addr; // @[\\src\\main\\scala\\wildcat\\pipeline\\ScratchPadMem.scala 18:16]
+  wire [11:0] MEM_2_io_rdData_MPORT_1_addr; // @[\\src\\main\\scala\\wildcat\\pipeline\\ScratchPadMem.scala 18:16]
   wire [7:0] MEM_2_io_rdData_MPORT_1_data; // @[\\src\\main\\scala\\wildcat\\pipeline\\ScratchPadMem.scala 18:16]
   wire [7:0] MEM_2_MPORT_2_data; // @[\\src\\main\\scala\\wildcat\\pipeline\\ScratchPadMem.scala 18:16]
-  wire [9:0] MEM_2_MPORT_2_addr; // @[\\src\\main\\scala\\wildcat\\pipeline\\ScratchPadMem.scala 18:16]
+  wire [11:0] MEM_2_MPORT_2_addr; // @[\\src\\main\\scala\\wildcat\\pipeline\\ScratchPadMem.scala 18:16]
   wire  MEM_2_MPORT_2_mask; // @[\\src\\main\\scala\\wildcat\\pipeline\\ScratchPadMem.scala 18:16]
   wire  MEM_2_MPORT_2_en; // @[\\src\\main\\scala\\wildcat\\pipeline\\ScratchPadMem.scala 18:16]
   reg  MEM_2_io_rdData_MPORT_1_en_pipe_0;
-  reg [9:0] MEM_2_io_rdData_MPORT_1_addr_pipe_0;
-  reg [7:0] MEM_3 [0:1023]; // @[\\src\\main\\scala\\wildcat\\pipeline\\ScratchPadMem.scala 19:16]
+  reg [11:0] MEM_2_io_rdData_MPORT_1_addr_pipe_0;
+  reg [7:0] MEM_3 [0:4095]; // @[\\src\\main\\scala\\wildcat\\pipeline\\ScratchPadMem.scala 19:16]
   wire  MEM_3_io_rdData_MPORT_en; // @[\\src\\main\\scala\\wildcat\\pipeline\\ScratchPadMem.scala 19:16]
-  wire [9:0] MEM_3_io_rdData_MPORT_addr; // @[\\src\\main\\scala\\wildcat\\pipeline\\ScratchPadMem.scala 19:16]
+  wire [11:0] MEM_3_io_rdData_MPORT_addr; // @[\\src\\main\\scala\\wildcat\\pipeline\\ScratchPadMem.scala 19:16]
   wire [7:0] MEM_3_io_rdData_MPORT_data; // @[\\src\\main\\scala\\wildcat\\pipeline\\ScratchPadMem.scala 19:16]
   wire [7:0] MEM_3_MPORT_3_data; // @[\\src\\main\\scala\\wildcat\\pipeline\\ScratchPadMem.scala 19:16]
-  wire [9:0] MEM_3_MPORT_3_addr; // @[\\src\\main\\scala\\wildcat\\pipeline\\ScratchPadMem.scala 19:16]
+  wire [11:0] MEM_3_MPORT_3_addr; // @[\\src\\main\\scala\\wildcat\\pipeline\\ScratchPadMem.scala 19:16]
   wire  MEM_3_MPORT_3_mask; // @[\\src\\main\\scala\\wildcat\\pipeline\\ScratchPadMem.scala 19:16]
   wire  MEM_3_MPORT_3_en; // @[\\src\\main\\scala\\wildcat\\pipeline\\ScratchPadMem.scala 19:16]
   reg  MEM_3_io_rdData_MPORT_en_pipe_0;
-  reg [9:0] MEM_3_io_rdData_MPORT_addr_pipe_0;
+  reg [11:0] MEM_3_io_rdData_MPORT_addr_pipe_0;
   wire [23:0] _io_rdData_T_10 = {MEM_3_io_rdData_MPORT_data,MEM_2_io_rdData_MPORT_1_data,MEM_1_io_rdData_MPORT_2_data}; // @[\\src\\main\\scala\\wildcat\\pipeline\\ScratchPadMem.scala 60:40]
   reg  io_ack_REG; // @[\\src\\main\\scala\\wildcat\\pipeline\\ScratchPadMem.scala 75:20]
   assign MEM_io_rdData_MPORT_3_en = MEM_io_rdData_MPORT_3_en_pipe_0;
   assign MEM_io_rdData_MPORT_3_addr = MEM_io_rdData_MPORT_3_addr_pipe_0;
   assign MEM_io_rdData_MPORT_3_data = MEM[MEM_io_rdData_MPORT_3_addr]; // @[\\src\\main\\scala\\wildcat\\pipeline\\ScratchPadMem.scala 16:16]
   assign MEM_MPORT_data = io_wrData[7:0];
-  assign MEM_MPORT_addr = io_address[11:2];
+  assign MEM_MPORT_addr = io_address[13:2];
   assign MEM_MPORT_mask = 1'h1;
   assign MEM_MPORT_en = io_wrMask[0] & io_wr;
   assign MEM_1_io_rdData_MPORT_2_en = MEM_1_io_rdData_MPORT_2_en_pipe_0;
   assign MEM_1_io_rdData_MPORT_2_addr = MEM_1_io_rdData_MPORT_2_addr_pipe_0;
   assign MEM_1_io_rdData_MPORT_2_data = MEM_1[MEM_1_io_rdData_MPORT_2_addr]; // @[\\src\\main\\scala\\wildcat\\pipeline\\ScratchPadMem.scala 17:16]
   assign MEM_1_MPORT_1_data = io_wrData[15:8];
-  assign MEM_1_MPORT_1_addr = io_address[11:2];
+  assign MEM_1_MPORT_1_addr = io_address[13:2];
   assign MEM_1_MPORT_1_mask = 1'h1;
   assign MEM_1_MPORT_1_en = io_wrMask[1] & io_wr;
   assign MEM_2_io_rdData_MPORT_1_en = MEM_2_io_rdData_MPORT_1_en_pipe_0;
   assign MEM_2_io_rdData_MPORT_1_addr = MEM_2_io_rdData_MPORT_1_addr_pipe_0;
   assign MEM_2_io_rdData_MPORT_1_data = MEM_2[MEM_2_io_rdData_MPORT_1_addr]; // @[\\src\\main\\scala\\wildcat\\pipeline\\ScratchPadMem.scala 18:16]
   assign MEM_2_MPORT_2_data = io_wrData[23:16];
-  assign MEM_2_MPORT_2_addr = io_address[11:2];
+  assign MEM_2_MPORT_2_addr = io_address[13:2];
   assign MEM_2_MPORT_2_mask = 1'h1;
   assign MEM_2_MPORT_2_en = io_wrMask[2] & io_wr;
   assign MEM_3_io_rdData_MPORT_en = MEM_3_io_rdData_MPORT_en_pipe_0;
   assign MEM_3_io_rdData_MPORT_addr = MEM_3_io_rdData_MPORT_addr_pipe_0;
   assign MEM_3_io_rdData_MPORT_data = MEM_3[MEM_3_io_rdData_MPORT_addr]; // @[\\src\\main\\scala\\wildcat\\pipeline\\ScratchPadMem.scala 19:16]
   assign MEM_3_MPORT_3_data = io_wrData[31:24];
-  assign MEM_3_MPORT_3_addr = io_address[11:2];
+  assign MEM_3_MPORT_3_addr = io_address[13:2];
   assign MEM_3_MPORT_3_mask = 1'h1;
   assign MEM_3_MPORT_3_en = io_wrMask[3] & io_wr;
   assign io_rdData = {_io_rdData_T_10,MEM_io_rdData_MPORT_3_data}; // @[\\src\\main\\scala\\wildcat\\pipeline\\ScratchPadMem.scala 61:40]
@@ -1135,28 +1200,28 @@ module ScratchPadMem(
     end
     MEM_io_rdData_MPORT_3_en_pipe_0 <= 1'h1;
     if (1'h1) begin
-      MEM_io_rdData_MPORT_3_addr_pipe_0 <= io_address[11:2];
+      MEM_io_rdData_MPORT_3_addr_pipe_0 <= io_address[13:2];
     end
     if (MEM_1_MPORT_1_en & MEM_1_MPORT_1_mask) begin
       MEM_1[MEM_1_MPORT_1_addr] <= MEM_1_MPORT_1_data; // @[\\src\\main\\scala\\wildcat\\pipeline\\ScratchPadMem.scala 17:16]
     end
     MEM_1_io_rdData_MPORT_2_en_pipe_0 <= 1'h1;
     if (1'h1) begin
-      MEM_1_io_rdData_MPORT_2_addr_pipe_0 <= io_address[11:2];
+      MEM_1_io_rdData_MPORT_2_addr_pipe_0 <= io_address[13:2];
     end
     if (MEM_2_MPORT_2_en & MEM_2_MPORT_2_mask) begin
       MEM_2[MEM_2_MPORT_2_addr] <= MEM_2_MPORT_2_data; // @[\\src\\main\\scala\\wildcat\\pipeline\\ScratchPadMem.scala 18:16]
     end
     MEM_2_io_rdData_MPORT_1_en_pipe_0 <= 1'h1;
     if (1'h1) begin
-      MEM_2_io_rdData_MPORT_1_addr_pipe_0 <= io_address[11:2];
+      MEM_2_io_rdData_MPORT_1_addr_pipe_0 <= io_address[13:2];
     end
     if (MEM_3_MPORT_3_en & MEM_3_MPORT_3_mask) begin
       MEM_3[MEM_3_MPORT_3_addr] <= MEM_3_MPORT_3_data; // @[\\src\\main\\scala\\wildcat\\pipeline\\ScratchPadMem.scala 19:16]
     end
     MEM_3_io_rdData_MPORT_en_pipe_0 <= 1'h1;
     if (1'h1) begin
-      MEM_3_io_rdData_MPORT_addr_pipe_0 <= io_address[11:2];
+      MEM_3_io_rdData_MPORT_addr_pipe_0 <= io_address[13:2];
     end
     if (reset) begin // @[\\src\\main\\scala\\wildcat\\pipeline\\ScratchPadMem.scala 75:20]
       io_ack_REG <= 1'h0; // @[\\src\\main\\scala\\wildcat\\pipeline\\ScratchPadMem.scala 75:20]
@@ -1201,35 +1266,35 @@ initial begin
     `endif
 `ifdef RANDOMIZE_MEM_INIT
   _RAND_0 = {1{`RANDOM}};
-  for (initvar = 0; initvar < 1024; initvar = initvar+1)
+  for (initvar = 0; initvar < 4096; initvar = initvar+1)
     MEM[initvar] = _RAND_0[7:0];
   _RAND_3 = {1{`RANDOM}};
-  for (initvar = 0; initvar < 1024; initvar = initvar+1)
+  for (initvar = 0; initvar < 4096; initvar = initvar+1)
     MEM_1[initvar] = _RAND_3[7:0];
   _RAND_6 = {1{`RANDOM}};
-  for (initvar = 0; initvar < 1024; initvar = initvar+1)
+  for (initvar = 0; initvar < 4096; initvar = initvar+1)
     MEM_2[initvar] = _RAND_6[7:0];
   _RAND_9 = {1{`RANDOM}};
-  for (initvar = 0; initvar < 1024; initvar = initvar+1)
+  for (initvar = 0; initvar < 4096; initvar = initvar+1)
     MEM_3[initvar] = _RAND_9[7:0];
 `endif // RANDOMIZE_MEM_INIT
 `ifdef RANDOMIZE_REG_INIT
   _RAND_1 = {1{`RANDOM}};
   MEM_io_rdData_MPORT_3_en_pipe_0 = _RAND_1[0:0];
   _RAND_2 = {1{`RANDOM}};
-  MEM_io_rdData_MPORT_3_addr_pipe_0 = _RAND_2[9:0];
+  MEM_io_rdData_MPORT_3_addr_pipe_0 = _RAND_2[11:0];
   _RAND_4 = {1{`RANDOM}};
   MEM_1_io_rdData_MPORT_2_en_pipe_0 = _RAND_4[0:0];
   _RAND_5 = {1{`RANDOM}};
-  MEM_1_io_rdData_MPORT_2_addr_pipe_0 = _RAND_5[9:0];
+  MEM_1_io_rdData_MPORT_2_addr_pipe_0 = _RAND_5[11:0];
   _RAND_7 = {1{`RANDOM}};
   MEM_2_io_rdData_MPORT_1_en_pipe_0 = _RAND_7[0:0];
   _RAND_8 = {1{`RANDOM}};
-  MEM_2_io_rdData_MPORT_1_addr_pipe_0 = _RAND_8[9:0];
+  MEM_2_io_rdData_MPORT_1_addr_pipe_0 = _RAND_8[11:0];
   _RAND_10 = {1{`RANDOM}};
   MEM_3_io_rdData_MPORT_en_pipe_0 = _RAND_10[0:0];
   _RAND_11 = {1{`RANDOM}};
-  MEM_3_io_rdData_MPORT_addr_pipe_0 = _RAND_11[9:0];
+  MEM_3_io_rdData_MPORT_addr_pipe_0 = _RAND_11[11:0];
   _RAND_12 = {1{`RANDOM}};
   io_ack_REG = _RAND_12[0:0];
 `endif // RANDOMIZE_REG_INIT
@@ -1243,18 +1308,18 @@ endmodule
 module AdcController(
   input         clock,
   input         reset,
-  input         io_vauxp6, // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 43:14]
-  input         io_vauxn6, // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 43:14]
-  input         io_vauxp14, // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 43:14]
-  input         io_vauxn14, // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 43:14]
-  input         io_vauxp7, // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 43:14]
-  input         io_vauxn7, // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 43:14]
-  input         io_vauxp15, // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 43:14]
-  input         io_vauxn15, // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 43:14]
-  output [15:0] io_adcData0, // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 43:14]
-  output [15:0] io_adcData1, // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 43:14]
-  output [15:0] io_adcData2, // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 43:14]
-  output [15:0] io_adcData3 // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 43:14]
+  input         io_vauxp6, // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 38:14]
+  input         io_vauxn6, // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 38:14]
+  input         io_vauxp14, // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 38:14]
+  input         io_vauxn14, // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 38:14]
+  input         io_vauxp7, // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 38:14]
+  input         io_vauxn7, // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 38:14]
+  input         io_vauxp15, // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 38:14]
+  input         io_vauxn15, // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 38:14]
+  output [15:0] io_adcData0, // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 38:14]
+  output [15:0] io_adcData1, // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 38:14]
+  output [15:0] io_adcData2, // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 38:14]
+  output [15:0] io_adcData3 // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 38:14]
 );
 `ifdef RANDOMIZE_REG_INIT
   reg [31:0] _RAND_0;
@@ -1264,43 +1329,43 @@ module AdcController(
   reg [31:0] _RAND_4;
   reg [31:0] _RAND_5;
 `endif // RANDOMIZE_REG_INIT
-  wire  xadc_dclk_in; // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 67:20]
-  wire  xadc_reset_in; // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 67:20]
-  wire  xadc_vauxp6; // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 67:20]
-  wire  xadc_vauxn6; // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 67:20]
-  wire  xadc_vauxp14; // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 67:20]
-  wire  xadc_vauxn14; // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 67:20]
-  wire  xadc_vauxp7; // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 67:20]
-  wire  xadc_vauxn7; // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 67:20]
-  wire  xadc_vauxp15; // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 67:20]
-  wire  xadc_vauxn15; // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 67:20]
-  wire [6:0] xadc_daddr_in; // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 67:20]
-  wire  xadc_den_in; // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 67:20]
-  wire [15:0] xadc_di_in; // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 67:20]
-  wire  xadc_dwe_in; // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 67:20]
-  wire [15:0] xadc_do_out; // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 67:20]
-  wire  xadc_drdy_out; // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 67:20]
-  wire  xadc_vp_in; // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 67:20]
-  wire  xadc_vn_in; // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 67:20]
-  reg [15:0] dataReg_0; // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 89:24]
-  reg [15:0] dataReg_1; // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 89:24]
-  reg [15:0] dataReg_2; // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 89:24]
-  reg [15:0] dataReg_3; // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 89:24]
-  reg  state; // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 93:22]
-  reg [1:0] auxIdx; // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 94:23]
-  wire [6:0] _GEN_1 = 2'h1 == auxIdx ? 7'h1e : 7'h16; // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 96:{20,20}]
-  wire [6:0] _GEN_2 = 2'h2 == auxIdx ? 7'h17 : _GEN_1; // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 96:{20,20}]
-  wire  _xadc_io_den_in_T = ~state; // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 99:30]
-  wire [15:0] _dataReg_auxIdx = xadc_do_out; // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 109:{25,25}]
-  wire [15:0] _GEN_4 = 2'h0 == auxIdx ? _dataReg_auxIdx : dataReg_0; // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 109:{25,25} 89:24]
-  wire [15:0] _GEN_5 = 2'h1 == auxIdx ? _dataReg_auxIdx : dataReg_1; // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 109:{25,25} 89:24]
-  wire [15:0] _GEN_6 = 2'h2 == auxIdx ? _dataReg_auxIdx : dataReg_2; // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 109:{25,25} 89:24]
-  wire [15:0] _GEN_7 = 2'h3 == auxIdx ? _dataReg_auxIdx : dataReg_3; // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 109:{25,25} 89:24]
-  wire [1:0] _auxIdx_T_1 = auxIdx + 2'h1; // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 110:26]
-  wire  _GEN_13 = xadc_drdy_out ? 1'h0 : state; // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 108:30 111:15 93:22]
-  wire  _GEN_19 = state ? _GEN_13 : state; // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 102:17 93:22]
-  wire  _GEN_20 = _xadc_io_den_in_T | _GEN_19; // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 102:17 104:13]
-  xadc_wiz_0 xadc ( // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 67:20]
+  wire  xadc_dclk_in; // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 55:20]
+  wire  xadc_reset_in; // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 55:20]
+  wire  xadc_vauxp6; // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 55:20]
+  wire  xadc_vauxn6; // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 55:20]
+  wire  xadc_vauxp14; // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 55:20]
+  wire  xadc_vauxn14; // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 55:20]
+  wire  xadc_vauxp7; // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 55:20]
+  wire  xadc_vauxn7; // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 55:20]
+  wire  xadc_vauxp15; // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 55:20]
+  wire  xadc_vauxn15; // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 55:20]
+  wire [6:0] xadc_daddr_in; // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 55:20]
+  wire  xadc_den_in; // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 55:20]
+  wire [15:0] xadc_di_in; // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 55:20]
+  wire  xadc_dwe_in; // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 55:20]
+  wire [15:0] xadc_do_out; // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 55:20]
+  wire  xadc_drdy_out; // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 55:20]
+  wire  xadc_vp_in; // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 55:20]
+  wire  xadc_vn_in; // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 55:20]
+  reg [15:0] dataReg_0; // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 77:24]
+  reg [15:0] dataReg_1; // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 77:24]
+  reg [15:0] dataReg_2; // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 77:24]
+  reg [15:0] dataReg_3; // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 77:24]
+  reg  state; // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 81:22]
+  reg [1:0] auxIdx; // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 82:23]
+  wire [6:0] _GEN_1 = 2'h1 == auxIdx ? 7'h1e : 7'h16; // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 84:{20,20}]
+  wire [6:0] _GEN_2 = 2'h2 == auxIdx ? 7'h17 : _GEN_1; // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 84:{20,20}]
+  wire  _xadc_io_den_in_T = ~state; // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 87:30]
+  wire [15:0] _dataReg_auxIdx = xadc_do_out; // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 97:{25,25}]
+  wire [15:0] _GEN_4 = 2'h0 == auxIdx ? _dataReg_auxIdx : dataReg_0; // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 77:24 97:{25,25}]
+  wire [15:0] _GEN_5 = 2'h1 == auxIdx ? _dataReg_auxIdx : dataReg_1; // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 77:24 97:{25,25}]
+  wire [15:0] _GEN_6 = 2'h2 == auxIdx ? _dataReg_auxIdx : dataReg_2; // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 77:24 97:{25,25}]
+  wire [15:0] _GEN_7 = 2'h3 == auxIdx ? _dataReg_auxIdx : dataReg_3; // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 77:24 97:{25,25}]
+  wire [1:0] _auxIdx_T_1 = auxIdx + 2'h1; // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 98:26]
+  wire  _GEN_13 = xadc_drdy_out ? 1'h0 : state; // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 96:30 99:15 81:22]
+  wire  _GEN_19 = state ? _GEN_13 : state; // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 90:17 81:22]
+  wire  _GEN_20 = _xadc_io_den_in_T | _GEN_19; // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 90:17 92:13]
+  xadc_wiz_0 xadc ( // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 55:20]
     .dclk_in(xadc_dclk_in),
     .reset_in(xadc_reset_in),
     .vauxp6(xadc_vauxp6),
@@ -1320,74 +1385,74 @@ module AdcController(
     .vp_in(xadc_vp_in),
     .vn_in(xadc_vn_in)
   );
-  assign io_adcData0 = {{4'd0}, dataReg_0[15:4]}; // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 118:15]
-  assign io_adcData1 = {{4'd0}, dataReg_1[15:4]}; // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 119:15]
-  assign io_adcData2 = {{4'd0}, dataReg_2[15:4]}; // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 120:15]
-  assign io_adcData3 = {{4'd0}, dataReg_3[15:4]}; // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 121:15]
-  assign xadc_dclk_in = clock; // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 70:20]
-  assign xadc_reset_in = reset; // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 71:29]
-  assign xadc_vauxp6 = io_vauxp6; // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 76:20]
-  assign xadc_vauxn6 = io_vauxn6; // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 77:20]
-  assign xadc_vauxp14 = io_vauxp14; // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 78:20]
-  assign xadc_vauxn14 = io_vauxn14; // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 79:20]
-  assign xadc_vauxp7 = io_vauxp7; // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 80:20]
-  assign xadc_vauxn7 = io_vauxn7; // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 81:20]
-  assign xadc_vauxp15 = io_vauxp15; // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 82:20]
-  assign xadc_vauxn15 = io_vauxn15; // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 83:20]
-  assign xadc_daddr_in = 2'h3 == auxIdx ? 7'h1f : _GEN_2; // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 96:{20,20}]
-  assign xadc_den_in = ~state; // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 99:30]
-  assign xadc_di_in = 16'h0; // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 97:20]
-  assign xadc_dwe_in = 1'h0; // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 98:20]
-  assign xadc_vp_in = 1'h0; // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 72:20]
-  assign xadc_vn_in = 1'h0; // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 73:20]
+  assign io_adcData0 = {{4'd0}, dataReg_0[15:4]}; // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 106:15]
+  assign io_adcData1 = {{4'd0}, dataReg_1[15:4]}; // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 107:15]
+  assign io_adcData2 = {{4'd0}, dataReg_2[15:4]}; // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 108:15]
+  assign io_adcData3 = {{4'd0}, dataReg_3[15:4]}; // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 109:15]
+  assign xadc_dclk_in = clock; // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 58:20]
+  assign xadc_reset_in = reset; // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 59:29]
+  assign xadc_vauxp6 = io_vauxp6; // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 64:20]
+  assign xadc_vauxn6 = io_vauxn6; // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 65:20]
+  assign xadc_vauxp14 = io_vauxp14; // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 66:20]
+  assign xadc_vauxn14 = io_vauxn14; // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 67:20]
+  assign xadc_vauxp7 = io_vauxp7; // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 68:20]
+  assign xadc_vauxn7 = io_vauxn7; // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 69:20]
+  assign xadc_vauxp15 = io_vauxp15; // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 70:20]
+  assign xadc_vauxn15 = io_vauxn15; // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 71:20]
+  assign xadc_daddr_in = 2'h3 == auxIdx ? 7'h1f : _GEN_2; // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 84:{20,20}]
+  assign xadc_den_in = ~state; // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 87:30]
+  assign xadc_di_in = 16'h0; // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 85:20]
+  assign xadc_dwe_in = 1'h0; // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 86:20]
+  assign xadc_vp_in = 1'h0; // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 60:20]
+  assign xadc_vn_in = 1'h0; // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 61:20]
   always @(posedge clock) begin
-    if (reset) begin // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 89:24]
-      dataReg_0 <= 16'h0; // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 89:24]
-    end else if (!(_xadc_io_den_in_T)) begin // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 102:17]
-      if (state) begin // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 102:17]
-        if (xadc_drdy_out) begin // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 108:30]
+    if (reset) begin // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 77:24]
+      dataReg_0 <= 16'h0; // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 77:24]
+    end else if (!(_xadc_io_den_in_T)) begin // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 90:17]
+      if (state) begin // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 90:17]
+        if (xadc_drdy_out) begin // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 96:30]
           dataReg_0 <= _GEN_4;
         end
       end
     end
-    if (reset) begin // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 89:24]
-      dataReg_1 <= 16'h0; // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 89:24]
-    end else if (!(_xadc_io_den_in_T)) begin // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 102:17]
-      if (state) begin // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 102:17]
-        if (xadc_drdy_out) begin // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 108:30]
+    if (reset) begin // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 77:24]
+      dataReg_1 <= 16'h0; // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 77:24]
+    end else if (!(_xadc_io_den_in_T)) begin // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 90:17]
+      if (state) begin // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 90:17]
+        if (xadc_drdy_out) begin // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 96:30]
           dataReg_1 <= _GEN_5;
         end
       end
     end
-    if (reset) begin // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 89:24]
-      dataReg_2 <= 16'h0; // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 89:24]
-    end else if (!(_xadc_io_den_in_T)) begin // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 102:17]
-      if (state) begin // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 102:17]
-        if (xadc_drdy_out) begin // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 108:30]
+    if (reset) begin // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 77:24]
+      dataReg_2 <= 16'h0; // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 77:24]
+    end else if (!(_xadc_io_den_in_T)) begin // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 90:17]
+      if (state) begin // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 90:17]
+        if (xadc_drdy_out) begin // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 96:30]
           dataReg_2 <= _GEN_6;
         end
       end
     end
-    if (reset) begin // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 89:24]
-      dataReg_3 <= 16'h0; // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 89:24]
-    end else if (!(_xadc_io_den_in_T)) begin // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 102:17]
-      if (state) begin // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 102:17]
-        if (xadc_drdy_out) begin // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 108:30]
+    if (reset) begin // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 77:24]
+      dataReg_3 <= 16'h0; // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 77:24]
+    end else if (!(_xadc_io_den_in_T)) begin // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 90:17]
+      if (state) begin // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 90:17]
+        if (xadc_drdy_out) begin // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 96:30]
           dataReg_3 <= _GEN_7;
         end
       end
     end
-    if (reset) begin // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 93:22]
-      state <= 1'h0; // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 93:22]
+    if (reset) begin // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 81:22]
+      state <= 1'h0; // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 81:22]
     end else begin
       state <= _GEN_20;
     end
-    if (reset) begin // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 94:23]
-      auxIdx <= 2'h0; // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 94:23]
-    end else if (!(_xadc_io_den_in_T)) begin // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 102:17]
-      if (state) begin // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 102:17]
-        if (xadc_drdy_out) begin // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 108:30]
-          auxIdx <= _auxIdx_T_1; // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 110:16]
+    if (reset) begin // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 82:23]
+      auxIdx <= 2'h0; // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 82:23]
+    end else if (!(_xadc_io_den_in_T)) begin // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 90:17]
+      if (state) begin // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 90:17]
+        if (xadc_drdy_out) begin // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 96:30]
+          auxIdx <= _auxIdx_T_1; // @[\\src\\main\\scala\\rvsoc\\AdcController.scala 98:16]
         end
       end
     end
@@ -1556,6 +1621,376 @@ initial begin
 `ifdef RANDOMIZE_REG_INIT
   _RAND_0 = {1{`RANDOM}};
   counter = _RAND_0[7:0];
+`endif // RANDOMIZE_REG_INIT
+  `endif // RANDOMIZE
+end // initial
+`ifdef FIRRTL_AFTER_INITIAL
+`FIRRTL_AFTER_INITIAL
+`endif
+`endif // SYNTHESIS
+endmodule
+module I2cController(
+  input         clock,
+  input         reset,
+  input  [7:0]  io_cmd, // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 56:14]
+  input         io_cmdValid, // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 56:14]
+  input  [7:0]  io_dataIn, // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 56:14]
+  output [7:0]  io_dataOut, // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 56:14]
+  output [7:0]  io_status, // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 56:14]
+  input  [15:0] io_clkDiv, // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 56:14]
+  output        io_sdaOe, // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 56:14]
+  input         io_sdaIn, // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 56:14]
+  output        io_sclOe, // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 56:14]
+  input         io_sclIn // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 56:14]
+);
+`ifdef RANDOMIZE_REG_INIT
+  reg [31:0] _RAND_0;
+  reg [31:0] _RAND_1;
+  reg [31:0] _RAND_2;
+  reg [31:0] _RAND_3;
+  reg [31:0] _RAND_4;
+  reg [31:0] _RAND_5;
+  reg [31:0] _RAND_6;
+  reg [31:0] _RAND_7;
+  reg [31:0] _RAND_8;
+  reg [31:0] _RAND_9;
+  reg [31:0] _RAND_10;
+`endif // RANDOMIZE_REG_INIT
+  reg [2:0] state; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 85:22]
+  reg [15:0] tickCounter; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 88:28]
+  reg [1:0] phase; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 91:22]
+  reg [3:0] bitCounter; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 94:27]
+  reg [7:0] shiftReg; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 97:25]
+  reg  sdaOeReg; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 100:25]
+  reg  sclOeReg; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 101:25]
+  reg  busyReg; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 104:24]
+  reg  nackReg; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 105:24]
+  reg  bitSampledReg; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 112:30]
+  reg  readSendAckReg; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 118:31]
+  wire [15:0] clkDivEffective = io_clkDiv == 16'h0 ? 16'h1f4 : io_clkDiv; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 121:28]
+  wire [14:0] phaseTarget = clkDivEffective[15:1]; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 123:37]
+  wire [1:0] io_status_lo = {nackReg,busyReg}; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 132:19]
+  wire [14:0] _phaseAdvance_T_1 = phaseTarget - 15'h1; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 144:50]
+  wire [15:0] _GEN_208 = {{1'd0}, _phaseAdvance_T_1}; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 144:34]
+  wire  phaseAdvance = tickCounter == _GEN_208; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 144:34]
+  wire [1:0] _phase_T_1 = phase + 2'h1; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 148:20]
+  wire [15:0] _tickCounter_T_1 = tickCounter + 16'h1; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 150:32]
+  wire [15:0] _GEN_0 = phaseAdvance ? 16'h0 : _tickCounter_T_1; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 146:22 147:17 150:17]
+  wire [1:0] _GEN_1 = phaseAdvance ? _phase_T_1 : phase; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 146:22 148:11 91:22]
+  wire  _GEN_2 = 8'h10 == io_cmd ? 1'h0 : readSendAckReg; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 173:24 185:28 118:31]
+  wire [2:0] _GEN_3 = 8'h10 == io_cmd ? 3'h5 : state; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 173:24 186:19 85:22]
+  wire  _GEN_4 = 8'h8 == io_cmd | _GEN_2; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 173:24 181:28]
+  wire [2:0] _GEN_5 = 8'h8 == io_cmd ? 3'h5 : _GEN_3; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 173:24 182:19]
+  wire [7:0] _GEN_6 = 8'h4 == io_cmd ? io_dataIn : shiftReg; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 173:24 177:22 97:25]
+  wire [2:0] _GEN_7 = 8'h4 == io_cmd ? 3'h3 : _GEN_5; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 173:24 178:19]
+  wire  _GEN_8 = 8'h4 == io_cmd ? readSendAckReg : _GEN_4; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 173:24 118:31]
+  wire [2:0] _GEN_9 = 8'h2 == io_cmd ? 3'h2 : _GEN_7; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 173:24 175:38]
+  wire [7:0] _GEN_10 = 8'h2 == io_cmd ? shiftReg : _GEN_6; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 173:24 97:25]
+  wire  _GEN_11 = 8'h2 == io_cmd ? readSendAckReg : _GEN_8; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 173:24 118:31]
+  wire  _T_11 = phase == 2'h0; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 206:18]
+  wire  _T_12 = ~io_sclIn; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 212:14]
+  wire [1:0] _GEN_20 = ~io_sclIn | ~io_sdaIn ? phase : _GEN_1; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 212:38 213:17]
+  wire [15:0] _GEN_21 = ~io_sclIn | ~io_sdaIn ? 16'h0 : _GEN_0; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 212:38 214:23]
+  wire  _T_15 = phase == 2'h1; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 216:24]
+  wire [1:0] _GEN_22 = _T_12 ? phase : _GEN_1; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 222:25 223:17]
+  wire [15:0] _GEN_23 = _T_12 ? 16'h0 : _GEN_0; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 222:25 224:23]
+  wire  _T_17 = phase == 2'h2; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 226:24]
+  wire  _GEN_24 = phase == 2'h2 | sdaOeReg; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 226:33 227:18 100:25]
+  wire  _GEN_25 = phase == 2'h2 | sclOeReg; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 226:33 228:18 101:25]
+  wire [2:0] _GEN_26 = phase == 2'h2 ? state : 3'h0; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 226:33 231:15 85:22]
+  wire  _GEN_27 = phase == 2'h1 | _GEN_24; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 216:33 217:18]
+  wire  _GEN_28 = phase == 2'h1 ? 1'h0 : _GEN_25; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 216:33 218:18]
+  wire [1:0] _GEN_29 = phase == 2'h1 ? _GEN_22 : _GEN_1; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 216:33]
+  wire [15:0] _GEN_30 = phase == 2'h1 ? _GEN_23 : _GEN_0; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 216:33]
+  wire [2:0] _GEN_31 = phase == 2'h1 ? state : _GEN_26; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 216:33 85:22]
+  wire [2:0] _GEN_36 = phase == 2'h0 ? state : _GEN_31; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 206:27 85:22]
+  wire  _GEN_39 = _T_17 ? 1'h0 : sdaOeReg; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 255:33 256:18 100:25]
+  wire  _GEN_40 = _T_17 ? 1'h0 : sclOeReg; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 255:33 257:18 101:25]
+  wire  _GEN_42 = _T_15 | _GEN_39; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 245:33 246:18]
+  wire  _GEN_43 = _T_15 ? 1'h0 : _GEN_40; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 245:33 247:18]
+  wire  _GEN_47 = _T_11 | _GEN_42; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 242:27 243:18]
+  wire  _GEN_48 = _T_11 | _GEN_43; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 242:27 244:18]
+  wire [1:0] _GEN_49 = _T_11 ? _GEN_1 : _GEN_29; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 242:27]
+  wire [15:0] _GEN_50 = _T_11 ? _GEN_0 : _GEN_30; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 242:27]
+  wire  currentBit = shiftReg[7]; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 270:32]
+  wire  _sdaOeReg_T = ~currentBit; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 274:21]
+  wire  _T_32 = bitCounter == 4'h7; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 295:27]
+  wire [7:0] _shiftReg_T_1 = {shiftReg[6:0],1'h0}; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 301:28]
+  wire [3:0] _bitCounter_T_1 = bitCounter + 4'h1; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 302:38]
+  wire [3:0] _GEN_54 = bitCounter == 4'h7 ? 4'h0 : _bitCounter_T_1; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 295:36 297:24 302:24]
+  wire [2:0] _GEN_55 = bitCounter == 4'h7 ? 3'h4 : state; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 295:36 298:19 85:22]
+  wire [7:0] _GEN_56 = bitCounter == 4'h7 ? shiftReg : _shiftReg_T_1; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 295:36 301:22 97:25]
+  wire [3:0] _GEN_57 = phaseAdvance ? _GEN_54 : bitCounter; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 294:28 94:27]
+  wire [2:0] _GEN_58 = phaseAdvance ? _GEN_55 : state; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 294:28 85:22]
+  wire [7:0] _GEN_59 = phaseAdvance ? _GEN_56 : shiftReg; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 294:28 97:25]
+  wire  _GEN_60 = _T_17 ? _sdaOeReg_T : sdaOeReg; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 285:33 286:18 100:25]
+  wire  _GEN_61 = _T_17 ? 1'h0 : 1'h1; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 285:33 287:18 291:18]
+  wire [3:0] _GEN_62 = _T_17 ? bitCounter : _GEN_57; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 285:33 94:27]
+  wire [2:0] _GEN_63 = _T_17 ? state : _GEN_58; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 285:33 85:22]
+  wire [7:0] _GEN_64 = _T_17 ? shiftReg : _GEN_59; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 285:33 97:25]
+  wire  _GEN_65 = _T_15 ? _sdaOeReg_T : _GEN_60; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 276:33 277:18]
+  wire  _GEN_66 = _T_15 ? 1'h0 : _GEN_61; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 276:33 278:18]
+  wire [3:0] _GEN_69 = _T_15 ? bitCounter : _GEN_62; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 276:33 94:27]
+  wire [2:0] _GEN_70 = _T_15 ? state : _GEN_63; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 276:33 85:22]
+  wire [7:0] _GEN_71 = _T_15 ? shiftReg : _GEN_64; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 276:33 97:25]
+  wire  _GEN_72 = _T_11 ? ~currentBit : _GEN_65; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 272:27 274:18]
+  wire  _GEN_73 = _T_11 | _GEN_66; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 272:27 275:18]
+  wire [3:0] _GEN_76 = _T_11 ? bitCounter : _GEN_69; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 272:27 94:27]
+  wire [2:0] _GEN_77 = _T_11 ? state : _GEN_70; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 272:27 85:22]
+  wire [7:0] _GEN_78 = _T_11 ? shiftReg : _GEN_71; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 272:27 97:25]
+  wire  _T_39 = ~bitSampledReg; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 329:16]
+  wire  _GEN_79 = ~bitSampledReg ? io_sdaIn : nackReg; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 329:32 330:21 105:24]
+  wire  _GEN_80 = ~bitSampledReg | bitSampledReg; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 329:32 331:27 112:30]
+  wire  _GEN_83 = _T_12 ? nackReg : _GEN_79; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 105:24 322:25]
+  wire  _GEN_84 = _T_12 ? bitSampledReg : _GEN_80; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 322:25 112:30]
+  wire [2:0] _GEN_85 = phaseAdvance ? 3'h0 : state; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 340:28 341:17 85:22]
+  wire [2:0] _GEN_88 = _T_17 ? state : _GEN_85; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 334:33 85:22]
+  wire  _GEN_89 = _T_15 ? 1'h0 : _GEN_39; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 318:33 319:18]
+  wire  _GEN_93 = _T_15 ? _GEN_83 : nackReg; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 105:24 318:33]
+  wire  _GEN_94 = _T_15 ? _GEN_84 : bitSampledReg; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 112:30 318:33]
+  wire [2:0] _GEN_95 = _T_15 ? state : _GEN_88; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 318:33 85:22]
+  wire  _GEN_96 = _T_11 ? 1'h0 : _GEN_89; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 314:27 315:18]
+  wire  _GEN_98 = _T_11 ? 1'h0 : _GEN_94; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 314:27 317:23]
+  wire  _GEN_101 = _T_11 ? nackReg : _GEN_93; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 105:24 314:27]
+  wire [2:0] _GEN_102 = _T_11 ? state : _GEN_95; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 314:27 85:22]
+  wire [7:0] _shiftReg_T_3 = {shiftReg[6:0],io_sdaIn}; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 370:28]
+  wire [7:0] _GEN_103 = _T_39 ? _shiftReg_T_3 : shiftReg; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 369:32 370:22 97:25]
+  wire [7:0] _GEN_107 = _T_12 ? shiftReg : _GEN_103; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 360:25 97:25]
+  wire [2:0] _GEN_110 = _T_32 ? 3'h6 : state; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 382:36 384:19 85:22]
+  wire [2:0] _GEN_112 = phaseAdvance ? _GEN_110 : state; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 381:28 85:22]
+  wire [2:0] _GEN_116 = _T_17 ? state : _GEN_112; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 374:33 85:22]
+  wire [7:0] _GEN_121 = _T_15 ? _GEN_107 : shiftReg; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 356:33 97:25]
+  wire [2:0] _GEN_124 = _T_15 ? state : _GEN_116; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 356:33 85:22]
+  wire [7:0] _GEN_130 = _T_11 ? shiftReg : _GEN_121; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 352:27 97:25]
+  wire [2:0] _GEN_132 = _T_11 ? state : _GEN_124; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 352:27 85:22]
+  wire  _GEN_148 = 3'h6 == state ? readSendAckReg : sdaOeReg; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 154:17 100:25]
+  wire  _GEN_149 = 3'h6 == state ? _GEN_73 : sclOeReg; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 154:17 101:25]
+  wire [1:0] _GEN_150 = 3'h6 == state ? _GEN_49 : _GEN_1; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 154:17]
+  wire [15:0] _GEN_151 = 3'h6 == state ? _GEN_50 : _GEN_0; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 154:17]
+  wire [2:0] _GEN_152 = 3'h6 == state ? _GEN_102 : state; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 154:17 85:22]
+  wire  _GEN_153 = 3'h5 == state ? _GEN_96 : _GEN_148; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 154:17]
+  wire  _GEN_154 = 3'h5 == state ? _GEN_73 : _GEN_149; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 154:17]
+  wire  _GEN_155 = 3'h5 == state ? _GEN_98 : bitSampledReg; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 154:17 112:30]
+  wire [1:0] _GEN_156 = 3'h5 == state ? _GEN_49 : _GEN_150; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 154:17]
+  wire [15:0] _GEN_157 = 3'h5 == state ? _GEN_50 : _GEN_151; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 154:17]
+  wire [7:0] _GEN_158 = 3'h5 == state ? _GEN_130 : shiftReg; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 154:17 97:25]
+  wire [3:0] _GEN_159 = 3'h5 == state ? _GEN_76 : bitCounter; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 154:17 94:27]
+  wire [2:0] _GEN_160 = 3'h5 == state ? _GEN_132 : _GEN_152; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 154:17]
+  wire  _GEN_161 = 3'h4 == state ? _GEN_96 : _GEN_153; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 154:17]
+  wire  _GEN_162 = 3'h4 == state ? _GEN_73 : _GEN_154; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 154:17]
+  wire  _GEN_163 = 3'h4 == state ? _GEN_98 : _GEN_155; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 154:17]
+  wire [1:0] _GEN_164 = 3'h4 == state ? _GEN_49 : _GEN_156; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 154:17]
+  wire [15:0] _GEN_165 = 3'h4 == state ? _GEN_50 : _GEN_157; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 154:17]
+  wire  _GEN_166 = 3'h4 == state ? _GEN_101 : nackReg; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 154:17 105:24]
+  wire [2:0] _GEN_167 = 3'h4 == state ? _GEN_102 : _GEN_160; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 154:17]
+  wire [7:0] _GEN_168 = 3'h4 == state ? shiftReg : _GEN_158; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 154:17 97:25]
+  wire [3:0] _GEN_169 = 3'h4 == state ? bitCounter : _GEN_159; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 154:17 94:27]
+  wire  _GEN_170 = 3'h3 == state ? _GEN_72 : _GEN_161; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 154:17]
+  wire  _GEN_171 = 3'h3 == state ? _GEN_73 : _GEN_162; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 154:17]
+  wire [1:0] _GEN_172 = 3'h3 == state ? _GEN_49 : _GEN_164; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 154:17]
+  wire [15:0] _GEN_173 = 3'h3 == state ? _GEN_50 : _GEN_165; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 154:17]
+  wire [3:0] _GEN_174 = 3'h3 == state ? _GEN_76 : _GEN_169; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 154:17]
+  wire [2:0] _GEN_175 = 3'h3 == state ? _GEN_77 : _GEN_167; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 154:17]
+  wire [7:0] _GEN_176 = 3'h3 == state ? _GEN_78 : _GEN_168; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 154:17]
+  wire  _GEN_177 = 3'h3 == state ? bitSampledReg : _GEN_163; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 154:17 112:30]
+  wire  _GEN_178 = 3'h3 == state ? nackReg : _GEN_166; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 154:17 105:24]
+  assign io_dataOut = shiftReg; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 131:14]
+  assign io_status = {6'h0,io_status_lo}; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 132:19]
+  assign io_sdaOe = sdaOeReg; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 129:12]
+  assign io_sclOe = sclOeReg; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 130:12]
+  always @(posedge clock) begin
+    if (reset) begin // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 85:22]
+      state <= 3'h0; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 85:22]
+    end else if (3'h0 == state) begin // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 154:17]
+      if (io_cmdValid) begin // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 169:24]
+        if (8'h1 == io_cmd) begin // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 173:24]
+          state <= 3'h1; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 174:38]
+        end else begin
+          state <= _GEN_9;
+        end
+      end
+    end else if (3'h1 == state) begin // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 154:17]
+      state <= _GEN_36;
+    end else if (3'h2 == state) begin // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 154:17]
+      state <= _GEN_36;
+    end else begin
+      state <= _GEN_175;
+    end
+    if (reset) begin // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 88:28]
+      tickCounter <= 16'h0; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 88:28]
+    end else if (3'h0 == state) begin // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 154:17]
+      tickCounter <= 16'h0; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 164:19]
+    end else if (3'h1 == state) begin // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 154:17]
+      if (phase == 2'h0) begin // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 206:27]
+        tickCounter <= _GEN_21;
+      end else begin
+        tickCounter <= _GEN_30;
+      end
+    end else if (3'h2 == state) begin // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 154:17]
+      tickCounter <= _GEN_50;
+    end else begin
+      tickCounter <= _GEN_173;
+    end
+    if (reset) begin // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 91:22]
+      phase <= 2'h0; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 91:22]
+    end else if (3'h0 == state) begin // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 154:17]
+      phase <= 2'h0; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 165:13]
+    end else if (3'h1 == state) begin // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 154:17]
+      if (phase == 2'h0) begin // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 206:27]
+        phase <= _GEN_20;
+      end else begin
+        phase <= _GEN_29;
+      end
+    end else if (3'h2 == state) begin // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 154:17]
+      phase <= _GEN_49;
+    end else begin
+      phase <= _GEN_172;
+    end
+    if (reset) begin // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 94:27]
+      bitCounter <= 4'h0; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 94:27]
+    end else if (3'h0 == state) begin // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 154:17]
+      bitCounter <= 4'h0; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 166:18]
+    end else if (!(3'h1 == state)) begin // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 154:17]
+      if (!(3'h2 == state)) begin // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 154:17]
+        bitCounter <= _GEN_174;
+      end
+    end
+    if (reset) begin // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 97:25]
+      shiftReg <= 8'h0; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 97:25]
+    end else if (3'h0 == state) begin // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 154:17]
+      if (io_cmdValid) begin // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 169:24]
+        if (!(8'h1 == io_cmd)) begin // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 173:24]
+          shiftReg <= _GEN_10;
+        end
+      end
+    end else if (!(3'h1 == state)) begin // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 154:17]
+      if (!(3'h2 == state)) begin // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 154:17]
+        shiftReg <= _GEN_176;
+      end
+    end
+    if (reset) begin // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 100:25]
+      sdaOeReg <= 1'h0; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 100:25]
+    end else if (!(3'h0 == state)) begin // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 154:17]
+      if (3'h1 == state) begin // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 154:17]
+        if (phase == 2'h0) begin // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 206:27]
+          sdaOeReg <= 1'h0; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 207:18]
+        end else begin
+          sdaOeReg <= _GEN_27;
+        end
+      end else if (3'h2 == state) begin // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 154:17]
+        sdaOeReg <= _GEN_47;
+      end else begin
+        sdaOeReg <= _GEN_170;
+      end
+    end
+    if (reset) begin // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 101:25]
+      sclOeReg <= 1'h0; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 101:25]
+    end else if (!(3'h0 == state)) begin // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 154:17]
+      if (3'h1 == state) begin // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 154:17]
+        if (phase == 2'h0) begin // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 206:27]
+          sclOeReg <= 1'h0; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 208:18]
+        end else begin
+          sclOeReg <= _GEN_28;
+        end
+      end else if (3'h2 == state) begin // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 154:17]
+        sclOeReg <= _GEN_48;
+      end else begin
+        sclOeReg <= _GEN_171;
+      end
+    end
+    if (reset) begin // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 104:24]
+      busyReg <= 1'h0; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 104:24]
+    end else if (3'h0 == state) begin // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 154:17]
+      busyReg <= io_cmdValid;
+    end
+    if (reset) begin // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 105:24]
+      nackReg <= 1'h0; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 105:24]
+    end else if (3'h0 == state) begin // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 154:17]
+      if (io_cmdValid) begin // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 169:24]
+        nackReg <= 1'h0; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 171:17]
+      end
+    end else if (!(3'h1 == state)) begin // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 154:17]
+      if (!(3'h2 == state)) begin // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 154:17]
+        nackReg <= _GEN_178;
+      end
+    end
+    if (reset) begin // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 112:30]
+      bitSampledReg <= 1'h0; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 112:30]
+    end else if (!(3'h0 == state)) begin // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 154:17]
+      if (!(3'h1 == state)) begin // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 154:17]
+        if (!(3'h2 == state)) begin // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 154:17]
+          bitSampledReg <= _GEN_177;
+        end
+      end
+    end
+    if (reset) begin // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 118:31]
+      readSendAckReg <= 1'h0; // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 118:31]
+    end else if (3'h0 == state) begin // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 154:17]
+      if (io_cmdValid) begin // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 169:24]
+        if (!(8'h1 == io_cmd)) begin // @[\\src\\main\\scala\\rvsoc\\I2cController.scala 173:24]
+          readSendAckReg <= _GEN_11;
+        end
+      end
+    end
+  end
+// Register and memory initialization
+`ifdef RANDOMIZE_GARBAGE_ASSIGN
+`define RANDOMIZE
+`endif
+`ifdef RANDOMIZE_INVALID_ASSIGN
+`define RANDOMIZE
+`endif
+`ifdef RANDOMIZE_REG_INIT
+`define RANDOMIZE
+`endif
+`ifdef RANDOMIZE_MEM_INIT
+`define RANDOMIZE
+`endif
+`ifndef RANDOM
+`define RANDOM $random
+`endif
+`ifdef RANDOMIZE_MEM_INIT
+  integer initvar;
+`endif
+`ifndef SYNTHESIS
+`ifdef FIRRTL_BEFORE_INITIAL
+`FIRRTL_BEFORE_INITIAL
+`endif
+initial begin
+  `ifdef RANDOMIZE
+    `ifdef INIT_RANDOM
+      `INIT_RANDOM
+    `endif
+    `ifndef VERILATOR
+      `ifdef RANDOMIZE_DELAY
+        #`RANDOMIZE_DELAY begin end
+      `else
+        #0.002 begin end
+      `endif
+    `endif
+`ifdef RANDOMIZE_REG_INIT
+  _RAND_0 = {1{`RANDOM}};
+  state = _RAND_0[2:0];
+  _RAND_1 = {1{`RANDOM}};
+  tickCounter = _RAND_1[15:0];
+  _RAND_2 = {1{`RANDOM}};
+  phase = _RAND_2[1:0];
+  _RAND_3 = {1{`RANDOM}};
+  bitCounter = _RAND_3[3:0];
+  _RAND_4 = {1{`RANDOM}};
+  shiftReg = _RAND_4[7:0];
+  _RAND_5 = {1{`RANDOM}};
+  sdaOeReg = _RAND_5[0:0];
+  _RAND_6 = {1{`RANDOM}};
+  sclOeReg = _RAND_6[0:0];
+  _RAND_7 = {1{`RANDOM}};
+  busyReg = _RAND_7[0:0];
+  _RAND_8 = {1{`RANDOM}};
+  nackReg = _RAND_8[0:0];
+  _RAND_9 = {1{`RANDOM}};
+  bitSampledReg = _RAND_9[0:0];
+  _RAND_10 = {1{`RANDOM}};
+  readSendAckReg = _RAND_10[0:0];
 `endif // RANDOMIZE_REG_INIT
   `endif // RANDOMIZE
 end // initial
@@ -2223,23 +2658,23 @@ end // initial
 `endif // SYNTHESIS
 endmodule
 module RustSoCTop(
-  input         clock,
-  input         reset,
-  inout  [7:0]  io_gpioJA, // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 91:14]
-  inout  [7:0]  io_gpioJB, // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 91:14]
-  inout  [7:0]  io_gpioJC, // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 91:14]
-  output        io_tx, // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 91:14]
-  input         io_rx, // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 91:14]
-  output [15:0] io_led, // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 91:14]
-  input  [3:0]  io_btn, // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 91:14]
-  input         io_vauxp6, // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 91:14]
-  input         io_vauxn6, // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 91:14]
-  input         io_vauxp14, // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 91:14]
-  input         io_vauxn14, // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 91:14]
-  input         io_vauxp7, // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 91:14]
-  input         io_vauxn7, // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 91:14]
-  input         io_vauxp15, // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 91:14]
-  input         io_vauxn15 // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 91:14]
+  input        clock,
+  input        reset,
+  inout  [7:0] io_gpioJA, // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 89:14]
+  inout  [7:0] io_gpioJB, // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 89:14]
+  inout  [7:0] io_gpioJC, // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 89:14]
+  output       io_tx, // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 89:14]
+  input        io_rx, // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 89:14]
+  output [7:0] io_led, // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 89:14]
+  input  [3:0] io_btn, // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 89:14]
+  input        io_vauxp6, // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 89:14]
+  input        io_vauxn6, // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 89:14]
+  input        io_vauxp14, // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 89:14]
+  input        io_vauxn14, // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 89:14]
+  input        io_vauxp7, // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 89:14]
+  input        io_vauxn7, // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 89:14]
+  input        io_vauxp15, // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 89:14]
+  input        io_vauxn15 // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 89:14]
 );
 `ifdef RANDOMIZE_REG_INIT
   reg [31:0] _RAND_0;
@@ -2281,6 +2716,8 @@ module RustSoCTop(
   reg [31:0] _RAND_36;
   reg [31:0] _RAND_37;
   reg [31:0] _RAND_38;
+  reg [31:0] _RAND_39;
+  reg [31:0] _RAND_40;
 `endif // RANDOMIZE_REG_INIT
   wire  resetRx_clock; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 119:23]
   wire  resetRx_reset; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 119:23]
@@ -2673,7 +3110,7 @@ module RustSoCTop(
     .io_channel_valid(resetRx_io_channel_valid),
     .io_channel_bits(resetRx_io_channel_bits)
   );
-  BootloaderTop bootloader ( // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 150:53]
+  BootloaderTop bootloader ( // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 146:53]
     .clock(bootloader_clock),
     .reset(bootloader_reset),
     .io_instrData(bootloader_io_instrData),
@@ -2681,7 +3118,7 @@ module RustSoCTop(
     .io_wrEnabled(bootloader_io_wrEnabled),
     .io_rx(bootloader_io_rx)
   );
-  ThreeCats cpu ( // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 167:46]
+  ThreeCats cpu ( // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 163:46]
     .clock(cpu_clock),
     .reset(cpu_reset),
     .io_imem_address(cpu_io_imem_address),
@@ -2694,7 +3131,7 @@ module RustSoCTop(
     .io_dmem_wrData(cpu_io_dmem_wrData),
     .io_dmem_wrMask(cpu_io_dmem_wrMask)
   );
-  ScratchPadMem imem ( // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 177:20]
+  ScratchPadMem imem ( // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 173:20]
     .clock(imem_clock),
     .reset(imem_reset),
     .io_address(imem_io_address),
@@ -2705,7 +3142,7 @@ module RustSoCTop(
     .io_wrMask(imem_io_wrMask),
     .io_ack(imem_io_ack)
   );
-  ScratchPadMem dmem ( // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 178:20]
+  ScratchPadMem dmem ( // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 174:20]
     .clock(dmem_clock),
     .reset(dmem_reset),
     .io_address(dmem_io_address),
@@ -2716,7 +3153,7 @@ module RustSoCTop(
     .io_wrMask(dmem_io_wrMask),
     .io_ack(dmem_io_ack)
   );
-  AdcController adc ( // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 244:46]
+  AdcController adc ( // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 240:46]
     .clock(adc_clock),
     .reset(adc_reset),
     .io_vauxp6(adc_io_vauxp6),
@@ -2732,7 +3169,7 @@ module RustSoCTop(
     .io_adcData2(adc_io_adcData2),
     .io_adcData3(adc_io_adcData3)
   );
-  PwmController pwm ( // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 257:46]
+  PwmController pwm ( // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 253:46]
     .clock(pwm_clock),
     .reset(pwm_reset),
     .io_duty_0(pwm_io_duty_0),
@@ -2761,7 +3198,21 @@ module RustSoCTop(
     .io_duty_23(pwm_io_duty_23),
     .io_pwmOut(pwm_io_pwmOut)
   );
-  BufferedTx uartTx ( // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 270:49]
+  I2cController i2c ( // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 268:46]
+    .clock(i2c_clock),
+    .reset(i2c_reset),
+    .io_cmd(i2c_io_cmd),
+    .io_cmdValid(i2c_io_cmdValid),
+    .io_dataIn(i2c_io_dataIn),
+    .io_dataOut(i2c_io_dataOut),
+    .io_status(i2c_io_status),
+    .io_clkDiv(i2c_io_clkDiv),
+    .io_sdaOe(i2c_io_sdaOe),
+    .io_sdaIn(i2c_io_sdaIn),
+    .io_sclOe(i2c_io_sclOe),
+    .io_sclIn(i2c_io_sclIn)
+  );
+  BufferedTx uartTx ( // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 288:49]
     .clock(uartTx_clock),
     .reset(uartTx_reset),
     .io_txd(uartTx_io_txd),
@@ -2769,7 +3220,7 @@ module RustSoCTop(
     .io_channel_valid(uartTx_io_channel_valid),
     .io_channel_bits(uartTx_io_channel_bits)
   );
-  Rx uartRx ( // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 271:49]
+  Rx uartRx ( // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 289:49]
     .clock(uartRx_clock),
     .reset(uartRx_reset),
     .io_rxd(uartRx_io_rxd),
@@ -2777,468 +3228,494 @@ module RustSoCTop(
     .io_channel_valid(uartRx_io_channel_valid),
     .io_channel_bits(uartRx_io_channel_bits)
   );
-  ButtonDebouncer btnDebouncer ( // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 288:55]
+  ButtonDebouncer btnDebouncer ( // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 306:55]
     .clock(btnDebouncer_clock),
     .reset(btnDebouncer_reset),
     .io_in(btnDebouncer_io_in),
     .io_out(btnDebouncer_io_out)
   );
-  TriStateBuffer8 bufJA ( // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 303:23]
+  TriStateBuffer8 bufJA ( // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 318:21]
     .pad(io_gpioJA),
     .dir(bufJA_dir),
     .out(bufJA_out),
     .in(bufJA_in)
   );
-  ButtonDebouncer_1 gpioJADebouncer ( // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 313:58]
+  ButtonDebouncer_1 gpioJADebouncer ( // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 327:58]
     .clock(gpioJADebouncer_clock),
     .reset(gpioJADebouncer_reset),
     .io_in(gpioJADebouncer_io_in),
     .io_out(gpioJADebouncer_io_out)
   );
-  TriStateBuffer8 bufJB ( // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 326:23]
+  TriStateBuffer8 bufJB ( // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 337:21]
     .pad(io_gpioJB),
     .dir(bufJB_dir),
     .out(bufJB_out),
     .in(bufJB_in)
   );
-  ButtonDebouncer_1 gpioJBDebouncer ( // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 336:58]
+  ButtonDebouncer_1 gpioJBDebouncer ( // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 346:58]
     .clock(gpioJBDebouncer_clock),
     .reset(gpioJBDebouncer_reset),
     .io_in(gpioJBDebouncer_io_in),
     .io_out(gpioJBDebouncer_io_out)
   );
-  TriStateBuffer8 bufJC ( // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 349:23]
+  TriStateBuffer8 bufJC ( // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 356:21]
     .pad(io_gpioJC),
     .dir(bufJC_dir),
     .out(bufJC_out),
     .in(bufJC_in)
   );
-  ButtonDebouncer_1 gpioJCDebouncer ( // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 359:58]
+  ButtonDebouncer_1 gpioJCDebouncer ( // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 389:58]
     .clock(gpioJCDebouncer_clock),
     .reset(gpioJCDebouncer_reset),
     .io_in(gpioJCDebouncer_io_in),
     .io_out(gpioJCDebouncer_io_out)
   );
-  assign io_tx = cpuRunning ? uartTx_io_txd : 1'h1; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 274:15]
-  assign io_led = ledReg; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 460:10]
+  assign io_tx = cpuRunning ? uartTx_io_txd : 1'h1; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 292:15]
+  assign io_led = {cpuRunning,ledReg}; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 522:24]
   assign resetRx_clock = clock;
   assign resetRx_reset = reset;
-  assign resetRx_io_rxd = io_rx; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 120:18]
-  assign resetRx_io_channel_ready = 1'h1; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 121:28]
+  assign resetRx_io_rxd = io_rx; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 116:18]
+  assign resetRx_io_channel_ready = 1'h1; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 117:28]
   assign bootloader_clock = clock;
-  assign bootloader_reset = reset | softReset; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 136:37]
-  assign bootloader_io_rx = cpuRunning | io_rx; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 151:26]
+  assign bootloader_reset = reset | softReset; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 132:37]
+  assign bootloader_io_rx = cpuRunning | io_rx; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 147:26]
   assign cpu_clock = clock;
-  assign cpu_reset = reset | softReset; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 136:37]
-  assign cpu_io_imem_rdData = _bootWrite_T ? 32'h33 : imem_io_rdData; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 184:15 234:21 235:24]
-  assign cpu_io_imem_ack = _bootWrite_T ? 1'h0 : imem_io_ack; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 184:15 234:21 236:24]
-  assign cpu_io_dmem_rdData = isMMIORead ? _GEN_290 : _GEN_31; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 410:20]
+  assign cpu_reset = reset | softReset; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 132:37]
+  assign cpu_io_imem_rdData = _bootWrite_T ? 32'h33 : imem_io_rdData; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 180:15 230:21 231:24]
+  assign cpu_io_imem_ack = _bootWrite_T ? 1'h0 : imem_io_ack; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 180:15 230:21 232:24]
+  assign cpu_io_dmem_rdData = isMMIORead ? _GEN_333 : _GEN_31; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 457:20]
   assign imem_clock = clock;
   assign imem_reset = reset;
-  assign imem_io_address = bootWrite & ~bootDone ? _GEN_9 : cpu_io_imem_address; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 184:15 199:32]
-  assign imem_io_rd = bootWrite & ~bootDone ? 1'h0 : 1'h1; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 184:15 199:32]
-  assign imem_io_wr = bootWrite & ~bootDone & _T_3; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 184:15 199:32]
-  assign imem_io_wrData = bootWrite & ~bootDone ? _GEN_11 : 32'h0; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 184:15 199:32]
-  assign imem_io_wrMask = bootWrite & ~bootDone ? _GEN_12 : 4'h0; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 184:15 199:32]
+  assign imem_io_address = bootWrite & ~bootDone ? _GEN_9 : cpu_io_imem_address; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 180:15 195:32]
+  assign imem_io_rd = bootWrite & ~bootDone ? 1'h0 : 1'h1; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 180:15 195:32]
+  assign imem_io_wr = bootWrite & ~bootDone & _T_3; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 180:15 195:32]
+  assign imem_io_wrData = bootWrite & ~bootDone ? _GEN_11 : 32'h0; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 180:15 195:32]
+  assign imem_io_wrMask = bootWrite & ~bootDone ? _GEN_12 : 4'h0; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 180:15 195:32]
   assign dmem_clock = clock;
   assign dmem_reset = reset;
-  assign dmem_io_address = bootWrite & ~bootDone ? _GEN_14 : cpu_io_dmem_address; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 185:15 199:32]
-  assign dmem_io_rd = bootWrite & ~bootDone ? 1'h0 : cpu_io_dmem_rd; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 185:15 199:32]
-  assign dmem_io_wr = isMMIOWrite ? 1'h0 : _GEN_25; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 370:21 403:16]
-  assign dmem_io_wrData = bootWrite & ~bootDone ? _GEN_16 : cpu_io_dmem_wrData; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 185:15 199:32]
-  assign dmem_io_wrMask = bootWrite & ~bootDone ? _GEN_17 : cpu_io_dmem_wrMask; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 185:15 199:32]
+  assign dmem_io_address = bootWrite & ~bootDone ? _GEN_14 : cpu_io_dmem_address; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 181:15 195:32]
+  assign dmem_io_rd = bootWrite & ~bootDone ? 1'h0 : cpu_io_dmem_rd; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 181:15 195:32]
+  assign dmem_io_wr = isMMIOWrite ? 1'h0 : _GEN_25; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 400:21 450:16]
+  assign dmem_io_wrData = bootWrite & ~bootDone ? _GEN_16 : cpu_io_dmem_wrData; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 181:15 195:32]
+  assign dmem_io_wrMask = bootWrite & ~bootDone ? _GEN_17 : cpu_io_dmem_wrMask; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 181:15 195:32]
   assign adc_clock = clock;
-  assign adc_reset = reset | softReset; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 136:37]
-  assign adc_io_vauxp6 = io_vauxp6; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 245:19]
-  assign adc_io_vauxn6 = io_vauxn6; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 246:19]
-  assign adc_io_vauxp14 = io_vauxp14; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 247:19]
-  assign adc_io_vauxn14 = io_vauxn14; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 248:19]
-  assign adc_io_vauxp7 = io_vauxp7; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 249:19]
-  assign adc_io_vauxn7 = io_vauxn7; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 250:19]
-  assign adc_io_vauxp15 = io_vauxp15; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 251:19]
-  assign adc_io_vauxn15 = io_vauxn15; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 252:19]
+  assign adc_reset = reset | softReset; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 132:37]
+  assign adc_io_vauxp6 = io_vauxp6; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 241:19]
+  assign adc_io_vauxn6 = io_vauxn6; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 242:19]
+  assign adc_io_vauxp14 = io_vauxp14; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 243:19]
+  assign adc_io_vauxn14 = io_vauxn14; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 244:19]
+  assign adc_io_vauxp7 = io_vauxp7; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 245:19]
+  assign adc_io_vauxn7 = io_vauxn7; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 246:19]
+  assign adc_io_vauxp15 = io_vauxp15; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 247:19]
+  assign adc_io_vauxn15 = io_vauxn15; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 248:19]
   assign pwm_clock = clock;
-  assign pwm_reset = reset | softReset; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 136:37]
-  assign pwm_io_duty_0 = pwmDutyRegs_0; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 263:20]
-  assign pwm_io_duty_1 = pwmDutyRegs_1; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 263:20]
-  assign pwm_io_duty_2 = pwmDutyRegs_2; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 263:20]
-  assign pwm_io_duty_3 = pwmDutyRegs_3; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 263:20]
-  assign pwm_io_duty_4 = pwmDutyRegs_4; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 263:20]
-  assign pwm_io_duty_5 = pwmDutyRegs_5; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 263:20]
-  assign pwm_io_duty_6 = pwmDutyRegs_6; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 263:20]
-  assign pwm_io_duty_7 = pwmDutyRegs_7; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 263:20]
-  assign pwm_io_duty_8 = pwmDutyRegs_8; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 263:20]
-  assign pwm_io_duty_9 = pwmDutyRegs_9; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 263:20]
-  assign pwm_io_duty_10 = pwmDutyRegs_10; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 263:20]
-  assign pwm_io_duty_11 = pwmDutyRegs_11; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 263:20]
-  assign pwm_io_duty_12 = pwmDutyRegs_12; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 263:20]
-  assign pwm_io_duty_13 = pwmDutyRegs_13; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 263:20]
-  assign pwm_io_duty_14 = pwmDutyRegs_14; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 263:20]
-  assign pwm_io_duty_15 = pwmDutyRegs_15; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 263:20]
-  assign pwm_io_duty_16 = pwmDutyRegs_16; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 263:20]
-  assign pwm_io_duty_17 = pwmDutyRegs_17; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 263:20]
-  assign pwm_io_duty_18 = pwmDutyRegs_18; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 263:20]
-  assign pwm_io_duty_19 = pwmDutyRegs_19; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 263:20]
-  assign pwm_io_duty_20 = pwmDutyRegs_20; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 263:20]
-  assign pwm_io_duty_21 = pwmDutyRegs_21; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 263:20]
-  assign pwm_io_duty_22 = pwmDutyRegs_22; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 263:20]
-  assign pwm_io_duty_23 = pwmDutyRegs_23; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 263:20]
+  assign pwm_reset = reset | softReset; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 132:37]
+  assign pwm_io_duty_0 = pwmDutyRegs_0; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 259:20]
+  assign pwm_io_duty_1 = pwmDutyRegs_1; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 259:20]
+  assign pwm_io_duty_2 = pwmDutyRegs_2; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 259:20]
+  assign pwm_io_duty_3 = pwmDutyRegs_3; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 259:20]
+  assign pwm_io_duty_4 = pwmDutyRegs_4; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 259:20]
+  assign pwm_io_duty_5 = pwmDutyRegs_5; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 259:20]
+  assign pwm_io_duty_6 = pwmDutyRegs_6; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 259:20]
+  assign pwm_io_duty_7 = pwmDutyRegs_7; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 259:20]
+  assign pwm_io_duty_8 = pwmDutyRegs_8; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 259:20]
+  assign pwm_io_duty_9 = pwmDutyRegs_9; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 259:20]
+  assign pwm_io_duty_10 = pwmDutyRegs_10; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 259:20]
+  assign pwm_io_duty_11 = pwmDutyRegs_11; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 259:20]
+  assign pwm_io_duty_12 = pwmDutyRegs_12; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 259:20]
+  assign pwm_io_duty_13 = pwmDutyRegs_13; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 259:20]
+  assign pwm_io_duty_14 = pwmDutyRegs_14; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 259:20]
+  assign pwm_io_duty_15 = pwmDutyRegs_15; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 259:20]
+  assign pwm_io_duty_16 = pwmDutyRegs_16; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 259:20]
+  assign pwm_io_duty_17 = pwmDutyRegs_17; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 259:20]
+  assign pwm_io_duty_18 = pwmDutyRegs_18; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 259:20]
+  assign pwm_io_duty_19 = pwmDutyRegs_19; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 259:20]
+  assign pwm_io_duty_20 = pwmDutyRegs_20; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 259:20]
+  assign pwm_io_duty_21 = pwmDutyRegs_21; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 259:20]
+  assign pwm_io_duty_22 = pwmDutyRegs_22; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 259:20]
+  assign pwm_io_duty_23 = pwmDutyRegs_23; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 259:20]
+  assign i2c_clock = clock;
+  assign i2c_reset = reset | softReset; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 132:37]
+  assign i2c_io_cmd = isMMIOWrite ? _GEN_232 : 8'h0; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 276:14 400:21]
+  assign i2c_io_cmdValid = isMMIOWrite & _GEN_233; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 400:21 273:32]
+  assign i2c_io_dataIn = i2cDataReg; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 278:17]
+  assign i2c_io_clkDiv = i2cClkDivReg; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 279:17]
+  assign i2c_io_sdaIn = bufJC_in[2]; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 386:30]
+  assign i2c_io_sclIn = bufJC_in[3]; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 387:30]
   assign uartTx_clock = clock;
-  assign uartTx_reset = reset | softReset; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 136:37]
-  assign uartTx_io_channel_valid = isMMIOWrite & _GEN_165; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 370:21 280:27]
-  assign uartTx_io_channel_bits = cpu_io_dmem_wrData[7:0]; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 279:48]
+  assign uartTx_reset = reset | softReset; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 132:37]
+  assign uartTx_io_channel_valid = isMMIOWrite & _GEN_196; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 400:21 298:27]
+  assign uartTx_io_channel_bits = cpu_io_dmem_wrData[7:0]; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 297:48]
   assign uartRx_clock = clock;
-  assign uartRx_reset = reset | softReset; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 136:37]
-  assign uartRx_io_rxd = cpuRunning ? io_rx : 1'h1; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 276:23]
-  assign uartRx_io_channel_ready = _isMMIOWrite_T_2 & modSel == 4'h0 & _T_9 & cpu_io_dmem_rd; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 457:166]
+  assign uartRx_reset = reset | softReset; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 132:37]
+  assign uartRx_io_rxd = cpuRunning ? io_rx : 1'h1; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 294:23]
+  assign uartRx_io_channel_ready = _isMMIOWrite_T_2 & modSel == 4'h0 & _T_9 & cpu_io_dmem_rd; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 519:166]
   assign btnDebouncer_clock = clock;
-  assign btnDebouncer_reset = reset | softReset; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 136:37]
-  assign btnDebouncer_io_in = io_btn; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 289:22]
-  assign bufJA_dir = gpioJADirReg; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 305:18]
-  assign bufJA_out = {bufJA_io_out_hi,bufJA_io_out_lo}; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 310:32]
+  assign btnDebouncer_reset = reset | softReset; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 132:37]
+  assign btnDebouncer_io_in = io_btn; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 307:22]
+  assign bufJA_dir = gpioJADirReg; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 320:16]
+  assign bufJA_out = {bufJA_io_out_hi,bufJA_io_out_lo}; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 325:30]
   assign gpioJADebouncer_clock = clock;
-  assign gpioJADebouncer_reset = reset | softReset; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 136:37]
-  assign gpioJADebouncer_io_in = bufJA_in; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 297:26 311:15]
-  assign bufJB_dir = gpioJBDirReg; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 328:18]
-  assign bufJB_out = {bufJB_io_out_hi,bufJB_io_out_lo}; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 333:32]
+  assign gpioJADebouncer_reset = reset | softReset; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 132:37]
+  assign gpioJADebouncer_io_in = bufJA_in; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 315:26 326:13]
+  assign bufJB_dir = gpioJBDirReg; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 339:16]
+  assign bufJB_out = {bufJB_io_out_hi,bufJB_io_out_lo}; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 344:30]
   assign gpioJBDebouncer_clock = clock;
-  assign gpioJBDebouncer_reset = reset | softReset; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 136:37]
-  assign gpioJBDebouncer_io_in = bufJB_in; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 320:26 334:15]
-  assign bufJC_dir = gpioJCDirReg; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 351:18]
-  assign bufJC_out = {bufJC_io_out_hi,bufJC_io_out_lo}; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 356:32]
+  assign gpioJBDebouncer_reset = reset | softReset; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 132:37]
+  assign gpioJBDebouncer_io_in = bufJB_in; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 334:26 345:13]
+  assign bufJC_dir = {bufJC_io_dir_hi,bufJC_io_dir_lo}; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 378:30]
+  assign bufJC_out = {bufJC_io_out_hi,bufJC_io_out_lo}; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 379:30]
   assign gpioJCDebouncer_clock = clock;
-  assign gpioJCDebouncer_reset = reset | softReset; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 136:37]
-  assign gpioJCDebouncer_io_in = bufJC_in; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 343:26 357:15]
+  assign gpioJCDebouncer_reset = reset | softReset; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 132:37]
+  assign gpioJCDebouncer_io_in = bufJC_in; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 353:26 382:13]
   always @(posedge clock) begin
-    if (reset) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 123:27]
-      resetShift <= 32'h0; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 123:27]
-    end else if (softReset) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 129:35]
-      resetShift <= 32'h0; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 131:16]
-    end else if (resetRx_io_channel_valid) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 124:34]
-      resetShift <= _resetShift_T_1; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 125:16]
+    if (reset) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 119:27]
+      resetShift <= 32'h0; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 119:27]
+    end else if (softReset) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 125:35]
+      resetShift <= 32'h0; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 127:16]
+    end else if (resetRx_io_channel_valid) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 120:34]
+      resetShift <= _resetShift_T_1; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 121:16]
     end
-    if (combinedReset) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 141:54]
-      cpuRunning <= 1'h0; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 141:54]
+    if (combinedReset) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 137:54]
+      cpuRunning <= 1'h0; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 137:54]
     end else begin
       cpuRunning <= _GEN_3;
     end
-    if (combinedReset) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 258:53]
-      pwmEnable <= 16'h0; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 258:53]
-    end else if (isMMIOWrite) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 370:21]
-      if (!(4'h0 == modSel)) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 374:20]
-        if (!(4'h1 == modSel)) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 374:20]
-          pwmEnable <= _GEN_96;
+    if (combinedReset) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 254:53]
+      pwmEnable <= 16'h0; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 254:53]
+    end else if (isMMIOWrite) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 400:21]
+      if (!(4'h0 == modSel)) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 404:20]
+        if (!(4'h1 == modSel)) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 404:20]
+          pwmEnable <= _GEN_119;
         end
       end
     end
-    if (combinedReset) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 259:55]
-      pwmDutyRegs_0 <= 8'h0; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 259:55]
-    end else if (isMMIOWrite) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 370:21]
-      if (!(4'h0 == modSel)) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 374:20]
-        if (!(4'h1 == modSel)) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 374:20]
-          pwmDutyRegs_0 <= _GEN_97;
+    if (combinedReset) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 255:55]
+      pwmDutyRegs_0 <= 8'h0; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 255:55]
+    end else if (isMMIOWrite) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 400:21]
+      if (!(4'h0 == modSel)) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 404:20]
+        if (!(4'h1 == modSel)) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 404:20]
+          pwmDutyRegs_0 <= _GEN_120;
         end
       end
     end
-    if (combinedReset) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 259:55]
-      pwmDutyRegs_1 <= 8'h0; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 259:55]
-    end else if (isMMIOWrite) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 370:21]
-      if (!(4'h0 == modSel)) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 374:20]
-        if (!(4'h1 == modSel)) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 374:20]
-          pwmDutyRegs_1 <= _GEN_98;
+    if (combinedReset) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 255:55]
+      pwmDutyRegs_1 <= 8'h0; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 255:55]
+    end else if (isMMIOWrite) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 400:21]
+      if (!(4'h0 == modSel)) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 404:20]
+        if (!(4'h1 == modSel)) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 404:20]
+          pwmDutyRegs_1 <= _GEN_121;
         end
       end
     end
-    if (combinedReset) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 259:55]
-      pwmDutyRegs_2 <= 8'h0; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 259:55]
-    end else if (isMMIOWrite) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 370:21]
-      if (!(4'h0 == modSel)) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 374:20]
-        if (!(4'h1 == modSel)) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 374:20]
-          pwmDutyRegs_2 <= _GEN_99;
+    if (combinedReset) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 255:55]
+      pwmDutyRegs_2 <= 8'h0; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 255:55]
+    end else if (isMMIOWrite) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 400:21]
+      if (!(4'h0 == modSel)) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 404:20]
+        if (!(4'h1 == modSel)) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 404:20]
+          pwmDutyRegs_2 <= _GEN_122;
         end
       end
     end
-    if (combinedReset) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 259:55]
-      pwmDutyRegs_3 <= 8'h0; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 259:55]
-    end else if (isMMIOWrite) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 370:21]
-      if (!(4'h0 == modSel)) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 374:20]
-        if (!(4'h1 == modSel)) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 374:20]
-          pwmDutyRegs_3 <= _GEN_100;
+    if (combinedReset) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 255:55]
+      pwmDutyRegs_3 <= 8'h0; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 255:55]
+    end else if (isMMIOWrite) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 400:21]
+      if (!(4'h0 == modSel)) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 404:20]
+        if (!(4'h1 == modSel)) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 404:20]
+          pwmDutyRegs_3 <= _GEN_123;
         end
       end
     end
-    if (combinedReset) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 259:55]
-      pwmDutyRegs_4 <= 8'h0; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 259:55]
-    end else if (isMMIOWrite) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 370:21]
-      if (!(4'h0 == modSel)) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 374:20]
-        if (!(4'h1 == modSel)) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 374:20]
-          pwmDutyRegs_4 <= _GEN_101;
+    if (combinedReset) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 255:55]
+      pwmDutyRegs_4 <= 8'h0; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 255:55]
+    end else if (isMMIOWrite) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 400:21]
+      if (!(4'h0 == modSel)) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 404:20]
+        if (!(4'h1 == modSel)) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 404:20]
+          pwmDutyRegs_4 <= _GEN_124;
         end
       end
     end
-    if (combinedReset) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 259:55]
-      pwmDutyRegs_5 <= 8'h0; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 259:55]
-    end else if (isMMIOWrite) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 370:21]
-      if (!(4'h0 == modSel)) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 374:20]
-        if (!(4'h1 == modSel)) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 374:20]
-          pwmDutyRegs_5 <= _GEN_102;
+    if (combinedReset) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 255:55]
+      pwmDutyRegs_5 <= 8'h0; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 255:55]
+    end else if (isMMIOWrite) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 400:21]
+      if (!(4'h0 == modSel)) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 404:20]
+        if (!(4'h1 == modSel)) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 404:20]
+          pwmDutyRegs_5 <= _GEN_125;
         end
       end
     end
-    if (combinedReset) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 259:55]
-      pwmDutyRegs_6 <= 8'h0; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 259:55]
-    end else if (isMMIOWrite) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 370:21]
-      if (!(4'h0 == modSel)) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 374:20]
-        if (!(4'h1 == modSel)) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 374:20]
-          pwmDutyRegs_6 <= _GEN_103;
+    if (combinedReset) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 255:55]
+      pwmDutyRegs_6 <= 8'h0; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 255:55]
+    end else if (isMMIOWrite) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 400:21]
+      if (!(4'h0 == modSel)) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 404:20]
+        if (!(4'h1 == modSel)) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 404:20]
+          pwmDutyRegs_6 <= _GEN_126;
         end
       end
     end
-    if (combinedReset) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 259:55]
-      pwmDutyRegs_7 <= 8'h0; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 259:55]
-    end else if (isMMIOWrite) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 370:21]
-      if (!(4'h0 == modSel)) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 374:20]
-        if (!(4'h1 == modSel)) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 374:20]
-          pwmDutyRegs_7 <= _GEN_104;
+    if (combinedReset) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 255:55]
+      pwmDutyRegs_7 <= 8'h0; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 255:55]
+    end else if (isMMIOWrite) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 400:21]
+      if (!(4'h0 == modSel)) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 404:20]
+        if (!(4'h1 == modSel)) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 404:20]
+          pwmDutyRegs_7 <= _GEN_127;
         end
       end
     end
-    if (combinedReset) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 259:55]
-      pwmDutyRegs_8 <= 8'h0; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 259:55]
-    end else if (isMMIOWrite) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 370:21]
-      if (!(4'h0 == modSel)) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 374:20]
-        if (!(4'h1 == modSel)) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 374:20]
-          pwmDutyRegs_8 <= _GEN_105;
+    if (combinedReset) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 255:55]
+      pwmDutyRegs_8 <= 8'h0; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 255:55]
+    end else if (isMMIOWrite) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 400:21]
+      if (!(4'h0 == modSel)) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 404:20]
+        if (!(4'h1 == modSel)) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 404:20]
+          pwmDutyRegs_8 <= _GEN_128;
         end
       end
     end
-    if (combinedReset) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 259:55]
-      pwmDutyRegs_9 <= 8'h0; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 259:55]
-    end else if (isMMIOWrite) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 370:21]
-      if (!(4'h0 == modSel)) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 374:20]
-        if (!(4'h1 == modSel)) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 374:20]
-          pwmDutyRegs_9 <= _GEN_106;
+    if (combinedReset) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 255:55]
+      pwmDutyRegs_9 <= 8'h0; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 255:55]
+    end else if (isMMIOWrite) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 400:21]
+      if (!(4'h0 == modSel)) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 404:20]
+        if (!(4'h1 == modSel)) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 404:20]
+          pwmDutyRegs_9 <= _GEN_129;
         end
       end
     end
-    if (combinedReset) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 259:55]
-      pwmDutyRegs_10 <= 8'h0; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 259:55]
-    end else if (isMMIOWrite) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 370:21]
-      if (!(4'h0 == modSel)) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 374:20]
-        if (!(4'h1 == modSel)) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 374:20]
-          pwmDutyRegs_10 <= _GEN_107;
+    if (combinedReset) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 255:55]
+      pwmDutyRegs_10 <= 8'h0; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 255:55]
+    end else if (isMMIOWrite) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 400:21]
+      if (!(4'h0 == modSel)) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 404:20]
+        if (!(4'h1 == modSel)) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 404:20]
+          pwmDutyRegs_10 <= _GEN_130;
         end
       end
     end
-    if (combinedReset) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 259:55]
-      pwmDutyRegs_11 <= 8'h0; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 259:55]
-    end else if (isMMIOWrite) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 370:21]
-      if (!(4'h0 == modSel)) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 374:20]
-        if (!(4'h1 == modSel)) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 374:20]
-          pwmDutyRegs_11 <= _GEN_108;
+    if (combinedReset) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 255:55]
+      pwmDutyRegs_11 <= 8'h0; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 255:55]
+    end else if (isMMIOWrite) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 400:21]
+      if (!(4'h0 == modSel)) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 404:20]
+        if (!(4'h1 == modSel)) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 404:20]
+          pwmDutyRegs_11 <= _GEN_131;
         end
       end
     end
-    if (combinedReset) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 259:55]
-      pwmDutyRegs_12 <= 8'h0; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 259:55]
-    end else if (isMMIOWrite) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 370:21]
-      if (!(4'h0 == modSel)) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 374:20]
-        if (!(4'h1 == modSel)) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 374:20]
-          pwmDutyRegs_12 <= _GEN_109;
+    if (combinedReset) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 255:55]
+      pwmDutyRegs_12 <= 8'h0; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 255:55]
+    end else if (isMMIOWrite) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 400:21]
+      if (!(4'h0 == modSel)) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 404:20]
+        if (!(4'h1 == modSel)) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 404:20]
+          pwmDutyRegs_12 <= _GEN_132;
         end
       end
     end
-    if (combinedReset) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 259:55]
-      pwmDutyRegs_13 <= 8'h0; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 259:55]
-    end else if (isMMIOWrite) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 370:21]
-      if (!(4'h0 == modSel)) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 374:20]
-        if (!(4'h1 == modSel)) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 374:20]
-          pwmDutyRegs_13 <= _GEN_110;
+    if (combinedReset) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 255:55]
+      pwmDutyRegs_13 <= 8'h0; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 255:55]
+    end else if (isMMIOWrite) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 400:21]
+      if (!(4'h0 == modSel)) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 404:20]
+        if (!(4'h1 == modSel)) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 404:20]
+          pwmDutyRegs_13 <= _GEN_133;
         end
       end
     end
-    if (combinedReset) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 259:55]
-      pwmDutyRegs_14 <= 8'h0; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 259:55]
-    end else if (isMMIOWrite) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 370:21]
-      if (!(4'h0 == modSel)) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 374:20]
-        if (!(4'h1 == modSel)) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 374:20]
-          pwmDutyRegs_14 <= _GEN_111;
+    if (combinedReset) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 255:55]
+      pwmDutyRegs_14 <= 8'h0; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 255:55]
+    end else if (isMMIOWrite) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 400:21]
+      if (!(4'h0 == modSel)) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 404:20]
+        if (!(4'h1 == modSel)) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 404:20]
+          pwmDutyRegs_14 <= _GEN_134;
         end
       end
     end
-    if (combinedReset) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 259:55]
-      pwmDutyRegs_15 <= 8'h0; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 259:55]
-    end else if (isMMIOWrite) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 370:21]
-      if (!(4'h0 == modSel)) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 374:20]
-        if (!(4'h1 == modSel)) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 374:20]
-          pwmDutyRegs_15 <= _GEN_112;
+    if (combinedReset) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 255:55]
+      pwmDutyRegs_15 <= 8'h0; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 255:55]
+    end else if (isMMIOWrite) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 400:21]
+      if (!(4'h0 == modSel)) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 404:20]
+        if (!(4'h1 == modSel)) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 404:20]
+          pwmDutyRegs_15 <= _GEN_135;
         end
       end
     end
-    if (combinedReset) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 259:55]
-      pwmDutyRegs_16 <= 8'h0; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 259:55]
-    end else if (isMMIOWrite) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 370:21]
-      if (!(4'h0 == modSel)) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 374:20]
-        if (!(4'h1 == modSel)) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 374:20]
-          pwmDutyRegs_16 <= _GEN_113;
+    if (combinedReset) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 255:55]
+      pwmDutyRegs_16 <= 8'h0; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 255:55]
+    end else if (isMMIOWrite) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 400:21]
+      if (!(4'h0 == modSel)) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 404:20]
+        if (!(4'h1 == modSel)) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 404:20]
+          pwmDutyRegs_16 <= _GEN_136;
         end
       end
     end
-    if (combinedReset) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 259:55]
-      pwmDutyRegs_17 <= 8'h0; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 259:55]
-    end else if (isMMIOWrite) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 370:21]
-      if (!(4'h0 == modSel)) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 374:20]
-        if (!(4'h1 == modSel)) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 374:20]
-          pwmDutyRegs_17 <= _GEN_114;
+    if (combinedReset) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 255:55]
+      pwmDutyRegs_17 <= 8'h0; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 255:55]
+    end else if (isMMIOWrite) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 400:21]
+      if (!(4'h0 == modSel)) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 404:20]
+        if (!(4'h1 == modSel)) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 404:20]
+          pwmDutyRegs_17 <= _GEN_137;
         end
       end
     end
-    if (combinedReset) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 259:55]
-      pwmDutyRegs_18 <= 8'h0; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 259:55]
-    end else if (isMMIOWrite) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 370:21]
-      if (!(4'h0 == modSel)) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 374:20]
-        if (!(4'h1 == modSel)) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 374:20]
-          pwmDutyRegs_18 <= _GEN_115;
+    if (combinedReset) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 255:55]
+      pwmDutyRegs_18 <= 8'h0; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 255:55]
+    end else if (isMMIOWrite) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 400:21]
+      if (!(4'h0 == modSel)) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 404:20]
+        if (!(4'h1 == modSel)) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 404:20]
+          pwmDutyRegs_18 <= _GEN_138;
         end
       end
     end
-    if (combinedReset) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 259:55]
-      pwmDutyRegs_19 <= 8'h0; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 259:55]
-    end else if (isMMIOWrite) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 370:21]
-      if (!(4'h0 == modSel)) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 374:20]
-        if (!(4'h1 == modSel)) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 374:20]
-          pwmDutyRegs_19 <= _GEN_116;
+    if (combinedReset) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 255:55]
+      pwmDutyRegs_19 <= 8'h0; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 255:55]
+    end else if (isMMIOWrite) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 400:21]
+      if (!(4'h0 == modSel)) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 404:20]
+        if (!(4'h1 == modSel)) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 404:20]
+          pwmDutyRegs_19 <= _GEN_139;
         end
       end
     end
-    if (combinedReset) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 259:55]
-      pwmDutyRegs_20 <= 8'h0; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 259:55]
-    end else if (isMMIOWrite) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 370:21]
-      if (!(4'h0 == modSel)) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 374:20]
-        if (!(4'h1 == modSel)) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 374:20]
-          pwmDutyRegs_20 <= _GEN_117;
+    if (combinedReset) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 255:55]
+      pwmDutyRegs_20 <= 8'h0; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 255:55]
+    end else if (isMMIOWrite) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 400:21]
+      if (!(4'h0 == modSel)) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 404:20]
+        if (!(4'h1 == modSel)) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 404:20]
+          pwmDutyRegs_20 <= _GEN_140;
         end
       end
     end
-    if (combinedReset) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 259:55]
-      pwmDutyRegs_21 <= 8'h0; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 259:55]
-    end else if (isMMIOWrite) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 370:21]
-      if (!(4'h0 == modSel)) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 374:20]
-        if (!(4'h1 == modSel)) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 374:20]
-          pwmDutyRegs_21 <= _GEN_118;
+    if (combinedReset) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 255:55]
+      pwmDutyRegs_21 <= 8'h0; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 255:55]
+    end else if (isMMIOWrite) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 400:21]
+      if (!(4'h0 == modSel)) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 404:20]
+        if (!(4'h1 == modSel)) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 404:20]
+          pwmDutyRegs_21 <= _GEN_141;
         end
       end
     end
-    if (combinedReset) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 259:55]
-      pwmDutyRegs_22 <= 8'h0; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 259:55]
-    end else if (isMMIOWrite) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 370:21]
-      if (!(4'h0 == modSel)) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 374:20]
-        if (!(4'h1 == modSel)) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 374:20]
-          pwmDutyRegs_22 <= _GEN_119;
+    if (combinedReset) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 255:55]
+      pwmDutyRegs_22 <= 8'h0; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 255:55]
+    end else if (isMMIOWrite) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 400:21]
+      if (!(4'h0 == modSel)) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 404:20]
+        if (!(4'h1 == modSel)) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 404:20]
+          pwmDutyRegs_22 <= _GEN_142;
         end
       end
     end
-    if (combinedReset) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 259:55]
-      pwmDutyRegs_23 <= 8'h0; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 259:55]
-    end else if (isMMIOWrite) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 370:21]
-      if (!(4'h0 == modSel)) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 374:20]
-        if (!(4'h1 == modSel)) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 374:20]
-          pwmDutyRegs_23 <= _GEN_120;
+    if (combinedReset) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 255:55]
+      pwmDutyRegs_23 <= 8'h0; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 255:55]
+    end else if (isMMIOWrite) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 400:21]
+      if (!(4'h0 == modSel)) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 404:20]
+        if (!(4'h1 == modSel)) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 404:20]
+          pwmDutyRegs_23 <= _GEN_143;
         end
       end
     end
-    if (combinedReset) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 295:56]
-      gpioJADirReg <= 8'h0; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 295:56]
-    end else if (isMMIOWrite) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 370:21]
-      if (!(4'h0 == modSel)) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 374:20]
-        if (!(4'h1 == modSel)) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 374:20]
-          gpioJADirReg <= _GEN_121;
+    if (combinedReset) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 271:54]
+      i2cDataReg <= 8'h0; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 271:54]
+    end else if (isMMIOWrite) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 400:21]
+      if (!(4'h0 == modSel)) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 404:20]
+        if (!(4'h1 == modSel)) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 404:20]
+          i2cDataReg <= _GEN_155;
         end
       end
     end
-    if (combinedReset) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 296:56]
-      gpioJAOutReg <= 8'h0; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 296:56]
-    end else if (isMMIOWrite) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 370:21]
-      if (!(4'h0 == modSel)) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 374:20]
-        if (!(4'h1 == modSel)) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 374:20]
-          gpioJAOutReg <= _GEN_122;
+    if (combinedReset) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 272:56]
+      i2cClkDivReg <= 16'h0; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 272:56]
+    end else if (isMMIOWrite) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 400:21]
+      if (!(4'h0 == modSel)) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 404:20]
+        if (!(4'h1 == modSel)) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 404:20]
+          i2cClkDivReg <= _GEN_156;
         end
       end
     end
-    if (combinedReset) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 298:56]
-      gpioJAPwmEn <= 8'h0; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 298:56]
-    end else if (isMMIOWrite) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 370:21]
-      if (!(4'h0 == modSel)) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 374:20]
-        if (!(4'h1 == modSel)) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 374:20]
-          gpioJAPwmEn <= _GEN_123;
+    if (combinedReset) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 313:56]
+      gpioJADirReg <= 8'h0; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 313:56]
+    end else if (isMMIOWrite) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 400:21]
+      if (!(4'h0 == modSel)) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 404:20]
+        if (!(4'h1 == modSel)) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 404:20]
+          gpioJADirReg <= _GEN_144;
         end
       end
     end
-    if (combinedReset) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 318:56]
-      gpioJBDirReg <= 8'h0; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 318:56]
-    end else if (isMMIOWrite) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 370:21]
-      if (!(4'h0 == modSel)) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 374:20]
-        if (!(4'h1 == modSel)) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 374:20]
-          gpioJBDirReg <= _GEN_124;
+    if (combinedReset) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 314:56]
+      gpioJAOutReg <= 8'h0; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 314:56]
+    end else if (isMMIOWrite) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 400:21]
+      if (!(4'h0 == modSel)) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 404:20]
+        if (!(4'h1 == modSel)) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 404:20]
+          gpioJAOutReg <= _GEN_145;
         end
       end
     end
-    if (combinedReset) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 319:56]
-      gpioJBOutReg <= 8'h0; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 319:56]
-    end else if (isMMIOWrite) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 370:21]
-      if (!(4'h0 == modSel)) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 374:20]
-        if (!(4'h1 == modSel)) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 374:20]
-          gpioJBOutReg <= _GEN_125;
+    if (combinedReset) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 316:56]
+      gpioJAPwmEn <= 8'h0; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 316:56]
+    end else if (isMMIOWrite) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 400:21]
+      if (!(4'h0 == modSel)) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 404:20]
+        if (!(4'h1 == modSel)) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 404:20]
+          gpioJAPwmEn <= _GEN_146;
         end
       end
     end
-    if (combinedReset) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 321:56]
-      gpioJBPwmEn <= 8'h0; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 321:56]
-    end else if (isMMIOWrite) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 370:21]
-      if (!(4'h0 == modSel)) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 374:20]
-        if (!(4'h1 == modSel)) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 374:20]
-          gpioJBPwmEn <= _GEN_126;
+    if (combinedReset) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 332:56]
+      gpioJBDirReg <= 8'h0; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 332:56]
+    end else if (isMMIOWrite) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 400:21]
+      if (!(4'h0 == modSel)) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 404:20]
+        if (!(4'h1 == modSel)) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 404:20]
+          gpioJBDirReg <= _GEN_147;
         end
       end
     end
-    if (combinedReset) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 341:56]
-      gpioJCDirReg <= 8'h0; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 341:56]
-    end else if (isMMIOWrite) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 370:21]
-      if (!(4'h0 == modSel)) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 374:20]
-        if (!(4'h1 == modSel)) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 374:20]
-          gpioJCDirReg <= _GEN_127;
+    if (combinedReset) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 333:56]
+      gpioJBOutReg <= 8'h0; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 333:56]
+    end else if (isMMIOWrite) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 400:21]
+      if (!(4'h0 == modSel)) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 404:20]
+        if (!(4'h1 == modSel)) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 404:20]
+          gpioJBOutReg <= _GEN_148;
         end
       end
     end
-    if (combinedReset) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 342:56]
-      gpioJCOutReg <= 8'h0; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 342:56]
-    end else if (isMMIOWrite) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 370:21]
-      if (!(4'h0 == modSel)) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 374:20]
-        if (!(4'h1 == modSel)) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 374:20]
-          gpioJCOutReg <= _GEN_128;
+    if (combinedReset) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 335:56]
+      gpioJBPwmEn <= 8'h0; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 335:56]
+    end else if (isMMIOWrite) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 400:21]
+      if (!(4'h0 == modSel)) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 404:20]
+        if (!(4'h1 == modSel)) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 404:20]
+          gpioJBPwmEn <= _GEN_149;
         end
       end
     end
-    if (combinedReset) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 344:56]
-      gpioJCPwmEn <= 8'h0; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 344:56]
-    end else if (isMMIOWrite) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 370:21]
-      if (!(4'h0 == modSel)) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 374:20]
-        if (!(4'h1 == modSel)) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 374:20]
-          gpioJCPwmEn <= _GEN_129;
+    if (combinedReset) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 351:56]
+      gpioJCDirReg <= 8'h0; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 351:56]
+    end else if (isMMIOWrite) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 400:21]
+      if (!(4'h0 == modSel)) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 404:20]
+        if (!(4'h1 == modSel)) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 404:20]
+          gpioJCDirReg <= _GEN_150;
         end
       end
     end
-    if (combinedReset) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 366:50]
-      ledReg <= 16'h0; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 366:50]
-    end else if (isMMIOWrite) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 370:21]
-      if (!(4'h0 == modSel)) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 374:20]
-        if (4'h1 == modSel) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 374:20]
+    if (combinedReset) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 352:56]
+      gpioJCOutReg <= 8'h0; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 352:56]
+    end else if (isMMIOWrite) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 400:21]
+      if (!(4'h0 == modSel)) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 404:20]
+        if (!(4'h1 == modSel)) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 404:20]
+          gpioJCOutReg <= _GEN_151;
+        end
+      end
+    end
+    if (combinedReset) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 354:56]
+      gpioJCPwmEn <= 8'h0; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 354:56]
+    end else if (isMMIOWrite) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 400:21]
+      if (!(4'h0 == modSel)) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 404:20]
+        if (!(4'h1 == modSel)) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 404:20]
+          gpioJCPwmEn <= _GEN_152;
+        end
+      end
+    end
+    if (combinedReset) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 396:50]
+      ledReg <= 7'h0; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 396:50]
+    end else if (isMMIOWrite) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 400:21]
+      if (!(4'h0 == modSel)) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 404:20]
+        if (4'h1 == modSel) begin // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 404:20]
           ledReg <= _GEN_34;
         end
       end
     end
-    memAddressReg <= cpu_io_dmem_address; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 407:30]
-    cpu_io_dmem_rdData_REG <= {uartRx_io_channel_valid,uartTx_io_channel_ready}; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 416:86]
+    memAddressReg <= cpu_io_dmem_address; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 454:30]
+    cpu_io_dmem_rdData_REG <= {uartRx_io_channel_valid,uartTx_io_channel_ready}; // @[\\src\\main\\scala\\rvsoc\\RustSoCTop.scala 463:86]
   end
 // Register and memory initialization
 `ifdef RANDOMIZE_GARBAGE_ASSIGN
@@ -3331,29 +3808,33 @@ initial begin
   _RAND_26 = {1{`RANDOM}};
   pwmDutyRegs_23 = _RAND_26[7:0];
   _RAND_27 = {1{`RANDOM}};
-  gpioJADirReg = _RAND_27[7:0];
+  i2cDataReg = _RAND_27[7:0];
   _RAND_28 = {1{`RANDOM}};
-  gpioJAOutReg = _RAND_28[7:0];
+  i2cClkDivReg = _RAND_28[15:0];
   _RAND_29 = {1{`RANDOM}};
-  gpioJAPwmEn = _RAND_29[7:0];
+  gpioJADirReg = _RAND_29[7:0];
   _RAND_30 = {1{`RANDOM}};
-  gpioJBDirReg = _RAND_30[7:0];
+  gpioJAOutReg = _RAND_30[7:0];
   _RAND_31 = {1{`RANDOM}};
-  gpioJBOutReg = _RAND_31[7:0];
+  gpioJAPwmEn = _RAND_31[7:0];
   _RAND_32 = {1{`RANDOM}};
-  gpioJBPwmEn = _RAND_32[7:0];
+  gpioJBDirReg = _RAND_32[7:0];
   _RAND_33 = {1{`RANDOM}};
-  gpioJCDirReg = _RAND_33[7:0];
+  gpioJBOutReg = _RAND_33[7:0];
   _RAND_34 = {1{`RANDOM}};
-  gpioJCOutReg = _RAND_34[7:0];
+  gpioJBPwmEn = _RAND_34[7:0];
   _RAND_35 = {1{`RANDOM}};
-  gpioJCPwmEn = _RAND_35[7:0];
+  gpioJCDirReg = _RAND_35[7:0];
   _RAND_36 = {1{`RANDOM}};
-  ledReg = _RAND_36[15:0];
+  gpioJCOutReg = _RAND_36[7:0];
   _RAND_37 = {1{`RANDOM}};
-  memAddressReg = _RAND_37[31:0];
+  gpioJCPwmEn = _RAND_37[7:0];
   _RAND_38 = {1{`RANDOM}};
-  cpu_io_dmem_rdData_REG = _RAND_38[1:0];
+  ledReg = _RAND_38[6:0];
+  _RAND_39 = {1{`RANDOM}};
+  memAddressReg = _RAND_39[31:0];
+  _RAND_40 = {1{`RANDOM}};
+  cpu_io_dmem_rdData_REG = _RAND_40[1:0];
 `endif // RANDOMIZE_REG_INIT
   `endif // RANDOMIZE
 end // initial

@@ -124,10 +124,18 @@ set_property PULLUP true [get_ports {io_gpioJB[*]}]
  
 
 ##Pmod Header JC
+## NOTE: JC[2] and JC[3] are used by the I2C controller as SDA and SCL.
+## They are NOT available as general purpose GPIO. Connect external I2C
+## devices to these pins (see MANUAL.md for the I2C HAL).
+## Internal pullups are enabled on all JC pins; this provides weak pullups
+## on SDA/SCL sufficient for 100 kHz operation with short wires.
+## For 400 kHz or long wires, add external 4.7 kOhm pullups to 3.3V.
 set_property PACKAGE_PIN K17 [get_ports {io_gpioJC[0]}]
 set_property PACKAGE_PIN M18 [get_ports {io_gpioJC[1]}]
 set_property PACKAGE_PIN N17 [get_ports {io_gpioJC[2]}]
+## ^ I2C SDA
 set_property PACKAGE_PIN P18 [get_ports {io_gpioJC[3]}]
+## ^ I2C SCL
 set_property PACKAGE_PIN L17 [get_ports {io_gpioJC[4]}]
 set_property PACKAGE_PIN M19 [get_ports {io_gpioJC[5]}]
 set_property PACKAGE_PIN P17 [get_ports {io_gpioJC[6]}]
