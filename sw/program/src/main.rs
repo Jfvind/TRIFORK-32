@@ -364,7 +364,7 @@ fn main() {
     
     // Use safe HAL for writing to UART
     println!("=== DTU MCU Booted ===");
-    println!("SRAM Size: {} bytes", 4096);
+    println!("SRAM Size: {} bytes", 16384);
     println!("Status: PASS");
 
     // Configure I2C bus to 100 kHz (standard mode)
@@ -395,10 +395,13 @@ fn main() {
     let mut fade_up = true;
     let mut color_phase: u8 = 0; // 0 = red, 1 = green, 2 = blue
 
-    // AM2320 read-throttle counter. Sensor must not be polled more
-    // often than -once per 2 seconds, so we only read every Nth loop.
-    let mut am2320_counter: u32 = 0;
-    const AM2320_INTERVAL: u32 = 1000;
+    // AM2320 read scheduling. The sensor must not be polled more often
+    // than ~once per 2 seconds. We schedule reads with the cycle counter
+    // (100_000_000 cycles = 1 s at 100 MHz) instead of counting loop
+    // iterations, so the interval stays correct regardless of how long
+    // a loop iteration takes.
+    const AM2320_READ_INTERVAL_CYCLES: u64 = 200_000_000; // 2 s
+    let mut next_am2320_read: u64 = read_cycles() + AM2320_READ_INTERVAL_CYCLES;
 
     loop {
         // 1) Read peripherals
@@ -442,12 +445,9 @@ fn main() {
             }
         }
 
-        // 5) AM2320 temperature/humidity read every AM2320_INTERVAL iterations
-        am2320_counter += 1;
-        if am2320_counter >= AM2320_INTERVAL {
-            am2320_counter = 0;
-
-            println!("--- AM2320 read ---");
+        // 5) AM2320 temperature/humidity read every ~2 seconds (cycle-timed)
+        if read_cycles() >= next_am2320_read {
+            next_am2320_read = read_cycles() + AM2320_READ_INTERVAL_CYCLES;
 
             // Wake-up via clock divider trick. Lower the I2C clock to ~10 kHz
             // so the wake address byte takes ~900 microseconds on the bus.
@@ -458,9 +458,8 @@ fn main() {
             i2c_set_clkdiv(5000);
 
             i2c_start();
-            let wake_acked = i2c_write_byte((0x5C << 1) | 0);
+            let _ = i2c_write_byte((0x5C << 1) | 0); // NACK expected, ignore
             i2c_stop();
-            println!("Wake ACK: {} (expected: false)", wake_acked);
 
             // Restore standard 100 kHz for the actual read transaction.
             i2c_wait_idle();
@@ -473,36 +472,22 @@ fn main() {
             // This requests humidity (regs 0-1) and temperature (regs 2-3).
             let cmd = [0x03u8, 0x00, 0x04];
             let cmd_ok = i2c_write_bytes(0x5C, &cmd);
-            println!("Cmd ACK: {} (expected: true)", cmd_ok);            
 
             if cmd_ok {
                 // Wait at least 1.5 ms for the sensor to prepare its reply.
                 delay_cycles(500_000); // 5 ms
 
-                // Manually unrolled read transaction for full visibility:
-                // address ACK, every byte, and controller status after each.
+                // Read 8-byte response:
+                // [0]=0x03 [1]=0x04 [2-3]=humidity [4-5]=temperature [6-7]=CRC
                 let mut response = [0u8; 8];
+                let read_ok = i2c_read_bytes(0x5C, &mut response);
 
-                i2c_start();
-                let addr_ok = i2c_write_byte((0x5C << 1) | 1);
-                println!("Read addr ACK: {} status={:02X}", addr_ok, i2c_status());
-
-                if addr_ok {
-                    // AM2320 needs 30+ us after the address byte before the
-                    // first data clock. 5000 cycles = 50 us.
-                    delay_cycles(5_000);
-                    for i in 0..8 {
-                        let send_ack = i != 7;
-                        response[i] = i2c_read_byte(send_ack);
-                        println!("  Byte {}: {:02X} status={:02X}", i, response[i], i2c_status());
-                    }
-                }
-                i2c_stop();
-
-                if addr_ok && response[0] == 0x03 && response[1] == 0x04 {
+                if read_ok && response[0] == 0x03 && response[1] == 0x04 {
+                    // Combine MSB and LSB into 16-bit values.
                     let humidity = ((response[2] as u16) << 8) | (response[3] as u16);
                     let temperature = (((response[4] as u16) << 8) | (response[5] as u16)) as i16;
 
+                    // Values are in tenths: 234 means 23.4 C.
                     let temp_int = temperature / 10;
                     let temp_frac = (temperature % 10).abs();
                     let hum_int = humidity / 10;
