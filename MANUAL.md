@@ -1,4 +1,4 @@
-# Manual: SoC for Basys-3 - MCU for embedded systems programming 02112 at DTU
+# Manual: SoC for Basys 3 - MCU for embedded systems programming 02112 at DTU
 ## Introduktion - hvad systemet er og kan
 Dette projekt udgør en SoC (System on a Chip) som ved hjælp af implementeringen af en softcore (Wildcat) 3-trins pipelinet RISC-V processor på et Digilent Basys 3 Artix-7 FPGA, muliggør programmering af selvsamme processor og tilhørende periferienheder i Rust. Specifikke GPIO-enheder som LED, knapper, UART og de bidirektionelle PMOD-porte (JA/JB/JC) interageres med via prædefineret Memory-Mapped I/O. For at forenkle systemet er der udviklet et tilhørende abstraktionslag til føromtalte Memory-Mapped I/O, som leverer færdigbagte hjælpefunktioner der forenkler programmeringen af selvsamme.
 
@@ -42,9 +42,9 @@ En RGB-LED er tre separate enkeltfarvede LEDs (rød, grøn, blå) pakket ind i �
 RGB-LEDs findes i to varianter: *common-anode* hvor den fælles pin er +3.3V og hver farvekanal tændes ved at trække den til ground, og *common-cathode* hvor det er omvendt. I common-anode betyder det at en *lav* duty cycle giver *høj* lysstyrke — hvilket HAL-funktionen `rgb_set` tager højde for automatisk.
 
 ## Forudsætninger og opsætning
-Forudsætningerne for at og flashe projektets softcore arkitektur over på en Basys-3 FPGA for tilsidst at uploade og køre det Rust program der udgør logikken for dit miljø-overvågningssystem er beskrevet i den installationsguide du finder i projektetes `README.md`-fil. 
+Forudsætningerne for at og flashe projektets softcore arkitektur over på en Basys 3 FPGA for tilsidst at uploade og køre det Rust program der udgør logikken for dit miljø-overvågningssystem er beskrevet i den installationsguide du finder i projektetes `README.md`-fil. 
 
-![Workflow for a uploade rust-kode til MCU på FPGA (Basys-3)](docs/diagrams/Rust-on-MCU-manual.svg)
+![Workflow for a uploade rust-kode til MCU på FPGA (Basys 3)](docs/diagrams/Rust-on-MCU-manual.svg)
 
 Herunder en forklaring af hvad hver værktøj bruges til.
 
@@ -60,7 +60,7 @@ Sørg for at du har installeret overstående ved at følge projektets `README.md
 Efter værktøjerne er installeret og repoet er klonet, skal SoC'en flahes på FPGA'en. Logikken for SoC'en flashes til FPGA'ens non-volatile hukommelse, hvilket sikrer at logikken overlever genstart og slukning af boardet. Det eneste scenarie hvor du ville være nødsagt til at gen-flashe SoC'en er hvis der er blevet lavet ændringer til selveste SoC'ens logik.
 
 **Flash SoC'en ved at**:
-1. Tilslut Basys-3 boardet via USB og tænd det
+1. Tilslut Basys 3 boardet via USB og tænd det
 2. I din terminal, naviger til roden af repoet, så du står i mappen `.../rust-riscv-soc`
 3. Kør nu kommandoen `cargo xtask flash` i terminalen
 4. SoC'en flashes: Vent på at processen færdiggøres (dette kan tage flere minutter)
@@ -79,18 +79,18 @@ Når først SoC'en er flashet, kan du uploade Rust-programmer (igen og igen) via
 **Itterer i jeres program design:**
 Efterfølgende ændringer i Rust-koden kan uploades ved at køre `cargo xtask upload <din_port>` igen. Det er ikke nødvændigt at reflashe SoC'en for at uplade nye programmer. 
 
-Testkredsløbet herunder er det hardware-setup, som bruges af koden der aktuelt kører i [sw/program/src/main.rs](sw/program/src/main.rs).
+Testkredsløbet herunder er det hardware-setup, som bruges af koden der aktuelt kører i [sw/program/src/app.rs](sw/program/src/app.rs).
 
-![Test circuit for main.rs](Test-circuit.png)
+![Test circuit for app.rs](Test-circuit.png)
 
 ## Systemarkitektur - CPU, hukommelse, boot-flow og memory map
 
 ### CPU: Wildcat ThreeCats
-Projektet implementere en softcore processor på en basys-3 FPGA - den specifikke processor som softcoren implementere er en "Wildcat ThreeCat" CPU, der er bygget på RISC-V arkitekturen og  implementere RV32I instruktionssættet. Det betyder at processorens arkitektur er i et 32-bit format: instruktioner er 32-bit, registre er 32-bit og vi er begrænset til heltalsoperationer (ingen floating point - det kræver højere præcision).
+Projektet implementere en softcore processor på en basys 3 FPGA - den specifikke processor som softcoren implementere er en "Wildcat ThreeCat" CPU, der er bygget på RISC-V arkitekturen og  implementere RV32I instruktionssættet. Det betyder at processorens arkitektur er i et 32-bit format: instruktioner er 32-bit, registre er 32-bit og vi er begrænset til heltalsoperationer (ingen floating point - det kræver højere præcision).
 
 Processoren kører ét clock-tick ad gangen, igennem dens 3 trins pipeline - fetch (hent instruktion fra hukommelse), decode (forstå instruktionen og indlæs registre) og execute (udfør beregningen).
 ### Hukommelse
-SoC'en implementeres i dette projekt med 4 KB scratchpad-hukommelse, som vivado genkender og implementere i den on chip BRAM der findes på et Basys-3 board. 
+SoC'en implementeres i dette projekt med 4 KB scratchpad-hukommelse, som vivado genkender og implementere i den on chip BRAM der findes på et Basys 3 board. 
 
 SoC'en har to seperate fysiske hukommelser - begge implementeret som scratchpad-hukommelse på hhv. 4 KB:
 - **IMEM (Instruction Memory):** Herfra henter CPU'en instruktioner
@@ -102,7 +102,7 @@ De to hukommelser er på seperate busser, hvilket betyder at CPU'en kan hente en
 
 ### Boot-flow: Hvad sker der når boardet tændes
 **Når boardet tændes, gennemgår systemet følgende sekvens:**
-1. **Starter Basys3 m. softcore flashet:** FPGA'en starter med bootloaderen aktiv og CPU'en stallet - den kan ikke eksekvere instruktioner endnu
+1. **Starter Basys 3 m. softcore flashet:** FPGA'en starter med bootloaderen aktiv og CPU'en stallet - den kan ikke eksekvere instruktioner endnu
 
 **Upload-scriptet gennemgår derefter følgende sekvens:**
 
@@ -143,7 +143,7 @@ Adresserummet er delt i tre områder: IMEM til instruktioner, DMEM til data og s
 
 ## Workflow - fra Rust-kode til kørende program
 Når du udvikler programmer til denne SoCc, er dit workflow:
-1. Skriv eller rediger dit Rust-program i filen `sw/program/src/main.rs`
+1. Skriv eller rediger dit Rust-program i filen `sw/program/src/app.rs`
 2. Kør kommandoen `cargo xtask upload <din_port>` fra roden af repoet (`.../rust-riscv-soc`)
 3. Dit program kompileres, uploades, og begynder at eksekvere automatisk.
 
@@ -156,7 +156,7 @@ Kommandoen `cargo xtask upload` automatiserer følgende kæde af handlinger:
 
 ### Filstruktur
 
-Dit Rust-program skrives i filen `sw/program/src/main.rs`. Det 
+Dit Rust-program skrives i filen `sw/program/src/app.rs`. Det 
 er den eneste fil du behøver at redigere under normal brug.
 
 **Note:** Hvis du løber ind i hukommelsesbegrænsninger (4 KB instruktioner eller 4 KB data/stack),
@@ -168,7 +168,7 @@ gør dette.
 ## HAL-reference: tilgængelige funktioner og adresser
 
 Følgende funktioner udgør det Hardware Abstraction Layer (HAL) 
-der er tilgængeligt i `main.rs`. Disse funktioner abstraherer 
+der er implementeret i `sw/mcu-hal/src/lib.rs` og bruges fra `sw/program/src/app.rs`. Disse funktioner abstraherer 
 den underliggende Memory-Mapped I/O, så du ikke behøver at 
 arbejde direkte med hukommelsesadresser.
 
@@ -212,7 +212,7 @@ if buttons & 0x4 != 0 {
 
 ### ADC (Analogt Input): `adc_read_all() -> [u32, 4]`
 
-Aflæser den aktuelle digitale værdi fra JXADC-portene på Basys-3 boardet. Spændingen konverteres via ADC-controlleren og returneres som en 12-bit værdi: et heltal mellem 0 og 4095. Dette er især nyttigt til at aflæse analoge sensorer (f.eks. et potentiometer, lyssensor osv.).
+Aflæser den aktuelle digitale værdi fra JXADC-portene på Basys 3 boardet. Spændingen konverteres via ADC-controlleren og returneres som en 12-bit værdi: et heltal mellem 0 og 4095. Dette er især nyttigt til at aflæse analoge sensorer (f.eks. et potentiometer, lyssensor osv.).
 
 ```rust
 let adc_val = adc_read_all();
@@ -417,7 +417,7 @@ fn main() {
 - RGB-LED på pin 12-14 fader langsomt op til fuld rød, ned til slukket, op til fuld grøn, ned, op til fuld blå, ned, og gentager
 
 **Bemærk:** Hvis din RGB-LED er common-cathode i stedet for common-anode, skal 
-`rgb_set`-funktionen i `main.rs` ændres så den ikke inverterer værdierne 
+`rgb_set`-funktionen i `sw/mcu-hal/src/lib.rs` ændres så den ikke inverterer værdierne 
 (fjern `100 -` foran `r`, `g`, `b`).
 
 ## Fejlfinding
@@ -481,7 +481,7 @@ pwm_set(0, 50);                     // Nu virker denne linje
 
 ### RGB-LED lyser modsat forventet (høj værdi = mørk)
 
-Din RGB-LED er sandsynligvis *common-cathode* i stedet for *common-anode*. HAL-funktionen `rgb_set` inverterer værdierne som standard fordi den antager common-anode. For en common-cathode LED skal du ændre `rgb_set` i `main.rs` så inverteringen fjernes:
+Din RGB-LED er sandsynligvis *common-cathode* i stedet for *common-anode*. HAL-funktionen `rgb_set` inverterer værdierne som standard fordi den antager common-anode. For en common-cathode LED skal du ændre `rgb_set` i `sw/mcu-hal/src/lib.rs` så inverteringen fjernes:
 
 ```rust
 fn rgb_set(r: u8, g: u8, b: u8) {

@@ -66,8 +66,8 @@ class TriStateBuffer8 extends HasBlackBoxInline {
  *     back to boot mode, ready for a fresh upload.
  *
  * Memory map:
- *   0x0000_0000 – 0x0000_1FFF : Instruction scratchpad (IMEM, 8 KB default)
- *   0x0000_2000 – 0x0000_3FFF : Data scratchpad (DMEM, 8 KB default)
+*   0x0000_0000 – 0x0000_3FFF : Instruction scratchpad (IMEM, 16 KB default)
+ *   0x0000_4000 – 0x0000_7FFF : Data scratchpad (DMEM, 16 KB default)
  *   0xF000_0000               : UART status  (bit 0 = TX ready, bit 1 = RX data available)
  *   0xF000_0004               : UART data    (read = RX byte, write = TX byte)
  *   0xF010_0000               : on-board LEDs (lower 7 bits drive LEDs)
@@ -82,17 +82,23 @@ class TriStateBuffer8 extends HasBlackBoxInline {
  *
  * @param frequ     system clock frequency in Hz (default 100 MHz for Basys3)
  * @param baudRate  UART baud rate (default 115200)
- * @param memBytes  scratchpad memory size in bytes (default 8192)
+ * @param memBytes  scratchpad memory size in bytes (default 16384)
  */
-class RustSoCTop(frequ: Int = 100000000, baudRate: Int = 115200, memBytes: Int = 16384) extends Module {
+// `sim`: when true, the Analog tri-state GPIO pads and the Vivado XADC BlackBox
+// are replaced by simulation-friendly models so the whole SoC can run on any
+// chiseltest backend (e.g. Treadle). Production builds use the default
+// `sim = false`, so the generated Verilog (and bitstream) is unchanged.
+class RustSoCTop(frequ: Int = 100000000, baudRate: Int = 115200, memBytes: Int = 16384, sim: Boolean = false) extends Module {
 
   val io = IO(new Bundle {
-    val gpioJA      = Analog(8.W)
-    val gpioJB      = Analog(8.W)
-    val gpioJC      = Analog(8.W)
+    // Analog tri-state pads only exist in hardware builds; in simulation the
+    // GPIO inputs are tied off (the instruction path under test ignores GPIO).
+    val gpioJA      = if (sim) None else Some(Analog(8.W))
+    val gpioJB      = if (sim) None else Some(Analog(8.W))
+    val gpioJC      = if (sim) None else Some(Analog(8.W))
     val tx          = Output(UInt(1.W))
     val rx          = Input(UInt(1.W))
-    val led         = Output(UInt(8.W))
+    val led         = Output(UInt(16.W))
     val btn         = Input(UInt(4.W))
 
     val vauxp6      = Input(Bool())
@@ -237,7 +243,7 @@ class RustSoCTop(frequ: Int = 100000000, baudRate: Int = 115200, memBytes: Int =
   // ====================================
   // ADC Converter
   // ====================================
-  val adc = withReset(combinedReset) { Module(new AdcController())}
+  val adc = withReset(combinedReset) { Module(new AdcController(sim))}
   adc.io.vauxp6   := io.vauxp6
   adc.io.vauxn6   := io.vauxn6
   adc.io.vauxp14  := io.vauxp14
@@ -315,15 +321,19 @@ class RustSoCTop(frequ: Int = 100000000, baudRate: Int = 115200, memBytes: Int =
   val gpioJAIn     = Wire(UInt(8.W))                                      // 0xF050_0008
   val gpioJAPwmEn  = withReset(combinedReset) { RegInit(0.U(8.W)) } // 0xF050_000C
   val gpioJADebounced = Wire(UInt(8.W))                            // 0xF050_0010
-  val bufJA = Module(new TriStateBuffer8)
-  attach(io.gpioJA, bufJA.io.pad)
-  bufJA.io.dir := gpioJADirReg
-  val finalJAOut = Wire(Vec(8, Bool()))
-  for (i <- 0 until 8) {
-    finalJAOut(i) := Mux(gpioJAPwmEn(i), pwm.io.pwmOut(i), gpioJAOutReg(i))
+  if (sim) {
+    gpioJAIn := 0.U // no Analog pads in simulation
+  } else {
+    val bufJA = Module(new TriStateBuffer8)
+    attach(io.gpioJA.get, bufJA.io.pad)
+    bufJA.io.dir := gpioJADirReg
+    val finalJAOut = Wire(Vec(8, Bool()))
+    for (i <- 0 until 8) {
+      finalJAOut(i) := Mux(gpioJAPwmEn(i), pwm.io.pwmOut(i), gpioJAOutReg(i))
+    }
+    bufJA.io.out := finalJAOut.asUInt
+    gpioJAIn  := bufJA.io.in
   }
-  bufJA.io.out := finalJAOut.asUInt
-  gpioJAIn  := bufJA.io.in
   val gpioJADebouncer = withReset(combinedReset) { Module(new ButtonDebouncer(8, debounceCycles, initialValue = 0xff)) }
   gpioJADebouncer.io.in := gpioJAIn
   gpioJADebounced := gpioJADebouncer.io.out
@@ -334,15 +344,19 @@ class RustSoCTop(frequ: Int = 100000000, baudRate: Int = 115200, memBytes: Int =
   val gpioJBIn     = Wire(UInt(8.W))                                // 0xF060_0008
   val gpioJBPwmEn  = withReset(combinedReset) { RegInit(0.U(8.W)) } // 0xF060_000C
   val gpioJBDebounced = Wire(UInt(8.W))                              // 0xF060_0010
-  val bufJB = Module(new TriStateBuffer8)
-  attach(io.gpioJB, bufJB.io.pad)
-  bufJB.io.dir := gpioJBDirReg
-  val finalJBOut = Wire(Vec(8, Bool()))
-  for (i <- 0 until 8) {
-    finalJBOut(i) := Mux(gpioJBPwmEn(i), pwm.io.pwmOut(i + 8), gpioJBOutReg(i))
+  if (sim) {
+    gpioJBIn := 0.U // no Analog pads in simulation
+  } else {
+    val bufJB = Module(new TriStateBuffer8)
+    attach(io.gpioJB.get, bufJB.io.pad)
+    bufJB.io.dir := gpioJBDirReg
+    val finalJBOut = Wire(Vec(8, Bool()))
+    for (i <- 0 until 8) {
+      finalJBOut(i) := Mux(gpioJBPwmEn(i), pwm.io.pwmOut(i + 8), gpioJBOutReg(i))
+    }
+    bufJB.io.out := finalJBOut.asUInt
+    gpioJBIn  := bufJB.io.in
   }
-  bufJB.io.out := finalJBOut.asUInt
-  gpioJBIn  := bufJB.io.in
   val gpioJBDebouncer = withReset(combinedReset) { Module(new ButtonDebouncer(8, debounceCycles, initialValue = 0xff)) }
   gpioJBDebouncer.io.in := gpioJBIn
   gpioJBDebounced := gpioJBDebouncer.io.out
@@ -353,39 +367,47 @@ class RustSoCTop(frequ: Int = 100000000, baudRate: Int = 115200, memBytes: Int =
   val gpioJCIn     = Wire(UInt(8.W))                                // 0xF070_0008
   val gpioJCPwmEn  = withReset(combinedReset) { RegInit(0.U(8.W)) } // 0xF070_000C
   val gpioJCDebounced = Wire(UInt(8.W))                              // 0xF070_0010
-  val bufJC = Module(new TriStateBuffer8)
-  attach(io.gpioJC, bufJC.io.pad)
+  
+  if (sim) {
+    gpioJCIn := 0.U // no Analog pads in simulation
+    // Tie off I2C bus inputs in simulation (idle bus = both lines HIGH)
+    i2c.io.sdaIn := true.B
+    i2c.io.sclIn := true.B
+  } else {
+    val bufJC = Module(new TriStateBuffer8)
+    attach(io.gpioJC.get, bufJC.io.pad)
 
-  // Build per-bit DIR and OUT vectors. For each pin we choose between
-  // I2C (bit 2 = SDA, bit 3 = SCL) and the normal GPIO/PWM behaviour.
-  val finalJCDir = Wire(Vec(8, Bool()))
-  val finalJCOut = Wire(Vec(8, Bool()))
-  for (i <- 0 until 8) {
-    if (i == 2) {
-      // JC[2] = SDA: I2C controller drives both DIR and OUT
-      finalJCDir(i) := i2c.io.sdaOe
-      finalJCOut(i) := i2c.io.sdaOut
-    } else if (i == 3) {
-      // JC[3] = SCL: I2C controller drives both DIR and OUT
-      finalJCDir(i) := i2c.io.sclOe
-      finalJCOut(i) := i2c.io.sclOut
-    } else {
-      // Normal GPIO/PWM behaviour for the other pins
-      finalJCDir(i) := gpioJCDirReg(i)
-      finalJCOut(i) := Mux(gpioJCPwmEn(i), pwm.io.pwmOut(i + 16), gpioJCOutReg(i))
+    // Build per-bit DIR and OUT vectors. For each pin we choose between
+    // I2C (bit 2 = SDA, bit 3 = SCL) and the normal GPIO/PWM behaviour.
+    val finalJCDir = Wire(Vec(8, Bool()))
+    val finalJCOut = Wire(Vec(8, Bool()))
+    for (i <- 0 until 8) {
+      if (i == 2) {
+        // JC[2] = SDA: I2C controller drives both DIR and OUT
+        finalJCDir(i) := i2c.io.sdaOe
+        finalJCOut(i) := i2c.io.sdaOut
+      } else if (i == 3) {
+        // JC[3] = SCL: I2C controller drives both DIR and OUT
+        finalJCDir(i) := i2c.io.sclOe
+        finalJCOut(i) := i2c.io.sclOut
+      } else {
+        // Normal GPIO/PWM behaviour for the other pins
+        finalJCDir(i) := gpioJCDirReg(i)
+        finalJCOut(i) := Mux(gpioJCPwmEn(i), pwm.io.pwmOut(i + 16), gpioJCOutReg(i))
+      }
     }
+    bufJC.io.dir := finalJCDir.asUInt
+    bufJC.io.out := finalJCOut.asUInt
+
+    // Read pin states back
+    gpioJCIn  := bufJC.io.in
+
+    // Feed the actual SDA/SCL pin states back into the I2C controller
+    // This is needed for clock stretching detection and ACK reading
+    i2c.io.sdaIn := bufJC.io.in(2)
+    i2c.io.sclIn := bufJC.io.in(3)
   }
-  bufJC.io.dir := finalJCDir.asUInt
-  bufJC.io.out := finalJCOut.asUInt
-
-  // Read pin states back
-  gpioJCIn  := bufJC.io.in
-
-  // Feed the actual SDA/SCL pin states back into the I2C controller
-  // This is needed for clock stretching detection and ACK reading
-  i2c.io.sdaIn := bufJC.io.in(2)
-  i2c.io.sclIn := bufJC.io.in(3)
-
+    
   val gpioJCDebouncer = withReset(combinedReset) { Module(new ButtonDebouncer(8, debounceCycles, initialValue = 0xff)) }
   gpioJCDebouncer.io.in := gpioJCIn
   gpioJCDebounced := gpioJCDebouncer.io.out
@@ -393,7 +415,7 @@ class RustSoCTop(frequ: Int = 100000000, baudRate: Int = 115200, memBytes: Int =
   // ====================================
   // Memory-mapped IO Decoder
   // ====================================
-  val ledReg = withReset(combinedReset) { RegInit(0.U(7.W)) }
+  val ledReg = withReset(combinedReset) { RegInit(0.U(16.W)) }
 
   // --- Immediate writes (Using current cycle values 'address' and 'wr')
   val isMMIOWrite = cpuRunning && (cpu.io.dmem.address(31, 28) === 0xf.U) && cpu.io.dmem.wr
@@ -406,7 +428,7 @@ class RustSoCTop(frequ: Int = 100000000, baudRate: Int = 115200, memBytes: Int =
         when(offset === 4.U) { uartTx.io.channel.valid := true.B }
       }
       is(1.U) { // on-board LEDs (0xF010)
-        when(offset === 0.U) { ledReg := cpu.io.dmem.wrData(6, 0) }
+        when(offset === 0.U) { ledReg := cpu.io.dmem.wrData(15, 0) }
       }
       is(4.U) { // PWM (0xF040)
         when(offset === 0.U) { pwmEnable := cpu.io.dmem.wrData(15, 0) }
@@ -519,7 +541,7 @@ class RustSoCTop(frequ: Int = 100000000, baudRate: Int = 115200, memBytes: Int =
   uartRx.io.channel.ready := cpuRunning && (cpu.io.dmem.address(31, 28) === 0xf.U) && (cpu.io.dmem.address(23, 20) === 0.U) && (cpu.io.dmem.address(7, 0)   === 4.U) && cpu.io.dmem.rd
 
   // --- LED ---
-  io.led := cpuRunning ## ledReg
+  io.led := ledReg
 }
 
 /**

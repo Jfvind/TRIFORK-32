@@ -14,14 +14,15 @@ Required for synthesizing the hardware and flashing the FPGA. Only needed once t
 ```bash
 vivado -version
 ```
-If you see version information, Vivado is already installed and in your PATH — skip to the next tool. If the command is not found, proceed with installation:
+If you see a version 2019.1 or later; a compatible version of Vivado is already installed and in your PATH — skip to the next tool. If the command is not found (or the version is older than 2019.1), proceed with installation:
 
-- **Download:** Xilinx Unified Installer
+- **Download:** [AMD Vivado™ Design Suite](https://www.amd.com/en/products/software/adaptive-socs-and-fpgas/vivado.html)
 - **Install:** Select "Vivado Standard" or "WebPACK" (Free).
 - **Important:** During installation, ensure you install the Cable Drivers.
 - **System PATH:** After installation, add the Vivado bin folder to your system PATH so the terminal can find the *vivado* command.
     - *Windows:* Add `C:\Xilinx\Vivado\20xx.x\bin` to Environment Variables → Path.
     - *Linux:* Add `source /tools/Xilinx/Vivado/20xx.x/settings64.sh` to your `.bashrc` or `.zshrc`.
+Now check, with the version command in a new terminal.
 
 #### 2. Rust Toolchain
 Required to compile the Rust program that runs on the FPGA.
@@ -31,23 +32,32 @@ Required to compile the Rust program that runs on the FPGA.
 rustc --version
 cargo --version
 ```
-If both commands show version numbers, Rust is already installed — verify the RISC-V target is added by running `rustc --print sysroot` and search the folder for `riscv32i-unknown-none-elf`. If Rust is not installed, proceed with installation:
+If both commands show version **1.85 or later**, Rust is already installed. If Rust is not installed or the version is older than 1.85, proceed with installation:
 
-- **Install rustup:** [rustup.rs](https://rustup.rs/)
-    ```bash
-    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
-    ```
+- **Install rustup:** 
+    - *Windows:* [rustup.rs](https://rustup.rs/)
+    - *Linux:* `curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh`
+
 - **Add the RISC-V 32-bit target:**
+Verify the RISC-V target is added by running `rustc --print sysroot` and search the folder `<sysroot>/lib/rustlib/` for `riscv32i-unknown-none-elf`. If it is not found proceed with installation:
     ```bash
     rustup target add riscv32i-unknown-none-elf
     ```
+
 - **Install cargo-binutils** (for `cargo objcopy`):
+    Check if already installed:
+    ```bash
+    cargo objcopy --version
+    ```
+    If not found, install:
     ```bash
     cargo install cargo-binutils
     rustup component add llvm-tools
     ```
-
 ---
+
+> [!IMPORTANT]
+> If you are **NOT** changing the hardware Framework - skip to [Getting started](#rocket-getting-started)
 
 ### :wrench: Developing on the CPU
 _Additional tools needed to modify the CPU hardware (Chisel) and run simulation tests._
@@ -117,38 +127,29 @@ If you see a version number, Make is already installed. This project now uses `c
     - Fedora: `sudo dnf install make`
 
 ## :rocket: Getting started
-After boot, the program prints "PASS" over UART and demonstrates all peripherals:
-- **ADC bar-graph:** Onboard LEDs 0-6 light up as a bar-graph based on the first JXADC analaog input
-- **Buttons:** btnU, btnL, btnR, light up Pmod LEDs 8, 9, 10 respectively.
-- **RGB LED (PWM):** Pmod pins 12-14 drive a common-anode RGB LED that fades through red, green, and blue
-- **PMOD GPIO:** JA, JB, and JC are bidirectional GPIO banks. The Rust demo uses the new `Pmod` helper to drive outputs, read inputs, and route PWM to selected pins.
-- **I2C (AM2320 sensor):** Pmod JC[2]/[3] form an I2C bus. The Rust demo reads temperature and humidity from an AM2320 sensor every ~2 seconds and prints the values over UART.
-
-**Note:** When CPU is running, LED 7 (leftmost onboard) is lit as a status indicator.
-
 ### GPIO overview
-The hardware exposes three software-controlled PMOD GPIO banks in addition to the onboard LEDs, buttons, ADC, and I2C controller:
-- Each PMOD bank has direction, output, input, and PWM-enable registers.
-- Each PMOD bank also has a debounced input register for button-style reads.
-- The current Rust program uses JA for button mirroring and RGB PWM output, and JC[2]/JC[3] for I2C communication with an AM2320 temperature/humidity sensor.
-- GPIOs can be driven directly from Rust through the MMIO helpers in `sw/program/src/main.rs`.
+The hardware exposes three software-controlled PMOD GPIO connectors in addition to the onboard LEDs, buttons, and ADC:
+- Each PMOD pin has direction, output, input, and PWM-enable registers.
+- Each PMOD pin also has a debounced input register for external button reads.
+- GPIOs can be driven directly from Rust through the MMIO helpers. Student code lives in `sw/program/src/app.rs`.
 - PMOD buttons can be wired from a GPIO pin to GND; internal pullups keep the idle state high.
-- The I2C controller drives JC[2] (SDA) and JC[3] (SCL); these pins are not available as general-purpose GPIO.
 
-The test circuit below is the hardware setup used by the code currently running in [sw/program/src/main.rs](sw/program/src/main.rs).
+The test circuit below is the hardware setup used by the code currently running in [sw/program/src/app.rs](sw/program/src/app.rs).
+**Build the breadboard setup and power on the FPGA.**
 
-![Test circuit for main.rs](docs/diagrams/Test-circuit.png)
+![Test circuit for app.rs](docs/diagrams/Test-circuit.png)
 
 ![Quick workflow for running program on MCU](docs/diagrams/Rust-on-MCU-Quickguide.svg)
+See the detailed steps below
 
-### 1. Clone repo (requires git) OR download release zip
+### 1. Clone repo (requires git) OR [download release zip](https://github.com/Jfvind/rust-riscv-soc/releases/latest)
 ```bash
 git clone https://github.com/Jfvind/rust-riscv-soc
 cd rust-riscv-soc
 ```
 ### 2. Flash
-Build RustSoCTop.bin from wildcat/src/main/scala/rvsoc/RustSoCTop.scala and flash to Basys3
-- **Dependency:** Make sure Basys3 is connected and turned on (And 'Prerequisites & Installation' is completed) and your terminal is in /rust-riscv-soc
+Build RustSoCTop.bin from wildcat/src/main/scala/rvsoc/RustSoCTop.scala and flash to Basys 3
+- **Dependency:** Make sure Basys 3 is connected and turned on (And 'Prerequisites & Installation' is completed) and your terminal is in /rust-riscv-soc
 ```bash
 cargo xtask flash
 ```
@@ -160,11 +161,11 @@ cargo xtask flash
 - *Note*: it is possible to only build the `.bin` and `.bit` files using `cargo xtask build-hw`, this doesn't flash the FPGA memory.
 
 ### :arrow_forward: 3. PROG
-Press the red button in top right corner of the Basys3.
+Press the red button in top right corner of the Basys 3.
 After 5-10 seconds the CPU should be running on the FPGA, stored in the non-volatile memory.
 
 ### 🔌 4. Upload Rust
-**First:** locate the comport you FPGA uses to connect to the pc:
+**1.** locate the COM-port you FPGA uses to connect to the pc:
 *Windows:* 
 ```powershell
 Get-PnpDevice -Class Ports -PresentOnly | Select-Object -Property FriendlyName
@@ -179,14 +180,22 @@ Look for something like /dev/ttyUSB0 or /dev/ttyUSB1.
 
 **Note:** If you don't know which port is your FPGA, then unplug it, run the command, and plug it in again and run the command once more.
 
-**Second:** Upload rust code
+**2.** Upload rust code
 ```bash
 cargo xtask upload <your_COM_port>
 ```
-**Note:** You can re-upload anytime after changing the rust file and then running `cargo xtask upload <your_COM_port>` again.
-The bootloader routes uploaded words by address: instructions in `0x0000_0000` - `0x0000_0FFF` go to IMEM, and data in `0x0000_1000` - `0x0000_1FFF` go to DMEM.
+The board now acts as a microcontroller running RISC-V32I instructions.
 
-### :broom: 5. Clean up (Optional)
+**Note:** You can re-upload anytime after changing the rust file and then running the upload command again.
+
+### 5. Verify functionality
+After upload, the program prints "PASS" over UART and demonstrates all peripherals:
+- **ADC bar-graph:** Onboard LEDs 0-15 light up as a bar-graph based on the first PMOD-pin-pairs analog input in JXADC.
+- **Buttons:** btnU, btnL, btnR, light up Pmod connector JA LEDs 1, 2, 3 respectively.
+- **RGB LED (PWM):** Pmod pins 12-14 drive a common-anode RGB LED that fades through red, green, and blue
+- **PMOD GPIO:** JA, JB, and JC are bidirectional GPIO connectors. The Rust demo uses the new `Pmod` helper to drive outputs, read inputs, and route PWM to selected pins.
+
+### :broom: 6. Clean up (Optional)
 Since the CPU is stored in the flash memory, the generated files are not necessary.
 **Note:** if making changes to the CPU and the hw/vivado is cleaned away, then `cargo xtask flash` will take longer.
 

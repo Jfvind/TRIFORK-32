@@ -34,7 +34,12 @@ class xadc_wiz_0 extends BlackBox {
 }
 
 // 2. The Chisel Controller: Fetches data via the DRP and exposes it to Rust
-class AdcController extends Module {
+//
+// `sim`: when true, the Vivado XADC BlackBox is not instantiated and the ADC
+// outputs are tied to fixed values. This lets the SoC be simulated on any
+// chiseltest backend (the BlackBox has no behavioral model). Production builds
+// use the default `sim = false`, so the generated Verilog is unchanged.
+class AdcController(sim: Boolean = false) extends Module {
   val io = IO(new Bundle {
     val vauxp6          = Input(Bool())
     val vauxn6          = Input(Bool())
@@ -51,6 +56,13 @@ class AdcController extends Module {
     val adcData3        = Output(UInt(16.W)) // VAUX15
   })
 
+  if (sim) {
+    // Behavioral stub for simulation: no Vivado XADC IP available.
+    io.adcData0 := 0.U
+    io.adcData1 := 0.U
+    io.adcData2 := 0.U
+    io.adcData3 := 0.U
+  } else {
   // Instantiate the BlackBox
   val xadc = Module(new xadc_wiz_0())
   
@@ -106,5 +118,6 @@ class AdcController extends Module {
   io.adcData0 := dataReg(0) >> 4
   io.adcData1 := dataReg(1) >> 4
   io.adcData2 := dataReg(2) >> 4
-  io.adcData3 := dataReg(3) >> 4 
+  io.adcData3 := dataReg(3) >> 4
+  }
 }
