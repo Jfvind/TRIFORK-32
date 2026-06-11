@@ -1,3 +1,5 @@
+//! PMOD GPIO bank helpers.
+
 use crate::mmio::{PMOD_JA_BASE, PMOD_JB_BASE, PMOD_JC_BASE};
 
 /// PMOD connector banks.

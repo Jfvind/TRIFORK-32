@@ -1,9 +1,24 @@
 //! Hardware abstraction layer for the DTU FPGA MCU, TRIFORK-32.
 //!
 //! This crate exposes small, student-facing helpers for the memory-mapped
-//! peripherals in the SoC. The low-level root functions are kept as
-//! compatibility aliases, while modules such as [`leds`], [`buttons`], [`adc`],
-//! [`delay`], and [`rgb`] provide the preferred application API.
+//! peripherals in the SoC. Student applications should normally use the module
+//! APIs: [`adc`], [`buttons`], [`leds`], [`rgb`], [`delay`], and [`Pmod`].
+//!
+//! The older root-level helper names such as [`led_write`], [`btn_read`],
+//! [`adc_read_all`], [`pwm_set_duty`], and [`rgb_set`] are still available as
+//! compatibility aliases, but the module APIs are preferred for new code.
+//! Low-level MMIO addresses are kept in private/internal modules so application
+//! code does not need to use raw pointers.
+//!
+//! ```rust,no_run
+//! use mcu_hal::{adc, buttons, delay, leds, rgb, Pmod};
+//!
+//! let adc0 = adc::read(0).unwrap_or(0);
+//! leds::write_bar(adc0, adc::MAX_VALUE);
+//! Pmod::JA.set_out(buttons::read());
+//! rgb::set(50, 0, 0);
+//! delay::cycles(150_000);
+//! ```
 
 #![no_std]
 

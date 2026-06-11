@@ -1,8 +1,10 @@
+//! UART formatting support and print macros.
+
 use core::fmt::{self, Write};
 
 use crate::mmio::{UART_DATA, UART_STATUS};
 
-/// UART transmitter used by the [`print!`] and [`println!`] macros.
+/// UART transmitter used by the `print!` and `println!` macros.
 pub struct Uart;
 
 impl Uart {

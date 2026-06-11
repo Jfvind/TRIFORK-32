@@ -1,3 +1,5 @@
+//! Helpers for the 16 onboard LEDs.
+
 use crate::mmio::LED_REG;
 
 /// Writes all 16 LEDs as a raw bit mask.

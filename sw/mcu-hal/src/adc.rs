@@ -1,3 +1,5 @@
+//! ADC helpers for the four analog input channels.
+
 use crate::mmio::ADC_BASE;
 
 /// Maximum expected ADC sample value for the current 12-bit ADC path.

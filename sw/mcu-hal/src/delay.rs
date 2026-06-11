@@ -1,3 +1,5 @@
+//! Busy-wait delay helpers for simple demos.
+
 /// Delays for roughly `count` CPU cycles using `nop` instructions.
 ///
 /// This is not a precise timer; it is intended for simple demos.

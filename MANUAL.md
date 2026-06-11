@@ -172,6 +172,11 @@ der er implementeret i `sw/mcu-hal/src/lib.rs` og bruges fra `sw/program/src/app
 den underliggende Memory-Mapped I/O, så du ikke behøver at 
 arbejde direkte med hukommelsesadresser.
 
+Den genererede HAL API-reference kan åbnes lokalt med `cargo xtask docs`.
+Ny student-kode bør foretrække modul-API'et, f.eks. `leds::write(...)`,
+`buttons::read()`, `adc::read_all()`, `pwm::set_duty(...)` og `rgb::set(...)`.
+De gamle root-funktioner herunder findes stadig som compatibility aliases.
+
 ### LED: `led_write(val: u16)`
 
 Skriver en værdi til LED-registret. Hver bit svarer til én LED 

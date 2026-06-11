@@ -1,3 +1,5 @@
+//! PWM duty cycle helpers.
+
 use crate::mmio::PWM_DUTY;
 
 /// Sets a PWM channel duty cycle in percent.

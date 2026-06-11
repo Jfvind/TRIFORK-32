@@ -1,3 +1,5 @@
+//! Helpers for the four onboard buttons.
+
 use crate::mmio::BTN_REG;
 
 /// Reads the four onboard buttons as a raw bit mask.

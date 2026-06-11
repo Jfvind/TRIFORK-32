@@ -188,6 +188,11 @@ The board now acts as a microcontroller running RISC-V32I instructions.
 
 **Note:** You can re-upload anytime after changing the rust file and then running the upload command again.
 
+**HAL API docs:** To browse the generated Rust documentation for the MCU HAL, run:
+```bash
+cargo xtask docs
+```
+
 ### 5. Verify functionality
 After upload, the program prints "PASS" over UART and demonstrates all peripherals:
 - **ADC bar-graph:** Onboard LEDs 0-15 light up as a bar-graph based on the first PMOD-pin-pairs analog input in JXADC.

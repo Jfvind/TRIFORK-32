@@ -1,3 +1,5 @@
+//! Helpers for RGB LEDs driven through PWM channels.
+
 use crate::pwm;
 
 /// Sets the onboard RGB LED intensity.
