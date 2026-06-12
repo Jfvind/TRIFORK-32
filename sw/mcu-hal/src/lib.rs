@@ -13,6 +13,7 @@ mod mmio;
 pub mod adc;
 pub mod buttons;
 pub mod delay;
+pub mod i2c;
 pub mod leds;
 pub mod pmod;
 pub mod pwm;

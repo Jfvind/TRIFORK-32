@@ -172,7 +172,9 @@ fn clean(sh: &Shell) -> Result<(), xshell::Error> {
             continue;
         }
         if let Err(e) = sh.remove_path(path) {
-            eprintln!("Warning: failed to remove '{path}': {e}\n  - Ensure no programs (editors, terminals, cargo/rustc) are using files inside the directory.\n  - Try closing VS Code, stopping background cargo processes, or run the shell as Administrator.\n  - You can also remove the folder manually: `Remove-Item -Recurse -Force {path}` (PowerShell)");
+            eprintln!(
+                "Warning: failed to remove '{path}': {e}\n  - Ensure no programs (editors, terminals, cargo/rustc) are using files inside the directory.\n  - Try closing VS Code, stopping background cargo processes, or run the shell as Administrator.\n  - You can also remove the folder manually: `Remove-Item -Recurse -Force {path}` (PowerShell)"
+            );
         }
     }
 

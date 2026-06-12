@@ -1,8 +1,8 @@
 /* Linker script for Wildcat RISC-V SoC.
  *
  * Must match the scratchpad memory layout in RustSoCTop:
- *   - IMEM: 4 KB at 0x0000_0000 for instructions
- *   - DMEM: 4 KB at 0x0000_1000 for data, rodata, bss, and stack
+ *   - IMEM: 16 KB at 0x0000_0000 for instructions
+ *   - DMEM: 16 KB at 0x0000_4000 for data, rodata, bss, and stack
  *
  * The entry point must stay at 0x0000_0000 because the CPU starts there.
  */

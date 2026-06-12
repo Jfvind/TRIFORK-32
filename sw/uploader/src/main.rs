@@ -18,9 +18,9 @@ use std::process::ExitCode;
 use std::thread::sleep;
 use std::time::{Duration, Instant};
 
-const START_MAGIC:  u32 = 0xB00710AD;
-const DONE_MAGIC:   u32 = 0xD0000000;
-const RESET_MAGIC:  u32 = 0xDEADBEEF;
+const START_MAGIC: u32 = 0xB00710AD;
+const DONE_MAGIC: u32 = 0xD0000000;
+const RESET_MAGIC: u32 = 0xDEADBEEF;
 const DEFAULT_BAUD: u32 = 115_200;
 
 /// Small delay between bytes so the bootloader has time to process each one.
@@ -108,7 +108,7 @@ fn word_payload(address: u32, data: u32) -> [u8; 8] {
 /// Split a raw binary image into the (address, data) word pairs the bootloader expects.
 /// The image is zero-padded up to a 4-byte boundary and each word is decoded
 /// little-endian. Addresses start at `base_address` and increment by 4; the SoC
-/// routes them to IMEM (`< 0x1000`) or DMEM (`>= 0x1000`) by range. No I/O so the 
+/// routes them to IMEM (`< 0x1000`) or DMEM (`>= 0x1000`) by range. No I/O so the
 /// framing can be verified in unit tests.
 fn frame_binary(data: &[u8], base_address: u32) -> Vec<(u32, u32)> {
     let mut data = data.to_vec();
@@ -237,7 +237,10 @@ fn run() -> Result<ExitCode> {
         let output = listen_output(&mut *port, Duration::from_secs_f64(args.timeout))?;
         match first_missing(&output, &args.expect) {
             None => {
-                println!("[loader] PASS: found all {} expected marker(s)", args.expect.len());
+                println!(
+                    "[loader] PASS: found all {} expected marker(s)",
+                    args.expect.len()
+                );
                 Ok(ExitCode::SUCCESS)
             }
             Some(missing) => {
