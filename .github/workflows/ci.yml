@@ -46,14 +46,28 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-cargo-
 
+      - name: Rust formatting
+        run: cargo fmt --check
+
       - name: Clippy (host tools)
         run: cargo clippy -p uploader -p xtask -- -D warnings
 
       - name: Unit tests (uploader protocol + xtask)
         run: cargo test -p uploader -p xtask
 
+      - name: Compile-check MCU HAL crate
+        run: cargo check -p mcu-hal --target riscv32i-unknown-none-elf
+
+      - name: Compile-check MCU runtime crate
+        run: cargo check -p mcu-rt --target riscv32i-unknown-none-elf
+
       - name: Compile-check on-device program (RISC-V target)
         run: cargo build -p program --target riscv32i-unknown-none-elf --release
+
+      - name: Build HAL API docs
+        env:
+          RUSTDOCFLAGS: -D warnings
+        run: cargo doc -p mcu-hal --target riscv32i-unknown-none-elf --no-deps
 
   # ────────────────────────────────────────────────────────────
   # Job 1: Simulation tests (in Github cloud)
