@@ -342,7 +342,7 @@ mod tests {
     /// The CI pass rule: all expected markers must be present, in any order.
     #[test]
     fn first_missing_requires_every_marker() {
-        let output = "=== DTU MCU Booted ===\nSRAM Size: 4096 bytes\nStatus: PASS\n";
+        let output = "=== DTU MCU Booted ===\nSRAM Size: 16384 bytes\nStatus: PASS\n";
         let all = vec!["=== DTU MCU Booted ===".to_string(), "PASS".to_string()];
         assert_eq!(first_missing(output, &all), None);
 
