@@ -273,7 +273,7 @@ class RustSoCTop(frequ: Int = 100000000, baudRate: Int = 115200, memBytes: Int =
   // the controller handles bit-level timing, START/STOP conditions, ACK/NACK, and clock stretching.
   val i2c = withReset(combinedReset) { Module(new I2cController()) }
 
-  // CPU-facing registers (set deafaults; actual writes hapen in the MMIO decoder below)
+  // CPU-facing registers (set defaults; actual writes happen in the MMIO decoder below)
   val i2cDataReg = withReset(combinedReset) { RegInit(0.U(8.W)) } // Byte to transmit (DATA register)
   val i2cClkDivReg = withReset(combinedReset) { RegInit(0.U(16.W)) } // Clock divider (0 = use deafault)
   val i2cCmdValid = WireDefault(false.B) // Pulses high for one cycle on CMD write
@@ -525,7 +525,7 @@ class RustSoCTop(frequ: Int = 100000000, baudRate: Int = 115200, memBytes: Int =
           cpu.io.dmem.rdData := i2c.io.dataOut
         }
         .elsewhen(offset === 8.U) {
-          // Read STATUS register: BUST/NACK/BUS_ERR flags
+          // Read STATUS register: BUSY/NACK/BUS_ERR flags
           cpu.io.dmem.rdData := i2c.io.status
         }
         .elsewhen(offset === 12.U) {
