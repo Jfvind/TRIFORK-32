@@ -40,7 +40,7 @@ object I2cCmd {
 object I2cStatus {
   val BUSY    = 0  // bit 0: controller is executing a command
   val NACK    = 1  // bit 1: last WRITE received NACK from slave
-  val BUS_ERR = 2  // bit 2: clock stretching timeout or other bus fault
+  val BUS_ERR = 2  // bit 2: reserved for bus faults; not currently set by the controller
 }
 
 /**
@@ -68,7 +68,7 @@ class I2cController(systemClockHz: Int = 100_000_000,
     val sdaIn       = Input(Bool())     // Actual SDA line state (read back)
 
     val sclOut      = Output(Bool())    // What to drive on SCL when oe=1
-    val sclOe       = Output(Bool())    // Output enable
+    val sclOe       = Output(Bool())    // Output enable 1=drive, 0=tristate
     val sclIn       = Input(Bool())     // Actual SCL line state (to register clock stretching from slave)  
   })
 
@@ -234,7 +234,7 @@ class I2cController(systemClockHz: Int = 100_000_000,
 
     // ---- sStop: generate STOP condition ----
     // Assumes we just finished a byte/ACK, so SCL=LOW and SDA=unkown
-    //  Phase 0: drive SDA LOW (make shure it's LOW before SCL rises)
+    //  Phase 0: drive SDA LOW (make sure it's LOW before SCL rises)
     //  Phase 1: release SCL (goes HIGH via pull-up)
     //  Phase 2: release SDA (goes HIGH while SCL is HIGH  -> STOP condition)
     //  Phase 3: done

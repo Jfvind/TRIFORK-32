@@ -108,7 +108,7 @@ fn word_payload(address: u32, data: u32) -> [u8; 8] {
 /// Split a raw binary image into the (address, data) word pairs the bootloader expects.
 /// The image is zero-padded up to a 4-byte boundary and each word is decoded
 /// little-endian. Addresses start at `base_address` and increment by 4; the SoC
-/// routes them to IMEM (`< 0x1000`) or DMEM (`>= 0x1000`) by range. No I/O so the
+/// routes each word to IMEM or DMEM by its address range. No I/O so the
 /// framing can be verified in unit tests.
 fn frame_binary(data: &[u8], base_address: u32) -> Vec<(u32, u32)> {
     let mut data = data.to_vec();
@@ -320,14 +320,17 @@ mod tests {
         assert_eq!(frame_binary(&bin, 0), vec![(0x0000_0000, 0x00CC_BBAA)]);
     }
 
-    /// Addresses track the base and cross the IMEM→DMEM boundary (0x1000) cleanly,
-    /// so .data words are routed to DMEM by the SoC's address decode.
+    /// Addresses track the base and cross the IMEM→DMEM boundary (0x4000) cleanly,
+    /// so .data words land in the DMEM range the SoC's address decode routes there.
+    /// Note: this checks the address framing only — frame_binary itself does no
+    /// routing; the SoC decodes the range. See RustSoCExecutionTest for the
+    /// end-to-end routing check.
     #[test]
     fn frame_addresses_cross_imem_dmem_boundary() {
         let bin = vec![0u8; 8]; // two words
-        let words = frame_binary(&bin, 0x0000_0FFC);
-        assert_eq!(words[0].0, 0x0000_0FFC); // last IMEM word
-        assert_eq!(words[1].0, 0x0000_1000); // first DMEM word
+        let words = frame_binary(&bin, 0x0000_3FFC);
+        assert_eq!(words[0].0, 0x0000_3FFC); // last IMEM word
+        assert_eq!(words[1].0, 0x0000_4000); // first DMEM word
     }
 
     /// An empty image produces no words (and must not panic).
@@ -339,7 +342,7 @@ mod tests {
     /// The CI pass rule: all expected markers must be present, in any order.
     #[test]
     fn first_missing_requires_every_marker() {
-        let output = "=== DTU MCU Booted ===\nSRAM Size: 4096 bytes\nStatus: PASS\n";
+        let output = "=== DTU MCU Booted ===\nSRAM Size: 16384 bytes\nStatus: PASS\n";
         let all = vec!["=== DTU MCU Booted ===".to_string(), "PASS".to_string()];
         assert_eq!(first_missing(output, &all), None);
 

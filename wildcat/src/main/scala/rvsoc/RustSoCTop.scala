@@ -66,7 +66,7 @@ class TriStateBuffer8 extends HasBlackBoxInline {
  *     back to boot mode, ready for a fresh upload.
  *
  * Memory map:
-*   0x0000_0000 – 0x0000_3FFF : Instruction scratchpad (IMEM, 16 KB default)
+ *   0x0000_0000 – 0x0000_3FFF : Instruction scratchpad (IMEM, 16 KB default)
  *   0x0000_4000 – 0x0000_7FFF : Data scratchpad (DMEM, 16 KB default)
  *   0xF000_0000               : UART status  (bit 0 = TX ready, bit 1 = RX data available)
  *   0xF000_0004               : UART data    (read = RX byte, write = TX byte)
@@ -191,8 +191,8 @@ class RustSoCTop(frequ: Int = 100000000, baudRate: Int = 115200, memBytes: Int =
   // ====================================
   // When the bootloader asserts wrEnabled with a valid (non-done) word,
   // route it by address range:
-  //   0x0000_0000 - 0x0000_0FFF -> IMEM
-  //   0x0000_1000 - 0x0000_1FFF -> DMEM
+  //   0x0000_0000 - 0x0000_3FFF -> IMEM
+  //   0x0000_4000 - 0x0000_7FFF -> DMEM
   // This overwrites the CPU lines when it is true.
   val imemLimit = memBytes.U(32.W)
   val dmemBase = memBytes.U(32.W)
@@ -273,7 +273,7 @@ class RustSoCTop(frequ: Int = 100000000, baudRate: Int = 115200, memBytes: Int =
   // the controller handles bit-level timing, START/STOP conditions, ACK/NACK, and clock stretching.
   val i2c = withReset(combinedReset) { Module(new I2cController()) }
 
-  // CPU-facing registers (set deafaults; actual writes hapen in the MMIO decoder below)
+  // CPU-facing registers (set defaults; actual writes happen in the MMIO decoder below)
   val i2cDataReg = withReset(combinedReset) { RegInit(0.U(8.W)) } // Byte to transmit (DATA register)
   val i2cClkDivReg = withReset(combinedReset) { RegInit(0.U(16.W)) } // Clock divider (0 = use deafault)
   val i2cCmdValid = WireDefault(false.B) // Pulses high for one cycle on CMD write
@@ -525,7 +525,7 @@ class RustSoCTop(frequ: Int = 100000000, baudRate: Int = 115200, memBytes: Int =
           cpu.io.dmem.rdData := i2c.io.dataOut
         }
         .elsewhen(offset === 8.U) {
-          // Read STATUS register: BUST/NACK/BUS_ERR flags
+          // Read STATUS register: BUSY/NACK/BUS_ERR flags
           cpu.io.dmem.rdData := i2c.io.status
         }
         .elsewhen(offset === 12.U) {

@@ -30,10 +30,10 @@ class BootloaderProtocolTest extends AnyFlatSpec with ChiselScalatestTester {
   val START_MAGIC = 0xB00710ADL
 
   // (address, data) words to load. Mirrors the host-side test: one IMEM
-  // instruction word and one DMEM data word that crosses the 0x1000 boundary.
+  // instruction word and one DMEM data word across the 0x4000 boundary.
   val words = Seq(
     (0x00000000L, 0x11100093L), // addi x1, x0, 0x111  -> IMEM
-    (0x00001000L, 0xDEADBEEFL)  // data word           -> DMEM
+    (0x00004000L, 0xDEADBEEFL)  // data word           -> DMEM
   )
 
   "BootloaderTop" should "decode uploader frames into the original (address, data) writes" in {
