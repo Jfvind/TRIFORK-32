@@ -115,7 +115,7 @@ pub fn read_bytes(addr: u8, buf: &mut [u8]) -> bool {
     // Wait ~50 microseconds after the address byte before clocking
     // the first data bit. AM2320-class slaves need time to prepare data
     // after ACKing their address; standard slaves would clock-stretch
-    // instead, but some quirky chips do not. 
+    // instead, but some quirky chips do not.
     delay::cycles_precise(5_000);
     let last = buf.len() - 1;
     for (i, slot) in buf.iter_mut().enumerate() {
