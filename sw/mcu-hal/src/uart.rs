@@ -42,9 +42,9 @@ macro_rules! print {
 #[macro_export]
 macro_rules! println {
     () => {
-        $crate::print!("\n")
+        $crate::print!("\n\r")
     };
     ($($arg:tt)*) => {
-        $crate::print!("{}\n", format_args!($($arg)*))
+        $crate::print!("{}\n\r", format_args!($($arg)*))
     };
 }
