@@ -1,4 +1,4 @@
-# rust-riscv-soc
+# TRIFORK-32
 Allows you to run rust code on your FPGA through a Wildcat Risc-V.
 
 
@@ -7,7 +7,10 @@ Allows you to run rust code on your FPGA through a Wildcat Risc-V.
 ### :rocket: Running Rust on the CPU
 _Everything you need to write Rust programs and execute them on the FPGA._
 
-#### 1. Xilinx Vivado (WebPACK Edition) !!Only needed if softcore is not already flashed to board!!
+#### 1. Xilinx Vivado (WebPACK Edition)
+> [!IMPORTANT]
+> Only needed if softcore is not already flashed to board
+
 Required for synthesizing the hardware and flashing the FPGA. Only needed once to program the non-volatile flash.
 
 **Check if installed:**
@@ -142,14 +145,14 @@ The test circuit below is the hardware setup used by the code currently running 
 ![Quick workflow for running program on MCU](docs/diagrams/Rust-on-MCU-Quickguide.svg)
 See the detailed steps below
 
-### 1. Clone repo (requires git) OR [download release zip](https://github.com/Jfvind/rust-riscv-soc/releases/latest)
+### 1. Clone repo (requires git) OR [download release zip](https://github.com/Jfvind/TRIFORK-32/releases/latest)
 ```bash
-git clone https://github.com/Jfvind/rust-riscv-soc
-cd rust-riscv-soc
+git clone https://github.com/Jfvind/TRIFORK-32
+cd TRIFORK-32
 ```
 ### 2. Flash
 Build RustSoCTop.bin from wildcat/src/main/scala/rvsoc/RustSoCTop.scala and flash to Basys 3
-- **Dependency:** Make sure Basys 3 is connected and turned on (And 'Prerequisites & Installation' is completed) and your terminal is in /rust-riscv-soc
+- **Dependency:** Make sure Basys 3 is connected and turned on (And 'Prerequisites & Installation' is completed) and your terminal is in /TRIFORK-32
 ```bash
 cargo xtask flash
 ```

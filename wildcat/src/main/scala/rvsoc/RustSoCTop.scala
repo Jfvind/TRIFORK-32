@@ -50,6 +50,7 @@ class TriStateBuffer8 extends HasBlackBoxInline {
  *   - Enable on-board button inputs
  *   - Reads Analog values from JXADC inputs
  *   - JA, JB, JC are used as GPIOs.
+ *   - I2C protocol to gather input from AM air-sensor.
  *
  * Boot sequence:
  *   1. After FPGA is programmed, the bootloader is active and the CPU is stalled.
@@ -66,14 +67,14 @@ class TriStateBuffer8 extends HasBlackBoxInline {
  *     back to boot mode, ready for a fresh upload.
  *
  * Memory map:
-*   0x0000_0000 – 0x0000_3FFF : Instruction scratchpad (IMEM, 16 KB default)
+ *   0x0000_0000 – 0x0000_3FFF : Instruction scratchpad (IMEM, 16 KB default)
  *   0x0000_4000 – 0x0000_7FFF : Data scratchpad (DMEM, 16 KB default)
  *   0xF000_0000               : UART status  (bit 0 = TX ready, bit 1 = RX data available)
  *   0xF000_0004               : UART data    (read = RX byte, write = TX byte)
  *   0xF010_0000               : on-board LEDs (lower 7 bits drive LEDs)
  *   0xF020_0000               : debounced on-board Buttons (bit 0-3 = btnU, btnL, btnR, btnD)
  *   0xF030_000X               : ADC (0=Ch1, 4=Ch2, 8=Ch3, C=Ch4)
- *   0xF040_000X               : PWM (0=Enable, 4-40=Duty cycles)
+ *   0xF040_000X               : PWM (0=Enable, 4-40=GPIOs)
  *   0xF050_000X               : PMOD JA (0=DIR, 4=OUT, 8=IN, C=PWM_EN, 10=IN_DEBOUNCED)
  *   0xF060_000X               : PMOD JB (0=DIR, 4=OUT, 8=IN, C=PWM_EN, 10=IN_DEBOUNCED)
  *   0xF070_000X               : PMOD JC (0=DIR, 4=OUT, 8=IN, C=PWM_EN, 10=IN_DEBOUNCED)
@@ -86,7 +87,7 @@ class TriStateBuffer8 extends HasBlackBoxInline {
  */
 // `sim`: when true, the Analog tri-state GPIO pads and the Vivado XADC BlackBox
 // are replaced by simulation-friendly models so the whole SoC can run on any
-// chiseltest backend (e.g. Treadle). Production builds use the default
+// chiseltest backend. Production builds use the default
 // `sim = false`, so the generated Verilog (and bitstream) is unchanged.
 class RustSoCTop(frequ: Int = 100000000, baudRate: Int = 115200, memBytes: Int = 16384, sim: Boolean = false) extends Module {
 
@@ -191,8 +192,8 @@ class RustSoCTop(frequ: Int = 100000000, baudRate: Int = 115200, memBytes: Int =
   // ====================================
   // When the bootloader asserts wrEnabled with a valid (non-done) word,
   // route it by address range:
-  //   0x0000_0000 - 0x0000_0FFF -> IMEM
-  //   0x0000_1000 - 0x0000_1FFF -> DMEM
+  //   0x0000_0000 - 0x0000_3FFF -> IMEM
+  //   0x0000_4000 - 0x0000_7FFF -> DMEM
   // This overwrites the CPU lines when it is true.
   val imemLimit = memBytes.U(32.W)
   val dmemBase = memBytes.U(32.W)
@@ -257,7 +258,7 @@ class RustSoCTop(frequ: Int = 100000000, baudRate: Int = 115200, memBytes: Int =
   // PWM Controller
   // ====================================
   val pwm = withReset(combinedReset) { Module(new PwmController()) }
-  val pwmEnable = withReset(combinedReset) { RegInit(0.U(16.W)) } // Bitmask to enable pwm signal for respective LED
+  val pwmEnable = withReset(combinedReset) { RegInit(0.U(16.W)) } // Bitmask to enable pwm signal for respective LEDs !! CURRENTLY UNCONNECTED (using Pmod bank-specific enable registers) !!
   val pwmDutyRegs = withReset(combinedReset) { RegInit(VecInit(Seq.fill(24)(0.U(8.W)))) } // Registers that holds respective duty cycle value for comparison in PWM module to control perceived brightness
 
   // Connect duty registers to PWM module
@@ -466,7 +467,6 @@ class RustSoCTop(frequ: Int = 100000000, baudRate: Int = 115200, memBytes: Int =
           i2cClkDivReg := cpu.io.dmem.wrData(15, 0)
         }
         // Note: STATUS register (offset 8) is read-only, writes are ignored
-
       }
     }
     dmem.io.wr := false.B // prevent IO writes from currupting RAM

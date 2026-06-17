@@ -74,7 +74,7 @@ fn parse_address(s: &str) -> Result<u32, String> {
     u32::from_str_radix(digits, radix).map_err(|e| format!("invalid address '{s}': {e}"))
 }
 
-/// Write bytes one at a time with the inter-byte delay, mirroring the Python behaviour.
+/// Write bytes one at a time with the inter-byte delay.
 fn write_slow(port: &mut dyn SerialPort, bytes: &[u8]) -> Result<()> {
     for b in bytes {
         port.write_all(std::slice::from_ref(b))
