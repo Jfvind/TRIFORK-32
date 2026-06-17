@@ -1,5 +1,5 @@
 # TRIFORK-32
-Allows you to run rust code on your FPGA through a Wildcat Risc-V.
+Allows you to run Rust code on TRIFORK-32, a Wildcat RISC-V based MCU implemented on an FPGA.
 
 
 ## :shopping_cart: Prerequisites & Installation
@@ -142,7 +142,7 @@ The test circuit below is the hardware setup used by the code currently running 
 
 ![Test circuit for app.rs](docs/diagrams/Test-circuit.png)
 
-![Quick workflow for running program on MCU](docs/diagrams/Rust-on-MCU-Quickguide.svg)
+![Quick workflow for running a program on TRIFORK-32](docs/diagrams/trifork32-quickguide.svg)
 See the detailed steps below
 
 ### 1. Clone repo (requires git) OR [download release zip](https://github.com/Jfvind/TRIFORK-32/releases/latest)
@@ -187,11 +187,11 @@ Look for something like /dev/ttyUSB0 or /dev/ttyUSB1.
 ```bash
 cargo xtask upload <your_COM_port>
 ```
-The board now acts as a microcontroller running RISC-V32I instructions.
+The board now runs TRIFORK-32 as a microcontroller executing RISC-V32I instructions.
 
 **Note:** You can re-upload anytime after changing the rust file and then running the upload command again.
 
-**HAL API docs:** To browse the generated Rust documentation for the MCU HAL, run:
+**HAL API docs:** To browse the generated Rust documentation for the TRIFORK-32 HAL, run:
 ```bash
 cargo xtask docs
 ```

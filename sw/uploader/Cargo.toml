@@ -2,7 +2,7 @@
 name = "uploader"
 version = "0.1.0"
 edition = "2021"
-description = "UART bootloader upload tool for RustSoCTop"
+description = "UART bootloader upload tool for TRIFORK-32"
 
 [[bin]]
 name = "uploader"

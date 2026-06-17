@@ -1,11 +1,11 @@
 #![no_std]
 #![no_main]
 
-use mcu_rt as _;
+use trifork32_rt as _;
 
 mod app;
 
 #[no_mangle]
-pub extern "C" fn __mcu_app_main() -> ! {
+pub extern "C" fn __trifork32_app_main() -> ! {
     app::main()
 }

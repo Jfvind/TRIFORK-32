@@ -55,11 +55,11 @@ jobs:
       - name: Unit tests (uploader protocol + xtask)
         run: cargo test -p uploader -p xtask
 
-      - name: Compile-check MCU HAL crate
-        run: cargo check -p mcu-hal --target riscv32i-unknown-none-elf
+      - name: Compile-check TRIFORK-32 HAL crate
+        run: cargo check -p trifork32-hal --target riscv32i-unknown-none-elf
 
-      - name: Compile-check MCU runtime crate
-        run: cargo check -p mcu-rt --target riscv32i-unknown-none-elf
+      - name: Compile-check TRIFORK-32 runtime crate
+        run: cargo check -p trifork32-rt --target riscv32i-unknown-none-elf
 
       - name: Compile-check on-device program (RISC-V target)
         run: cargo build -p program --target riscv32i-unknown-none-elf --release
@@ -67,7 +67,7 @@ jobs:
       - name: Build HAL API docs
         env:
           RUSTDOCFLAGS: -D warnings
-        run: cargo doc -p mcu-hal --target riscv32i-unknown-none-elf --no-deps
+        run: cargo doc -p trifork32-hal --target riscv32i-unknown-none-elf --no-deps
 
   # ────────────────────────────────────────────────────────────
   # Job 1: Simulation tests (in Github cloud)

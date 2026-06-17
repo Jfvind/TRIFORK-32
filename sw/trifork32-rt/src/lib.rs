@@ -7,7 +7,7 @@ extern "C" {
     static mut __bss_start: u32;
     static mut __bss_end: u32;
 
-    fn __mcu_app_main() -> !;
+    fn __trifork32_app_main() -> !;
 }
 
 global_asm!(
@@ -28,11 +28,11 @@ pub unsafe extern "C" fn rust_entry() -> ! {
         bss_ptr = bss_ptr.offset(1);
     }
 
-    __mcu_app_main()
+    __trifork32_app_main()
 }
 
 #[panic_handler]
 fn panic(info: &PanicInfo) -> ! {
-    mcu_hal::println!("\n[CPU PANIC]: {}", info);
+    trifork32_hal::println!("\n[TRIFORK-32 PANIC]: {}", info);
     loop {}
 }
