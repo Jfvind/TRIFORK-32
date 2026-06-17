@@ -1,4 +1,4 @@
-//! Hardware abstraction layer for the DTU FPGA MCU, TRIFORK-32.
+//! Hardware abstraction layer for TRIFORK-32.
 //!
 //! This crate exposes small, student-facing helpers for the memory-mapped
 //! peripherals in the SoC. Student applications should normally use the module
@@ -11,7 +11,7 @@
 //! code does not need to use raw pointers.
 //!
 //! ```rust,no_run
-//! use mcu_hal::{adc, buttons, delay, leds, rgb, Pmod};
+//! use trifork32_hal::{adc, buttons, delay, leds, rgb, Pmod};
 //!
 //! let adc0 = adc::read(0).unwrap_or(0);
 //! leds::write_bar(adc0, adc::MAX_VALUE);

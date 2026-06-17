@@ -1,7 +1,7 @@
 [workspace]
 members = [
-    "sw/mcu-rt",
-    "sw/mcu-hal",
+    "sw/trifork32-rt",
+    "sw/trifork32-hal",
     "sw/program",
     "sw/uploader",
     "xtask"

@@ -1,4 +1,4 @@
-//! UART Bootloader upload tool for RustSoCTop.
+//! UART bootloader upload tool for TRIFORK-32.
 //!
 //! Reads a binary file, sends it to the FPGA's BootloaderTop (in little-endian
 //! format) over serial, and can listen for UART output from the program.
@@ -342,8 +342,8 @@ mod tests {
     /// The CI pass rule: all expected markers must be present, in any order.
     #[test]
     fn first_missing_requires_every_marker() {
-        let output = "=== DTU MCU Booted ===\nSRAM Size: 16384 bytes\nStatus: PASS\n";
-        let all = vec!["=== DTU MCU Booted ===".to_string(), "PASS".to_string()];
+        let output = "=== TRIFORK-32 Booted ===\nSRAM Size: 16384 bytes\nStatus: PASS\n";
+        let all = vec!["=== TRIFORK-32 Booted ===".to_string(), "PASS".to_string()];
         assert_eq!(first_missing(output, &all), None);
 
         let with_absent = vec!["PASS".to_string(), "NOPE".to_string()];

@@ -196,17 +196,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "mcu-hal"
-version = "0.1.0"
-
-[[package]]
-name = "mcu-rt"
-version = "0.1.0"
-dependencies = [
- "mcu-hal",
-]
-
-[[package]]
 name = "nix"
 version = "0.26.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -242,8 +231,8 @@ dependencies = [
 name = "program"
 version = "0.1.0"
 dependencies = [
- "mcu-hal",
- "mcu-rt",
+ "trifork32-hal",
+ "trifork32-rt",
 ]
 
 [[package]]
@@ -315,6 +304,17 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn",
+]
+
+[[package]]
+name = "trifork32-hal"
+version = "0.1.0"
+
+[[package]]
+name = "trifork32-rt"
+version = "0.1.0"
+dependencies = [
+ "trifork32-hal",
 ]
 
 [[package]]
