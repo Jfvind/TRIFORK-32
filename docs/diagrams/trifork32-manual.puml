@@ -1,5 +1,5 @@
 @startuml
-title Workflow: Student runs Rust code on the MCU
+title Workflow: Student runs Rust code on TRIFORK-32
 
 start
 
@@ -8,9 +8,9 @@ partition "Student" {
   :Install/verify prerequisites;
 }
 
-partition "FPGA / MCU" {
+partition "FPGA / TRIFORK-32" {
   if (Softcore already flashed?) then (yes)
-    :MCU image stays on board;
+    :TRIFORK-32 image stays on board;
   else (no)
     :Connect Basys-3 via USB;
     :Run `cargo xtask flash`;
@@ -18,7 +18,7 @@ partition "FPGA / MCU" {
     :Press PROG button;
   endif
 
-  :MCU boots and waits for UART upload;
+  :TRIFORK-32 boots and waits for UART upload;
 }
 
 repeat
@@ -34,7 +34,7 @@ repeat
     :Send reset + activate + payload + done over UART;
   }
 
-  partition "FPGA / MCU" {
+  partition "FPGA / TRIFORK-32" {
     :Bootloader writes program to IMEM and DMEM;
     :Release CPU from reset;
     :Execute program;

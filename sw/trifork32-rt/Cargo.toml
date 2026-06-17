@@ -1,8 +1,7 @@
 [package]
-name = "program"
+name = "trifork32-rt"
 version = "0.1.0"
 edition = "2021"
 
 [dependencies]
 trifork32-hal = { path = "../trifork32-hal" }
-trifork32-rt = { path = "../trifork32-rt" }

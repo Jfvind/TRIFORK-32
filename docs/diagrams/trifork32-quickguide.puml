@@ -1,8 +1,8 @@
 @startuml
-title Rust-on-MCU Quick Workflow
+title TRIFORK-32 Quick Workflow
 
 start
-if (MCU already flashed?) then (yes)
+if (TRIFORK-32 already flashed?) then (yes)
 else (no)
   :Run `cargo xtask flash`;
   :Press PROG on the board;
@@ -11,7 +11,7 @@ endif
 :Edit `sw/program/src/main.rs`;
 :Run `cargo xtask upload <COM_PORT>`;
 :Build and upload program;
-:MCU executes code;
+:TRIFORK-32 executes code;
 :Observe UART output / LEDs;
 stop
 @enduml

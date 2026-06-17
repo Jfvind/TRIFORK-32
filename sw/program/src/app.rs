@@ -1,9 +1,9 @@
-use mcu_hal::{adc, buttons, delay, i2c, leds, rgb, Pmod};
+use trifork32_hal::{adc, buttons, delay, i2c, leds, rgb, Pmod};
 
 pub fn main() -> ! {
-    mcu_hal::println!("=== DTU MCU Booted ===");
-    mcu_hal::println!("SRAM Size: {} bytes", 16384);
-    mcu_hal::println!("Status: PASS");
+    trifork32_hal::println!("=== TRIFORK-32 Booted ===");
+    trifork32_hal::println!("SRAM Size: {} bytes", 16384);
+    trifork32_hal::println!("Status: PASS");
 
     Pmod::JA.set_dir(0b0111_0111);
     Pmod::JA.set_pwm_en(0b_0111_0000);
@@ -18,9 +18,9 @@ pub fn main() -> ! {
     let fake_acked = i2c::write_byte((0x42 << 1) | 0);
     i2c::stop();
     if fake_acked {
-        mcu_hal::println!("NACK detection: FAIL (got ACK from nonexistent 0x42)");
+        trifork32_hal::println!("NACK detection: FAIL (got ACK from nonexistent 0x42)");
     } else {
-        mcu_hal::println!("NACK detection: PASS");
+        trifork32_hal::println!("NACK detection: PASS");
     }
 
     // AM2320 read scheduling: the sensor must not be polled more often than
@@ -95,7 +95,7 @@ pub fn main() -> ! {
                     let temp_frac = (temperature % 10).abs();
                     let hum_int = humidity / 10;
                     let hum_frac = humidity % 10;
-                    mcu_hal::println!(
+                    trifork32_hal::println!(
                         "AM2320: {}.{} C, {}.{} %RH",
                         temp_int,
                         temp_frac,
@@ -103,10 +103,10 @@ pub fn main() -> ! {
                         hum_frac
                     );
                 } else {
-                    mcu_hal::println!("AM2320: read failed");
+                    trifork32_hal::println!("AM2320: read failed");
                 }
             } else {
-                mcu_hal::println!("AM2320: command failed (no ACK)");
+                trifork32_hal::println!("AM2320: command failed (no ACK)");
             }
         }
 

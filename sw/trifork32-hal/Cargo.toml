@@ -1,5 +1,5 @@
 [package]
-name = "mcu-hal"
+name = "trifork32-hal"
 version = "0.1.0"
 edition = "2021"
 

@@ -1,6 +1,6 @@
-# Manual: SoC for Basys 3 - MCU for embedded systems programming 02112 at DTU
+# Manual: TRIFORK-32 - RISC-V MCU for embedded systems programming 02112 at DTU
 ## Introduktion - hvad systemet er og kan
-Dette projekt udgør en SoC (System on a Chip) som ved hjælp af implementeringen af en softcore (Wildcat) 3-trins pipelinet RISC-V processor på et Digilent Basys 3 Artix-7 FPGA, muliggør programmering af selvsamme processor og tilhørende periferienheder i Rust. Specifikke GPIO-enheder som LED, knapper, UART og de bidirektionelle PMOD-porte (JA/JB/JC) interageres med via prædefineret Memory-Mapped I/O. For at forenkle systemet er der udviklet et tilhørende abstraktionslag til føromtalte Memory-Mapped I/O, som leverer færdigbagte hjælpefunktioner der forenkler programmeringen af selvsamme.
+TRIFORK-32 er en SoC (System on a Chip) som ved hjælp af implementeringen af en softcore (Wildcat) 3-trins pipelinet RISC-V processor på et Digilent Basys 3 Artix-7 FPGA, muliggør programmering af selvsamme processor og tilhørende periferienheder i Rust. Specifikke GPIO-enheder som LED, knapper, UART og de bidirektionelle PMOD-porte (JA/JB/JC) interageres med via prædefineret Memory-Mapped I/O. For at forenkle systemet er der udviklet et tilhørende abstraktionslag til føromtalte Memory-Mapped I/O, som leverer færdigbagte hjælpefunktioner der forenkler programmeringen af selvsamme.
 
 Med dette system kan du styre LEDs, aflæse knapper, samt sende og modtage data over seriel kommunikation (UART) — alt sammen fra Rust-programmer du selv skriver og uploader til boardet.
 
@@ -44,7 +44,7 @@ RGB-LEDs findes i to varianter: *common-anode* hvor den fælles pin er +3.3V og 
 ## Forudsætninger og opsætning
 Forudsætningerne for at og flashe projektets softcore arkitektur over på en Basys 3 FPGA for tilsidst at uploade og køre det Rust program der udgør logikken for dit miljø-overvågningssystem er beskrevet i den installationsguide du finder i projektetes `README.md`-fil. 
 
-![Workflow for a uploade rust-kode til MCU på FPGA (Basys 3)](docs/diagrams/Rust-on-MCU-manual.svg)
+![Workflow for at uploade Rust-kode til TRIFORK-32 på FPGA (Basys 3)](docs/diagrams/trifork32-manual.svg)
 
 Herunder en forklaring af hvad hver værktøj bruges til.
 
@@ -169,7 +169,7 @@ gør dette.
 ## HAL-reference: tilgængelige funktioner og adresser
 
 Følgende funktioner udgør det Hardware Abstraction Layer (HAL) 
-der er implementeret i `sw/mcu-hal/src/lib.rs` og bruges fra `sw/program/src/app.rs`. Disse funktioner abstraherer 
+der er implementeret i `sw/trifork32-hal/src/lib.rs` og bruges fra `sw/program/src/app.rs`. Disse funktioner abstraherer
 den underliggende Memory-Mapped I/O, så du ikke behøver at 
 arbejde direkte med hukommelsesadresser.
 
@@ -313,7 +313,7 @@ serielt terminalprogram (115200 baud, 8N1).
 
 ### I2C: `i2c::start()`, `i2c::write_bytes(...)`, `i2c::read_bytes(...)`
 
-I2C er en seriel to-leder bus til at kommunikere med eksterne enheder som sensorer. På denne SoC sidder I2C-controlleren på **PMOD JC**: pin `JC[2]` er SDA (data) og `JC[3]` er SCL (clock). Begge linjer har interne pull-ups, så du forbinder blot sensorens SDA/SCL til de to pins. Funktionerne ligger i modulet `i2c` (`sw/mcu-hal/src/i2c.rs`) og bruges som `i2c::start()` osv.
+I2C er en seriel to-leder bus til at kommunikere med eksterne enheder som sensorer. På denne SoC sidder I2C-controlleren på **PMOD JC**: pin `JC[2]` er SDA (data) og `JC[3]` er SCL (clock). Begge linjer har interne pull-ups, så du forbinder blot sensorens SDA/SCL til de to pins. Funktionerne ligger i modulet `i2c` (`sw/trifork32-hal/src/i2c.rs`) og bruges som `i2c::start()` osv.
 
 Hver enhed på bussen har en 7-bit adresse. Master (din SoC) starter hver overførsel, sender adressen, og enheden svarer med ACK (bekræftelse) eller NACK (intet svar).
 
@@ -407,7 +407,7 @@ i en uendelig løkke der samtidig:
 ```rust
 fn main() {
     // Boot-besked over UART
-    println!("=== DTU MCU Booted ===");
+    println!("=== TRIFORK-32 Booted ===");
     println!("SRAM Size: {} bytes", 16384);
     println!("Status: PASS");
 
@@ -467,13 +467,13 @@ fn main() {
 ```
 
 **Forventet adfærd:**
-- Ved opstart vises "=== DTU MCU Booted ===" i terminalen
+- Ved opstart vises "=== TRIFORK-32 Booted ===" i terminalen
 - Drej på potentiometer tilsluttet JXADC → flere LEDs (0-6) lyser op som en bar-graph
 - Tryk btnU → LED 8 lyser, btnL → LED 9, btnR → LED 10
 - RGB-LED på pin 12-14 fader langsomt op til fuld rød, ned til slukket, op til fuld grøn, ned, op til fuld blå, ned, og gentager
 
 **Bemærk:** Hvis din RGB-LED er common-cathode i stedet for common-anode, skal 
-`rgb_set`-funktionen i `sw/mcu-hal/src/lib.rs` ændres så den ikke inverterer værdierne 
+`rgb_set`-funktionen i `sw/trifork32-hal/src/lib.rs` ændres så den ikke inverterer værdierne
 (fjern `100 -` foran `r`, `g`, `b`).
 
 ## Fejlfinding
@@ -537,7 +537,7 @@ pwm_set(0, 50);                     // Nu virker denne linje
 
 ### RGB-LED lyser modsat forventet (høj værdi = mørk)
 
-Din RGB-LED er sandsynligvis *common-cathode* i stedet for *common-anode*. HAL-funktionen `rgb_set` inverterer værdierne som standard fordi den antager common-anode. For en common-cathode LED skal du ændre `rgb_set` i `sw/mcu-hal/src/lib.rs` så inverteringen fjernes:
+Din RGB-LED er sandsynligvis *common-cathode* i stedet for *common-anode*. HAL-funktionen `rgb_set` inverterer værdierne som standard fordi den antager common-anode. For en common-cathode LED skal du ændre `rgb_set` i `sw/trifork32-hal/src/lib.rs` så inverteringen fjernes:
 
 ```rust
 fn rgb_set(r: u8, g: u8, b: u8) {
