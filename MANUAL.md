@@ -90,15 +90,15 @@ Projektet implementere en softcore processor på en basys 3 FPGA - den specifikk
 
 Processoren kører ét clock-tick ad gangen, igennem dens 3 trins pipeline - fetch (hent instruktion fra hukommelse), decode (forstå instruktionen og indlæs registre) og execute (udfør beregningen).
 ### Hukommelse
-SoC'en implementeres i dette projekt med 4 KB scratchpad-hukommelse, som vivado genkender og implementere i den on chip BRAM der findes på et Basys 3 board. 
+SoC'en implementeres i dette projekt med 16 KB scratchpad-hukommelse, som vivado genkender og implementere i den on chip BRAM der findes på et Basys 3 board. 
 
-SoC'en har to seperate fysiske hukommelser - begge implementeret som scratchpad-hukommelse på hhv. 4 KB:
+SoC'en har to seperate fysiske hukommelser - begge implementeret som scratchpad-hukommelse på hhv. 16 KB:
 - **IMEM (Instruction Memory):** Herfra henter CPU'en instruktioner
 - **DMEM (Data Memory):** Herfra læser og skriver CPU'en data (variabler, stack, arrays osv.)
 
 De to hukommelser er på seperate busser, hvilket betyder at CPU'en kan hente en instruktion og tilgå data på samme clock-cyklus (mere effektivt).
 
-**OBS**: Ved upload routes hvert `(adresse, data)`-word efter adressen. Adresser i `0x0000_0000 – 0x0000_0FFF` skrives kun til IMEM, og adresser i `0x0000_1000 – 0x0000_1FFF` skrives kun til DMEM. Den rå binærfil kan stadig indeholde padding mellem de to områder, men hardwaren gemmer hvert word i den relevante hukommelse. Programmet kan derfor bruge op til 4 KB instruktioner i IMEM og op til 4 KB data/stack i DMEM.
+**OBS**: Ved upload routes hvert `(adresse, data)`-word efter adressen. Adresser i `0x0000_0000 – 0x0000_3FFF` skrives kun til IMEM, og adresser i `0x0000_4000 – 0x0000_7FFF` skrives kun til DMEM. Den rå binærfil kan stadig indeholde padding mellem de to områder, men hardwaren gemmer hvert word i den relevante hukommelse. Programmet kan derfor bruge op til 16 KB instruktioner i IMEM og op til 16 KB data/stack i DMEM.
 
 ### Boot-flow: Hvad sker der når boardet tændes
 **Når boardet tændes, gennemgår systemet følgende sekvens:**
@@ -123,8 +123,8 @@ For at muliggøre hurtigere itterationer under developmenmt, er det muligt at re
 Adresserummet er delt i tre områder: IMEM til instruktioner, DMEM til data og stack, og I/O-enheder ved adresser der starter med `0xF`. For I/O-enheder er det bits 23-20 i adressen der specificerer hvilken enhed der tilgås.
 | Adresse | Enhed | Læs/Skriv |
 |---|---|---|
-| `0x0000_0000 – 0x0000_0FFF` | IMEM: instruction scratchpad (4 KB) | Læs |
-| `0x0000_1000 – 0x0000_1FFF` | DMEM: data scratchpad (4 KB) | Læs + Skriv |
+| `0x0000_0000 – 0x0000_3FFF` | IMEM: instruction scratchpad (16 KB) | Læs |
+| `0x0000_4000 – 0x0000_7FFF` | DMEM: data scratchpad (16 KB) | Læs + Skriv |
 | `0xF000_0000` | UART status (bit 0 = TX klar, bit 1 = RX data tilgængelig) | Læs |
 | `0xF000_0004` | UART data (læs = modtag byte, skriv = send byte) | Læs + Skriv |
 | `0xF010_0000` | LED-register (bit 0–6, 8–15 = LEDs, bit 7 = CPU running indikator) | Skriv (bit 7 read-only) |
@@ -140,6 +140,7 @@ Adresserummet er delt i tre områder: IMEM til instruktioner, DMEM til data og s
 | `0xF050_0010` | PMOD JA IN_DEBOUNCED (bit 0–7 = debounced input value per pin) | Læs |
 | `0xF060_0000` | PMOD JB DIR / OUT / IN / PWM_EN / IN_DEBOUNCED (samme layout som JA, offset 0x0/0x4/0x8/0xC/0x10) | Læs + Skriv |
 | `0xF070_0000` | PMOD JC DIR / OUT / IN / PWM_EN / IN_DEBOUNCED (samme layout som JA, offset 0x0/0x4/0x8/0xC/0x10) | Læs + Skriv |
+| `0xF080_0000 – 0xF080_000C` | I2C-controller (CMD / DATA / STATUS / CLKDIV, offset 0x0/0x4/0x8/0xC) | Læs + Skriv |
 
 ## Workflow - fra Rust-kode til kørende program
 Når du udvikler programmer til denne SoCc, er dit workflow:
@@ -159,7 +160,7 @@ Kommandoen `cargo xtask upload` automatiserer følgende kæde af handlinger:
 Dit Rust-program skrives i filen `sw/program/src/app.rs`. Det 
 er den eneste fil du behøver at redigere under normal brug.
 
-**Note:** Hvis du løber ind i hukommelsesbegrænsninger (4 KB instruktioner eller 4 KB data/stack),
+**Note:** Hvis du løber ind i hukommelsesbegrænsninger (16 KB instruktioner eller 16 KB data/stack),
 er det muligt at udvide hukommelsen ved at ændre størrelsen i 
 `sw/program/linker.ld` og `wildcat/src/main/scala/rvsoc/RustSoCTop.scala`, 
 efterfulgt af et `cargo xtask flash`. Kontakt en underviser inden du 
@@ -310,6 +311,55 @@ println!("Knapper: 0x{:X}", btn_read());
 Output kan ses i terminalen efter `cargo xtask upload <din_port>`, eller med et 
 serielt terminalprogram (115200 baud, 8N1).
 
+### I2C: `i2c::start()`, `i2c::write_bytes(...)`, `i2c::read_bytes(...)`
+
+I2C er en seriel to-leder bus til at kommunikere med eksterne enheder som sensorer. På denne SoC sidder I2C-controlleren på **PMOD JC**: pin `JC[2]` er SDA (data) og `JC[3]` er SCL (clock). Begge linjer har interne pull-ups, så du forbinder blot sensorens SDA/SCL til de to pins. Funktionerne ligger i modulet `i2c` (`sw/mcu-hal/src/i2c.rs`) og bruges som `i2c::start()` osv.
+
+Hver enhed på bussen har en 7-bit adresse. Master (din SoC) starter hver overførsel, sender adressen, og enheden svarer med ACK (bekræftelse) eller NACK (intet svar).
+
+**Opsætning — bus-hastighed:**
+```rust
+i2c::set_clkdiv(500); // 100 kHz (standard mode)
+i2c::set_clkdiv(125); // 400 kHz (fast mode)
+```
+Divideren er `system_clock / (i2c_hz * 2)`; ved 100 MHz giver 500 → 100 kHz. Skriv 0 for hardware-default (100 kHz).
+
+**Højniveau-hjælpere (de fleste programmer bruger disse):**
+
+- `write_bytes(addr, data) -> bool` sender en hel buffer til enheden på 7-bit adresse `addr` (START → adresse+W → data → STOP). Returnerer `true` hvis hver byte blev ACK'et.
+- `read_bytes(addr, buf) -> bool` læser `buf.len()` bytes fra enheden (START → adresse+R → læs → STOP). Returnerer `true` hvis adresse-byten blev ACK'et.
+- `write_read(addr, write_data, read_buf) -> bool` skriver-derefter-læser i én overførsel med repeated START — det typiske "læs et sensor-register"-mønster.
+- `scan(found) -> usize` prober alle adresser `0x08..=0x77` og fylder `found` med dem der svarer; returnerer antallet fundet. Nyttigt til at finde ud af hvilken adresse din sensor har.
+
+```rust
+// Find enheder på bussen
+let mut found = [0u8; 8];
+let n = i2c::scan(&mut found);
+println!("Fandt {} I2C-enhed(er)", n);
+
+// Skriv en kommando til enheden på adresse 0x5C og læs 4 bytes svar
+let cmd = [0x03, 0x00, 0x04];
+if i2c::write_bytes(0x5C, &cmd) {
+    let mut resp = [0u8; 4];
+    i2c::read_bytes(0x5C, &mut resp);
+}
+```
+
+**Lavniveau-primitiver (til fuld kontrol over en overførsel):**
+
+- `start()` / `stop()` — generér START i begyndelsen og STOP i slutningen af hver overførsel.
+- `write_byte(byte) -> bool` — send én byte, returnerer `true` ved ACK. En adresse-byte laves som `(addr << 1) | rw`, hvor `rw` = 0 for skriv, 1 for læs.
+- `read_byte(send_ack) -> u8` — modtag én byte. `send_ack = true` betyder "send mig mere"; `false` signalerer at det var sidste byte (NACK).
+
+```rust
+i2c::start();
+let acked = i2c::write_byte((0x5C << 1) | 0); // adresse 0x5C, skriv
+i2c::write_byte(0x03);                         // send en data-byte
+i2c::stop();
+```
+
+**Status-hjælpere:** `wait_idle()` blokerer til controlleren er færdig med den aktuelle kommando, og `status() -> u32` læser det rå statusregister (BUSY/NACK/BUS_ERR-bits) — primært til fejlsøgning.
+
 ### Avanceret: Direkte MMIO
 
 Hvis du har brug for at tilgå hardware direkte uden HAL-funktioner, 
@@ -339,6 +389,7 @@ De prædefinerede adresser er:
 | `PMOD_JA_BASE` | `0xF050_0000` | GPIO bank | DIR/OUT/IN/PWM_EN/IN_DEBOUNCED |
 | `PMOD_JB_BASE` | `0xF060_0000` | GPIO bank | Samme layout som JA |
 | `PMOD_JC_BASE` | `0xF070_0000` | GPIO bank | Samme layout som JA |
+| `I2C_CMD` … `I2C_CLKDIV` | `0xF080_0000 – 0xF080_000C` | I2C-controller | Command / data / status / clock-divider (offset 0x0/0x4/0x8/0xC) |
 
 
 ## Eksempler på programmering
@@ -357,7 +408,7 @@ i en uendelig løkke der samtidig:
 fn main() {
     // Boot-besked over UART
     println!("=== DTU MCU Booted ===");
-    println!("SRAM Size: {} bytes", 4096);
+    println!("SRAM Size: {} bytes", 16384);
     println!("Status: PASS");
 
     // Aktiver PWM kun for RGB-LED på pin 12-14.
@@ -466,7 +517,7 @@ Tjek følgende:
 
 Dit program fylder muligvis mere end den tilgængelige hukommelse. Kør
 `rust-size -A target/riscv32i-unknown-none-elf/release/program` fra repo-roden
-og tjek at `.text` holder sig under 4096 bytes, og at data-sektionerne samt
+og tjek at `.text` holder sig under 16384 bytes, og at data-sektionerne samt
 stack kan være i DMEM-området.
 
 ### LEDs reagerer ikke

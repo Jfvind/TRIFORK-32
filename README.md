@@ -197,11 +197,12 @@ cargo xtask docs
 ```
 
 ### 5. Verify functionality
-After upload, the program prints "PASS" over UART and demonstrates all peripherals:
+After upload, the program prints boot info and "PASS" over UART, then continuously demonstrates all peripherals and prints AM2320 sensor readings every ~2 seconds:
 - **ADC bar-graph:** Onboard LEDs 0-15 light up as a bar-graph based on the first PMOD-pin-pairs analog input in JXADC.
 - **Buttons:** btnU, btnL, btnR, light up Pmod connector JA LEDs 1, 2, 3 respectively.
 - **RGB LED (PWM):** Pmod pins 12-14 drive a common-anode RGB LED that fades through red, green, and blue
-- **PMOD GPIO:** JA, JB, and JC are bidirectional GPIO connectors. The Rust demo uses the new `Pmod` helper to drive outputs, read inputs, and route PWM to selected pins.
+- **I2C (AM2320 sensor):** The demo probes a nonexistent address to verify NACK detection, then reads an AM2320 temperature/humidity sensor over I2C on the JC connector every ~2 seconds, printing readings like `AM2320: 25.0 C, 41.0 %RH` over UART.
+- **PMOD GPIO:** JA, JB, and JC are bidirectional GPIO connectors. In this demo JA drives outputs and PWM while JC is used as the I2C bus (SDA/SCL); the Rust `Pmod` helper handles direction, output, input, and PWM routing.
 
 ### :broom: 6. Clean up (Optional)
 Since the CPU is stored in the flash memory, the generated files are not necessary.
