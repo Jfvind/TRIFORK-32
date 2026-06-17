@@ -127,9 +127,7 @@ fn upload(sh: &Shell, port: &str, is_test: bool) -> Result<(), xshell::Error> {
     println!("--- Uploading via {} ---", port);
 
     if is_test {
-        // Verify the program actually ran its UART startup (boot banner), not
-        // just that "PASS" appeared. Interpolated args are passed whole, so the
-        // banner string's spaces are preserved.
+        // Verify the program actually ran its UART startup (boot banner + PASS).
         let banner = "=== TRIFORK-32 Booted ===";
         cmd!(sh, "cargo run --release --package uploader -- --port {port} --binary {bin_path} --expect {banner} --expect PASS --timeout 10").run()?;
     } else {
