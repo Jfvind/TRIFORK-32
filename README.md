@@ -1,6 +1,7 @@
 # TRIFORK-32
 Allows you to run Rust code on TRIFORK-32, a Wildcat RISC-V based MCU implemented on an FPGA.
 
+![TRIFORK](docs/diagrams/trifork.png)
 
 ## :shopping_cart: Prerequisites & Installation
 
