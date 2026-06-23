@@ -94,7 +94,7 @@ Efterfølgende ændringer i Rust-koden kan uploades ved at køre `cargo xtask up
 
 Testkredsløbet herunder er det hardware-setup, som bruges af koden der aktuelt kører i [sw/program/src/app.rs](sw/program/src/app.rs).
 
-![Test circuit for app.rs](Test-circuit.png)
+![Test circuit for app.rs](docs/diagrams/Test-circuit.png)
 
 ## Systemarkitektur - CPU, hukommelse, boot-flow og memory map
 
