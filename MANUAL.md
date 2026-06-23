@@ -287,6 +287,7 @@ Sætter duty cycle for en PWM-kanal som en procentværdi. Der er 24 PWM-kanaler 
 `percent` går fra 0 (slukket) til 100 (fuld). Værdier over 100 clampes til 100. Internt omsættes procenten til en 8-bit duty cycle (0-255).
 
 ```rust
+Pmod::JA.set_dir(0b0000_1111);    // JA[0]-JA[3] som output
 Pmod::JA.set_pwm_en(0b0000_1111); // Route PWM til JA[0]-JA[3]
 pwm::set_duty(0, 100); // JA[0]: fuld
 pwm::set_duty(1, 50);  // JA[1]: halv
@@ -294,7 +295,7 @@ pwm::set_duty(2, 10);  // JA[2]: svagt
 pwm::set_duty(3, 0);   // JA[3]: slukket
 ```
 
-For at en `set_duty`-skrivning faktisk når ud på pinnen, skal kanalen være PWM-routet via den tilhørende PMOD-banks `set_pwm_en`. Er den ikke det, gemmes duty-værdien i registret, men pinnen drives i stedet af bankens almindelige output-register.
+For at en `set_duty`-skrivning når ud på pinnen, skal pinnen være sat som output med `set_dir` *og* PWM-routet med `set_pwm_en` på den tilhørende PMOD-bank. Mangler PWM-routingen, drives pinnen af bankens output-register i stedet; mangler output-retningen, er pinnen høj-Z og driver intet.
 
 ### RGB-LED: `rgb_set(r: u8, g: u8, b: u8)`
 
