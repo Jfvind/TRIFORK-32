@@ -244,17 +244,6 @@ if let Some(v) = adc::read(0) {
 }
 ```
 
-### PWM: `pwm_enable(mask: u16)`
-
-Aktiverer PWM-mode for specifikke kanaler i den globale PWM-controller. Hvert bit i `mask` svarer til én kanal — bit 0 = kanal 0, bit 1 = kanal 1, osv. Når en kanal er PWM-enabled, styres dens lysstyrke af dens duty cycle-register i stedet for et almindeligt digitalt output.
-
-```rust
-Pmod::JA.set_dir(0b0000_0111); // set JA[1..3] LEDs as output
-Pmod::JA.set_pwm_en(0b_0000_0011); // Enable PWM on JA[1..2] pins
-```
-
-**Bemærk:** Bit 7 ignoreres af hardwaren, da LED 7 er reserveret til CPU running-indikatoren. Kanaler der *ikke* er PWM-aktiverede opfører sig som normalt og styres af de relevante GPIO- eller LED-registre. For PMOD-pins skal du kombinere denne funktion med `Pmod::X.set_pwm_en(...)`.
-
 ### PMOD GPIO: `Pmod::JA`, `Pmod::JB`, `Pmod::JC`
 
 De tre PMOD-porte kan bruges som almindelige GPIO-banker fra Rust. Hver port understøtter retning, output, input og PWM-routing.
