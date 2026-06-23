@@ -256,7 +256,7 @@ let stable = Pmod::JA.read_debounced(); // Læs debounced niveauer
 Pmod::JA.set_pwm_en(0b0111_0000);   // Route PWM til pins 4-6
 ```
 
-For PWM-drevne PMOD-pins bruger den tilhørende software typisk `pwm_set(...)` eller en wrapper som `rgb_set(...)` til at vælge duty cycle, mens `set_pwm_en(...)` bestemmer hvilke pins der faktisk lytter på PWM-signalet.
+For PWM-drevne PMOD-pins bruger den tilhørende software typisk `pwm::set_duty(...)` eller en wrapper som `rgb::set(...)` til at vælge duty cycle, mens `set_pwm_en(...)` bestemmer hvilke pins der faktisk lytter på PWM-signalet.
 
 For knapper på PMOD sættes pinnen som input. Alle PMOD GPIO-pins har interne pullups, så en simpel knap kan forbindes mellem PMOD-pinnen og GND. Brug `button_pressed(bit)` for aktiv-lav knaplogik:
 
