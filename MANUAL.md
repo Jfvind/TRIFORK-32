@@ -29,7 +29,7 @@ Det betyder at du både kan styre almindelige digitale signaler og bruge de samm
 RISC-V arkitekturen som Wildcat-processoren er bygget på har kun load/store operationer til at kommunikere med hvad end der eksisterer uden for CPU'en selv. Derfor bruges memory-mapping til at kortlægge specifikke I/O-enheder til specifikke hukommelsesadresser. Når processoren under kørsel af et program skal interagere med forskellige I/O, laver den enten en read eller write operation på en af de specifikke hukommelsesadresser som den specifikke I/O korresponderer med. SoC'en har logik der forstår at for disse specifikke adresser skal den udføre instruktionerne på I/O-enhederne og ikke i den rigtige hukommelse - eksempelvis LED-registret.
 
 ### Hvad er HAL (Hardware Abstraction Layer)
-For at forenkle programmering af denne SoC er selveste interaktionen med det tilgængelige Memory-Mapped I/O løftet op på et højere abstraktionsniveau. I stedet for at skulle kende de specifikke hukommelsesadresser, er dette et lag af hjælpefunktioner hvor adresserne er hardcodet sammen med den ønskede interaktion i specifikke funktioner. I stedet for at skrive `unsafe { (0xF010_0000 as *mut u32).write_volatile(0xFF) }` kan man skrive `leds::write(0xFF)`.
+For at forenkle programmering af denne MCU er selveste interaktionen med det tilgængelige Memory-Mapped I/O løftet op på et højere abstraktionsniveau. I stedet for at skulle kende de specifikke hukommelsesadresser, er dette et lag af hjælpefunktioner hvor adresserne er hardcodet sammen med den ønskede interaktion i specifikke funktioner. I stedet for at skrive `unsafe { (0xF010_0000 as *mut u32).write_volatile(0xFF) }` kan man skrive `leds::write(0xFF)`.
 
 ### Hvad er PWM (Pulse Width Modulation)
 PWM er en teknik til at styre hvor meget effekt der leveres til en enhed - f.eks. lysstyrken af en LED - ved at tænde og slukke signalet ekstremt hurtigt. I stedet for at sende en "halv" spænding (hvilket kræver analog elektronik), tænder vi LED'en i en vis procentdel af tiden og slukker den resten. Dette forhold kaldes *duty cycle*: 100% = altid tændt (fuld lysstyrke), 50% = tændt halvdelen af tiden (halv lysstyrke), 0% = altid slukket.
@@ -156,7 +156,7 @@ Adresserummet er delt i tre områder: IMEM til instruktioner, DMEM til data og s
 | `0xF080_0000 – 0xF080_000C` | I2C-controller (CMD / DATA / STATUS / CLKDIV, offset 0x0/0x4/0x8/0xC) | Læs + Skriv |
 
 ## Workflow - fra Rust-kode til kørende program
-Når du udvikler programmer til denne SoCc, er dit workflow:
+Når du udvikler programmer til denne MCU, er dit workflow:
 1. Skriv eller rediger dit Rust-program i filen `sw/program/src/app.rs`
 2. Kør kommandoen `cargo xtask upload <din_port>` fra roden af repoet (`.../rust-riscv-soc`)
 3. Dit program kompileres, uploades, og begynder at eksekvere automatisk.
@@ -328,7 +328,7 @@ serielt terminalprogram (115200 baud, 8N1).
 
 I2C er en seriel to-leder bus til at kommunikere med eksterne enheder som sensorer. På denne SoC sidder I2C-controlleren på **PMOD JC**: pin `JC[2]` er SDA (data) og `JC[3]` er SCL (clock). Begge linjer har interne pull-ups, så du forbinder blot sensorens SDA/SCL til de to pins. Funktionerne ligger i modulet `i2c` (`sw/trifork32-hal/src/i2c.rs`) og bruges som `i2c::start()` osv.
 
-Hver enhed på bussen har en 7-bit adresse. Master (din SoC) starter hver overførsel, sender adressen, og enheden svarer med ACK (bekræftelse) eller NACK (intet svar).
+Hver enhed på bussen har en 7-bit adresse. Master (din MCU) starter hver overførsel, sender adressen, og enheden svarer med ACK (bekræftelse) eller NACK (intet svar).
 
 **Opsætning — bus-hastighed:**
 ```rust
