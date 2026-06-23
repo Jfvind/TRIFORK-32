@@ -140,20 +140,19 @@ Adresserummet er delt i tre områder: IMEM til instruktioner, DMEM til data og s
 | `0x0000_4000 – 0x0000_7FFF` | DMEM: data scratchpad (16 KB) | Læs + Skriv |
 | `0xF000_0000` | UART status (bit 0 = TX klar, bit 1 = RX data tilgængelig) | Læs |
 | `0xF000_0004` | UART data (læs = modtag byte, skriv = send byte) | Læs + Skriv |
-| `0xF010_0000` | LED-register (bit 0–6, 8–15 = LEDs, bit 7 = CPU running indikator) | Skriv (bit 7 read-only) |
+| `0xF010_0000` | LED-register (bit 0-15 = de 16 onboard-LEDs LD0-LD15) | Skriv |
 | `0xF020_0000` | Debounced button-register (bit 0–3 = btnU, btnL, btnR, btnD) | Læs |
-| `0xF030_0000`  | Base address for JXADC analog inputs, offset for four total inputs (e.g. `0xF030_0004`) | Læs |
-| `0xF040_0000` | PWM enable-bitmask (bit N = 1 → LED N styres af PWM, bit 7 ignoreres) | Læs + Skriv |
-| `0xF040_0004` | PWM duty cycle for LED 0 (8-bit værdi 0-255) | Læs + Skriv |
-| `0xF040_0008 – 0xF040_0044` | PWM duty cycle for LED 1-15 (samme format, offset 4 bytes per kanal) | Læs + Skriv |
+| `0xF030_000X` | ADC: fire analoge JXADC-kanaler (offset 0x0/0x4/0x8/0xC = kanal 0-3), 12-bit værdi 0-4095 | Læs |
+| `0xF040_0000` | PWM-enable-register (ikke tilkoblet i hardware - PWM-routing styres pr. PMOD-bank via PWM_EN) | Læs + Skriv |
+| `0xF040_0004 – 0xF040_0060` | PWM duty cycle for kanal 0-23 (8-bit værdi 0-255, 4 bytes per kanal fra 0xF040_0004). Kanal 0-7 = PMOD JA-pins, 8-15 = JB, 16-23 = JC | Læs + Skriv |
 | `0xF050_0000` | PMOD JA DIR (bit 0–7 = direction per pin) | Læs + Skriv |
 | `0xF050_0004` | PMOD JA OUT (bit 0–7 = output value per pin) | Læs + Skriv |
 | `0xF050_0008` | PMOD JA IN (bit 0–7 = input value per pin) | Læs |
 | `0xF050_000C` | PMOD JA PWM_EN (bit 0–7 = PWM routing per pin) | Læs + Skriv |
 | `0xF050_0010` | PMOD JA IN_DEBOUNCED (bit 0–7 = debounced input value per pin) | Læs |
 | `0xF060_0000` | PMOD JB DIR / OUT / IN / PWM_EN / IN_DEBOUNCED (samme layout som JA, offset 0x0/0x4/0x8/0xC/0x10) | Læs + Skriv |
-| `0xF070_0000` | PMOD JC DIR / OUT / IN / PWM_EN / IN_DEBOUNCED (samme layout som JA, offset 0x0/0x4/0x8/0xC/0x10) | Læs + Skriv |
-| `0xF080_0000 – 0xF080_000C` | I2C-controller (CMD / DATA / STATUS / CLKDIV, offset 0x0/0x4/0x8/0xC) | Læs + Skriv |
+| `0xF070_0000` | PMOD JC DIR / OUT / IN / PWM_EN / IN_DEBOUNCED (samme layout som JA). Bemærk: JC[2]=SDA og JC[3]=SCL er reserveret til I2C og kan ikke bruges som GPIO | Læs + Skriv |
+| `0xF080_0000 – 0xF080_000C` | I2C-controller: CMD (0x0, write-only) / DATA (0x4) / STATUS (0x8, read-only) / CLKDIV (0xC) | Skriv + Læs |
 
 ## Workflow - fra Rust-kode til kørende program
 Når du udvikler programmer til denne MCU, er dit workflow:
