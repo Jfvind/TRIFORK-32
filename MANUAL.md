@@ -180,15 +180,9 @@ gør dette.
 
 ## HAL-reference: tilgængelige funktioner og adresser
 
-Følgende funktioner udgør det Hardware Abstraction Layer (HAL) 
-der er implementeret i `sw/trifork32-hal/src/lib.rs` og bruges fra `sw/program/src/app.rs`. Disse funktioner abstraherer
-den underliggende Memory-Mapped I/O, så du ikke behøver at 
-arbejde direkte med hukommelsesadresser.
+Følgende funktioner udgør det Hardware Abstraction Layer (HAL), der er implementeret som moduler under `sw/trifork32-hal/src/` (`leds`, `buttons`, `adc`, `pwm`, `rgb`, `delay`, `pmod`, `uart`, `i2c`) og bruges fra `sw/program/src/app.rs`. De abstraherer den underliggende Memory-Mapped I/O, så du ikke behøver at arbejde direkte med hukommelsesadresser.
 
-Den genererede HAL API-reference kan åbnes lokalt med `cargo xtask docs`.
-Ny student-kode bør foretrække modul-API'et, f.eks. `leds::write(...)`,
-`buttons::read()`, `adc::read_all()`, `pwm::set_duty(...)` og `rgb::set(...)`.
-De gamle root-funktioner herunder findes stadig som compatibility aliases.
+API'et er modul-baseret: hver periferienhed tilgås via sit modul, f.eks. `leds::write(...)`, `buttons::read()`, `adc::read(...)`, `pwm::set_duty(...)`, `rgb::set(...)` og `delay::cycles(...)`. Den fulde, genererede API-reference kan åbnes lokalt med `cargo xtask docs`.
 
 ### LED: `led_write(val: u16)`
 
