@@ -295,7 +295,7 @@ pwm::set_duty(2, 10);  // JA[2]: svagt
 pwm::set_duty(3, 0);   // JA[3]: slukket
 ```
 
-For at en `set_duty`-skrivning når ud på pinnen, skal pinnen være sat som output med `set_dir` *og* PWM-routet med `set_pwm_en` på den tilhørende PMOD-bank. Mangler PWM-routingen, drives pinnen af bankens output-register i stedet; mangler output-retningen, er pinnen høj-Z og driver intet.
+For at en `set_duty`-skrivning når ud på pinnen, skal pinnen være sat som output med `set_dir` *og* PWM-routet med `set_pwm_en` på den tilhørende PMOD-bank. Mangler PWM-routingen, drives pinnen af bankens output-register i stedet; mangler output-retningen, er pinnen høj-Z og driver intet.s
 
 ### RGB-LED: `rgb_set(r: u8, g: u8, b: u8)`
 
