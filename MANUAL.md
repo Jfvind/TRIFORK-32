@@ -270,6 +270,8 @@ if Pmod::JA.button_pressed(0) {
 
 `read_in()` er raw input og kan bounce. `read_debounced()` og `button_pressed()` er beregnet til knapper.
 
+**Bemærk:** På `Pmod::JC` er pin 2 og 3 reserveret til I2C (SDA og SCL) og styres direkte af I2C-controlleren. De kan ikke bruges som GPIO eller PWM — skrivninger til JC's DIR/OUT-register for de to bit ignoreres af hardwaren. JC's øvrige pins (0, 1, 4-7) er fri GPIO/PWM som normalt.
+
 ### PWM: `pwm_set_duty(channel: u8, percent: u8)`
 
 Sætter lysstyrken af en PWM-aktiveret LED som en procentværdi. `channel` er LED-nummeret (0-6 eller 8-15), og `percent` er lysstyrken fra 0 (slukket) til 100 (fuld lysstyrke). Værdier over 100 clampes automatisk til 100.
