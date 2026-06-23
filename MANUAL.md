@@ -272,18 +272,29 @@ if Pmod::JA.button_pressed(0) {
 
 **Bemærk:** På `Pmod::JC` er pin 2 og 3 reserveret til I2C (SDA og SCL) og styres direkte af I2C-controlleren. De kan ikke bruges som GPIO eller PWM — skrivninger til JC's DIR/OUT-register for de to bit ignoreres af hardwaren. JC's øvrige pins (0, 1, 4-7) er fri GPIO/PWM som normalt.
 
-### PWM: `pwm_set_duty(channel: u8, percent: u8)`
+### PWM: `pwm::set_duty(channel: u8, percent: u8)`
 
-Sætter lysstyrken af en PWM-aktiveret LED som en procentværdi. `channel` er LED-nummeret (0-6 eller 8-15), og `percent` er lysstyrken fra 0 (slukket) til 100 (fuld lysstyrke). Værdier over 100 clampes automatisk til 100.
+Sætter duty cycle for en PWM-kanal som en procentværdi. Der er 24 PWM-kanaler (0-23), og hver kanal styrer én PMOD-pin — ikke de indbyggede LED'er. Kanalerne fordeler sig på de tre PMOD-porte:
+
+| Kanal | PMOD-pin |
+|-------|----------|
+| 0-7   | JA[0]-JA[7] |
+| 8-15  | JB[0]-JB[7] |
+| 16-23 | JC[0]-JC[7] |
+
+(JC[2] og JC[3] er reserveret til I2C — se PMOD GPIO ovenfor — så kanal 18 og 19 kan ikke bruges.)
+
+`percent` går fra 0 (slukket) til 100 (fuld). Værdier over 100 clampes til 100. Internt omsættes procenten til en 8-bit duty cycle (0-255).
 
 ```rust
-pwm_set(0, 100); // JA1: fuld lysstyrke
-pwm_set(1, 50);  // JA2: halv lysstyrke
-pwm_set(2, 10);  // JA3: svagt lys
-pwm_set(3, 0);   // JA4: slukket
+Pmod::JA.set_pwm_en(0b0000_1111); // Route PWM til JA[0]-JA[3]
+pwm::set_duty(0, 100); // JA[0]: fuld
+pwm::set_duty(1, 50);  // JA[1]: halv
+pwm::set_duty(2, 10);  // JA[2]: svagt
+pwm::set_duty(3, 0);   // JA[3]: slukket
 ```
 
-For at en `pwm_set_duty`-skrivning faktisk påvirker en LED, skal den pågældende kanal være aktiveret via jf. Pmod funktionen `set_pwm_en`. Hvis ikke, gemmes duty cycle-værdien i registret men ignoreres af LED-outputtet.
+For at en `set_duty`-skrivning faktisk når ud på pinnen, skal kanalen være PWM-routet via den tilhørende PMOD-banks `set_pwm_en`. Er den ikke det, gemmes duty-værdien i registret, men pinnen drives i stedet af bankens almindelige output-register.
 
 ### RGB-LED: `rgb_set(r: u8, g: u8, b: u8)`
 
