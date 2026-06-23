@@ -77,7 +77,8 @@ Efter værktøjerne er installeret og repoet er klonet, skal SoC'en flahes på F
 3. Kør nu kommandoen `cargo xtask flash` i terminalen
 4. SoC'en flashes: Vent på at processen færdiggøres (dette kan tage flere minutter)
 5. Tryk på PROG-knappen på FPGA (rød knap i øverste højre hjørne af boardet)
-6. Efter 5-10 sekunder bør CPU'en køre - den venstre LED lyser som indikation
+6. Efter 5-10 sekunder er SoC'en konfigureret på FPGA'en og klar: bootloaderen er aktiv og venter på et program, mens CPU'en er stallet indtil du uploader dit første program.
+
 ### **Opsætning del 2:** Upload dit første program
 Når først SoC'en er flashet, kan du uploade Rust-programmer (igen og igen) via UART **uden** at skulle reflashe SoC'en over på FPGA'en. Dette er et bevidst designvalg med det formål at sænke den tid det tager at itterere programdesign, og dermed sænke friktion i workflowet for kursister af 02112.
 
