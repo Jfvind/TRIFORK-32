@@ -184,33 +184,38 @@ Følgende funktioner udgør det Hardware Abstraction Layer (HAL), der er impleme
 
 API'et er modul-baseret: hver periferienhed tilgås via sit modul, f.eks. `leds::write(...)`, `buttons::read()`, `adc::read(...)`, `pwm::set_duty(...)`, `rgb::set(...)` og `delay::cycles(...)`. Den fulde, genererede API-reference kan åbnes lokalt med `cargo xtask docs`.
 
-### LED: `led_write(val: u16)`
+### LED: `leds::write(bits: u16)`
 
-Skriver en værdi til LED-registret. Hver bit svarer til én LED 
-— sæt bit til 1 for at tænde, 0 for at slukke.
+Skriver en værdi til LED-registret. Hver bit svarer til én af de 16 onboard-LEDs (LD0-LD15) — sæt bit til 1 for at tænde, 0 for at slukke.
 ```rust
-led_write(0b0000_0101); // Tænder LED 0 og LED 2
-led_write(0xFF);         // Tænder LED 0-5 + 8-9
-led_write(0x00);         // Slukker alle LEDs
+leds::write(0b0000_0101); // Tænder LED 0 og LED 2
+leds::write(0xFF);        // Tænder LED 0-7
+leds::write(0x00);        // Slukker alle LEDs
 ```
 
-**Bemærk:** LED 7 er hardwired til CPU running-indikatoren og 
-kan ikke styres fra software. Bit 0–6 styrer LED 0–6 på boardet, 
-og bit 8–15 styrer LEDs tilsluttet via Pmod-headeren.
+Alle 16 bits (0-15) styrer hver sin onboard-LED.
 
-### Knapper: `btn_read() -> u32`
+Modulet har desuden et par hjælpefunktioner:
 
-Returnerer den debounced tilstand af de fire retningsknapper.
-Bit 0–3 svarer til de fire knapper — 1 betyder trykket, 
-0 betyder ikke trykket.
+- `leds::all_off()` og `leds::all_on()` slukker eller tænder alle LEDs på én gang.
+- `leds::write_bar(value, max)` viser `value` som en bar-graph hen over de 16 LEDs, hvor `0` slukker alle og `value >= max` tænder alle. Praktisk til f.eks. at vise en ADC-måling:
 ```rust
-let buttons = btn_read();
+leds::write_bar(adc::read(0).unwrap_or(0), adc::MAX_VALUE);
+```
 
-if buttons & 0x1 != 0 {
+### Knapper: `buttons::read() -> u8`
+
+Returnerer den debounced tilstand af de fire retningsknapper som en bitmaske. Bit 0-3 svarer til de fire knapper — 1 betyder trykket, 0 betyder ikke trykket.
+```rust
+let state = buttons::read();
+if state & 0x1 != 0 {
     // Knap 0 (btnU) er trykket
 }
+```
 
-if buttons & 0x4 != 0 {
+Vil du bare vide om én bestemt knap er trykket, er `buttons::is_pressed(index)` mere direkte (gyldige indeks er 0-3):
+```rust
+if buttons::is_pressed(2) {
     // Knap 2 (btnR) er trykket
 }
 ```
