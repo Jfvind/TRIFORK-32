@@ -43,6 +43,16 @@ En RGB-LED er tre separate enkeltfarvede LEDs (rød, grøn, blå) pakket ind i �
 
 RGB-LEDs findes i to varianter: *common-anode* hvor den fælles pin er +3.3V og hver farvekanal tændes ved at trække den til ground, og *common-cathode* hvor det er omvendt. I common-anode betyder det at en *lav* duty cycle giver *høj* lysstyrke — hvilket HAL-funktionen `rgb::set` tager højde for automatisk.
 
+### Hvad er ADC (Analog-til-Digital Converter)
+De fleste signaler en processer arbejder med er digitale - enten højt (1) eller lavt (0). Men mange sensorer, f.eks. potentiometre og lyssensorer, leverer et *analogt* signal: en spænding der glider jævnt mellem 0 V og en referencespænding. En ADC oversætter denne kontinuerlige spænding til heltal, som CPU'en kan læse.
+
+På denne SoC bruger ADC'en FPGA'ens indbyggede XADC og er forbundet til JXADC-headeren. Den har fire kanaler (indeks 0-3) og leverer en 12-bit værdi: et heltal mellem 0 og 4095, hvor 0 svarer til den laveste spænding og 4095 til den højeste. En måling på halvdelen af referencespænndingen giver altså omkring 2048.
+
+### Hvad er I2C (Inter-Integrated Circuit)
+I2C er en seriel databus der lader processoren kommunikere med eksterne enheder - typisk sensorer - over kun to ledninger: **SDA** (data) og **SCL** (clock), som alle enheder på bussen deler.
+
+Hver enhed har en 7-bit adresse. Processoren er **master**: den starter hver overførsel, sender adressen på den enhed den vil tale med, og enheden svarer med enten ACK (bekræftelse) eller NACK (intet svar). Derefter overføres data én byte ad gangen. På denne SOC sidder I2C-controlleren på PMOD JC, hvor `JC[2]` er SDA og `JC[3]` er SCL; selve hjælpefunktionerne beskrives i HAL-referencens I2C-afsnit.
+
 ## Forudsætninger og opsætning
 Forudsætningerne for at og flashe projektets softcore arkitektur over på en Basys 3 FPGA for tilsidst at uploade og køre det Rust program der udgør logikken for dit miljø-overvågningssystem er beskrevet i den installationsguide du finder i projektetes `README.md`-fil. 
 
