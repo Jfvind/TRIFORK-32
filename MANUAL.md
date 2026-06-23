@@ -227,16 +227,20 @@ if buttons::is_pressed(2) {
 | 2   | btnR (højre) |
 | 3   | btnD (ned) |
 
-### ADC (Analogt Input): `adc_read_all() -> [u32, 4]`
+### ADC (Analogt Input): `adc::read_all() -> [u32; 4]` og `adc::read(channel) -> Option<u32>`
 
-Aflæser den aktuelle digitale værdi fra JXADC-portene på Basys 3 boardet. Spændingen konverteres via ADC-controlleren og returneres som en 12-bit værdi: et heltal mellem 0 og 4095. Dette er især nyttigt til at aflæse analoge sensorer (f.eks. et potentiometer, lyssensor osv.).
+Aflæser den aktuelle digitale værdi fra de fire analoge JXADC-kanaler (indeks 0-3) på Basys 3 boardet. Spændingen konverteres via ADC-controlleren og returneres som en 12-bit værdi: et heltal mellem 0 og 4095. Dette er især nyttigt til at aflæse analoge sensorer (f.eks. et potentiometer eller en lyssensor).
 
+`adc::read_all()` returnerer alle fire kanaler på én gang, mens `adc::read(channel)` læser en enkelt kanal og returnerer `None` hvis indekset er uden for 0-3. Konstanten `adc::MAX_VALUE` (4095) er den maksimale værdi og er praktisk til skalering.
 ```rust
-let adc_val = adc_read_all();
+let values = adc::read_all();
+println!("Kanal 0: {}", values[0]);
 
-if adc_val[0] > 2048 { // Aflæser component i JXADC1, 7
-    // Værdien (og dermed spændingen) er over 50%
-    println!("ADC-værdi er høj: {}", adc_val[0]);
+if let Some(v) = adc::read(0) {
+    if v > adc::MAX_VALUE / 2 {
+        // Spændingen på kanal 0 er over 50%
+        println!("ADC kanal 0 er høj: {}", v);
+    }
 }
 ```
 
