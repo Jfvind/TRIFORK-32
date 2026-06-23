@@ -295,25 +295,26 @@ pwm::set_duty(2, 10);  // JA[2]: svagt
 pwm::set_duty(3, 0);   // JA[3]: slukket
 ```
 
-For at en `set_duty`-skrivning når ud på pinnen, skal pinnen være sat som output med `set_dir` *og* PWM-routet med `set_pwm_en` på den tilhørende PMOD-bank. Mangler PWM-routingen, drives pinnen af bankens output-register i stedet; mangler output-retningen, er pinnen høj-Z og driver intet.s
+For at en `set_duty`-skrivning når ud på pinnen, skal pinnen være sat som output med `set_dir` *og* PWM-routet med `set_pwm_en` på den tilhørende PMOD-bank. Mangler PWM-routingen, drives pinnen af bankens output-register i stedet; mangler output-retningen, er pinnen høj-Z og driver intet.
 
-### RGB-LED: `rgb_set(r: u8, g: u8, b: u8)`
+### RGB-LED: `rgb::set(r: u8, g: u8, b: u8)`
 
-Sætter farven af en RGB-LED tilsluttet PMOD GPIO-pins. Hver farvekanal angives som en procentværdi (0-100). Funktionen inverterer værdierne internt fordi RGB-LED'en er common-anode — så en høj `r`-værdi giver reelt høj rød lysstyrke, som forventet.
+Sætter farven af en RGB-LED tilsluttet JA[4], JA[5] og JA[6] (PWM-kanal 4, 5 og 6 — rød, grøn, blå). Hver farvekanal angives som en procentværdi (0-100); værdier over 100 clampes til 100. Funktionen inverterer værdierne internt (`100 - værdi`), fordi RGB-LED'en er common-anode — så en høj `r`-værdi giver reelt høj rød lysstyrke, som forventet.
 
 ```rust
-rgb_set(100, 0, 0);   // Fuld rød
-rgb_set(0, 100, 0);   // Fuld grøn
-rgb_set(0, 0, 100);   // Fuld blå
-rgb_set(100, 100, 0); // Gul (rød + grøn)
-rgb_set(50, 0, 50);   // Lilla (halv rød + halv blå)
-rgb_set(0, 0, 0);     // Slukket
+rgb::set(100, 0, 0);   // Fuld rød
+rgb::set(0, 100, 0);   // Fuld grøn
+rgb::set(0, 0, 100);   // Fuld blå
+rgb::set(100, 100, 0); // Gul (rød + grøn)
+rgb::set(50, 0, 50);   // Lilla (halv rød + halv blå)
+rgb::set(0, 0, 0);     // Slukket
 ```
 
-**Forudsætning:** PWM skal være aktiveret for de tre relevante PMOD-pins før `rgb_set` virker:
+**Forudsætning:** de tre RGB-pins skal være sat som output og PWM-routet, før `rgb::set` virker:
 
 ```rust
-Pmod::JA.set_pwm_en(0b0111_0000); // Aktiver PWM på de tre RGB-pins
+Pmod::JA.set_dir(0b0111_0000);    // JA[4]-JA[6] som output
+Pmod::JA.set_pwm_en(0b0111_0000); // Route PWM til JA[4]-JA[6]
 ```
 
 ### UART: `print!()` og `println!()`
