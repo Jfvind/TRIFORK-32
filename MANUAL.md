@@ -319,16 +319,17 @@ Pmod::JA.set_pwm_en(0b0111_0000); // Route PWM til JA[4]-JA[6]
 
 ### UART: `print!()` og `println!()`
 
-Sender tekst over den serielle forbindelse (UART). Fungerer 
-ligesom standard Rust — understøtter formatering med `{}`.
+Sender tekst over den serielle forbindelse (UART) — fungerer ligesom standard Rust og understøtter formatering med `{}`. Makroerne bruger en `Uart`-writer, der implementerer `core::fmt::Write`: for hver byte venter den på at TX er klar (status bit 0) og skriver så til UART'ens dataregister.
+
 ```rust
 println!("Hello from Rust!");
 println!("Tallet er: {}", 42);
-println!("Knapper: 0x{:X}", btn_read());
+println!("Knapper: 0x{:X}", buttons::read());
 ```
 
-Output kan ses i terminalen efter `cargo xtask upload <din_port>`, eller med et 
-serielt terminalprogram (115200 baud, 8N1).
+Output kan ses i terminalen efter `cargo xtask upload <din_port>`, eller med et serielt terminalprogram (115200 baud, 8N1).
+
+**Modtagelse (RX):** HAL'en har kun TX — der er ingen modtage-funktion blandt makroerne. UART-hardwaren *kan* modtage, men det gøres via rå MMIO: poll statusregistret (bit 1 = byte tilgængelig) og læs dataregistret på `0xF000_0004`.
 
 ### I2C: `i2c::start()`, `i2c::write_bytes(...)`, `i2c::read_bytes(...)`
 
