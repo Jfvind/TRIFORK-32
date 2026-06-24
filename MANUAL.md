@@ -584,10 +584,7 @@ der bruger porten (serielle terminaler, andre upload-scripts).
 
 ### Ingen output i terminalen efter upload
 
-Tjek at din serielle port er korrekt. Tjek at boardet er 
-tændt og at SoC'en er flashet (venstre LED skal lyse). 
-Prøv at trykke på PROG-knappen og vent 5-10 sekunder 
-inden du kører `cargo xtask upload <din_port>` igen.
+Tjek at din serielle port er korrekt. Tjek at boardet er tændt og at SoC'en er flashet — DONE-LED'en på boardet lyser når bitstreamen er indlæst. Prøv at trykke på PROG-knappen og vent 5-10 sekunder inden du kører `cargo xtask upload <din_port>` igen.
 
 ### Programmet virker ikke efter ændringer i koden
 
