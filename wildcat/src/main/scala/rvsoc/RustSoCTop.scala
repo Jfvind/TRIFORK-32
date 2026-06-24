@@ -40,7 +40,7 @@ class TriStateBuffer8 extends HasBlackBoxInline {
 }
 
 /**
- * RustSoCTop — Top-level SoC for running Rust programs on the Wildcat RISC-V processor.
+ * RustSoCTop - Top-level SoC for running Rust programs on the Wildcat RISC-V processor.
  *
  * Key differences from WildcatTop:
  *   - Uses writable ScratchPadMem for instruction memory (not a ROM).
@@ -67,8 +67,8 @@ class TriStateBuffer8 extends HasBlackBoxInline {
  *     back to boot mode, ready for a fresh upload.
  *
  * Memory map:
- *   0x0000_0000 – 0x0000_3FFF : Instruction scratchpad (IMEM, 16 KB default)
- *   0x0000_4000 – 0x0000_7FFF : Data scratchpad (DMEM, 16 KB default)
+ *   0x0000_0000 - 0x0000_3FFF : Instruction scratchpad (IMEM, 16 KB default)
+ *   0x0000_4000 - 0x0000_7FFF : Data scratchpad (DMEM, 16 KB default)
  *   0xF000_0000               : UART status  (bit 0 = TX ready, bit 1 = RX data available)
  *   0xF000_0004               : UART data    (read = RX byte, write = TX byte)
  *   0xF010_0000               : on-board LEDs (lower 7 bits drive LEDs)
@@ -116,8 +116,8 @@ class RustSoCTop(frequ: Int = 100000000, baudRate: Int = 115200, memBytes: Int =
   // Reset monitor
   // ====================================
   // An always-on Rx that watches for a 4-byte reset magic (0xDEADBEEF) on
-  // the UART line. This runs under the normal hardware reset only — NOT
-  // the combined reset — so it survives its own soft resets.
+  // the UART line. This runs under the normal hardware reset only - NOT
+  // the combined reset - so it survives its own soft resets.
   val resetMagic = "hDEADBEEF".U(32.W)
   val resetRx = Module(new Rx(frequ, baudRate))
   resetRx.io.rxd := io.rx
@@ -181,7 +181,7 @@ class RustSoCTop(frequ: Int = 100000000, baudRate: Int = 115200, memBytes: Int =
   val dmem = Module(new ScratchPadMem(nopProgram, nrBytes = memBytes))
 
   // ====================================
-  // Default connections: CPU <-> memories
+  // Default connections: CPU <--> memories
   // ====================================
   // Bulk-connect first. Some wires are overwritten below.
   cpu.io.imem <> imem.io
@@ -192,8 +192,8 @@ class RustSoCTop(frequ: Int = 100000000, baudRate: Int = 115200, memBytes: Int =
   // ====================================
   // When the bootloader asserts wrEnabled with a valid (non-done) word,
   // route it by address range:
-  //   0x0000_0000 - 0x0000_3FFF -> IMEM
-  //   0x0000_4000 - 0x0000_7FFF -> DMEM
+  //   0x0000_0000 - 0x0000_3FFF --> IMEM
+  //   0x0000_4000 - 0x0000_7FFF --> DMEM
   // This overwrites the CPU lines when it is true.
   val imemLimit = memBytes.U(32.W)
   val dmemBase = memBytes.U(32.W)
