@@ -648,11 +648,3 @@ pub fn set(r: u8, g: u8, b: u8) {
     pwm::set_duty(6, b);
 }
 ```
-
-### Almindelige `led_write`-skrivninger virker ikke efter `pwm_enable`
-
-Det er forventet adfærd. Når PWM er aktiveret for en LED, overtager PWM-modulet outputtet og ignorerer det almindelige LED-register for den kanal. For at skifte en LED tilbage til almindelig on/off-mode skal du rydde dens bit i enable-masken.
-
-```rust
-pwm_enable(0); // Slå PWM helt fra — alle LEDs tilbage til led_write()
-```
