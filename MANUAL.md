@@ -4,7 +4,7 @@ TRIFORK-32 er en MCU (Microcontroller Unit) som ved hjælp af implementeringen a
 Periferienheder som LED, knapper, UART, analog input (ADC), I2C og de bidirektionelle PMOD-porte (JA/JB/JC) interageres med via prædefineret Memory-Mapped I/O. For at forenkle systemet er der udviklet et tilhørende abstraktionslag til føromtalte Memory-Mapped I/O, som leverer færdigbagte hjælpefunktioner der forenkler programmeringen af selvsamme.
 
 
-Med denne MCU kan du styre LEDs, aflæse knapper, dæmpe outputs med PWM (f.eks. en RGB-LED), aflæse analoge signaler via ADC, kommunikere med eksterne sensorer over I2C, samt sende og modtage data over seriel kommunikation (UART) - alt sammen fra Rust-programmer du selv skriver og uploader til boardet.
+Med denne MCU kan du styre LEDs, aflæse knapper, dæmpe outputs med PWM (f.eks. en RGB-LED), aflæse analoge signaler via ADC, kommunikere med eksterne sensorer over I2C, samt sende data over seriel kommunikation (UART) - alt sammen fra Rust-programmer du selv skriver og uploader til boardet.
 
 Denne manual guider dig igennem opsætning af systemet, forklarer den underliggende arkitektur, og giver dig en komplet reference over de tilgængelige hjælpefunktioner med tilhørende eksempler.
 
@@ -101,7 +101,7 @@ Testkredsløbet herunder er det hardware-setup, som bruges af koden der aktuelt 
 ## Systemarkitektur - CPU, hukommelse, boot-flow og memory map
 
 ### CPU: Wildcat ThreeCats
-Projektet implementere en softcore processor på en basys 3 FPGA - den specifikke processor som softcoren implementere er en "Wildcat ThreeCat" CPU, der er bygget på RISC-V arkitekturen og  implementere RV32I instruktionssættet. Det betyder at processorens arkitektur er i et 32-bit format: instruktioner er 32-bit, registre er 32-bit og vi er begrænset til heltalsoperationer (ingen floating point - det kræver højere præcision).
+Projektet implementere en softcore processor på en basys 3 FPGA - den specifikke processor som softcoren implementere er en "Wildcat ThreeCat" CPU, der er bygget på RISC-V arkitekturen og  implementere RV32I instruktionssættet. Det betyder at processorens arkitektur er i et 32-bit format: instruktioner er 32-bit, registre er 32-bit og vi er begrænset til heltalsoperationer (ingen floating point — floating point hører til en separat RISC-V-udvidelse, "F", som denne processor ikke implementerer).
 
 Processoren kører ét clock-tick ad gangen, igennem dens 3 trins pipeline - fetch (hent instruktion fra hukommelse), decode (forstå instruktionen og indlæs registre) og execute (udfør beregningen).
 ### Hukommelse
@@ -338,7 +338,7 @@ Output kan ses i terminalen efter `cargo xtask upload <din_port>`, eller med et 
 
 ### I2C: `i2c::start()`, `i2c::write_bytes(...)`, `i2c::read_bytes(...)`
 
-I2C er en seriel to-leder bus til at kommunikere med eksterne enheder som sensorer. På denne SoC sidder I2C-controlleren på **PMOD JC**: pin `JC[2]` er SDA (data) og `JC[3]` er SCL (clock). Begge linjer har interne pull-ups, så du forbinder blot sensorens SDA/SCL til de to pins. Funktionerne ligger i modulet `i2c` (`sw/trifork32-hal/src/i2c.rs`) og bruges som `i2c::start()` osv.
+I2C er en seriel to-leder bus til at kommunikere med eksterne enheder som sensorer. På denne SoC sidder I2C-controlleren på **PMOD JC**: pin `JC[2]` er SDA (data) og `JC[3]` er SCL (clock). Forbind sensorens SDA/SCL til de to pins. I2C kræver pull-up-modstande på begge linjer; FPGA'ens interne pull-ups er for svage til at være pålidelige, så i praksis skal du tilføje eksterne — 4,7 kΩ til 3,3V anbefales generelt (10 kΩ virker også). Funktionerne ligger i modulet `i2c` (`sw/trifork32-hal/src/i2c.rs`) og bruges som `i2c::start()` osv.
 
 Hver enhed på bussen har en 7-bit adresse. Master (din MCU) starter hver overførsel, sender adressen, og enheden svarer med ACK (bekræftelse) eller NACK (intet svar).
 
@@ -586,7 +586,7 @@ der bruger porten (serielle terminaler, andre upload-scripts).
 
 ### Ingen output i terminalen efter upload
 
-Tjek at din serielle port er korrekt. Tjek at boardet er tændt og at SoC'en er flashet — DONE-LED'en på boardet lyser når bitstreamen er indlæst. Prøv at trykke på PROG-knappen og vent 5-10 sekunder inden du kører `cargo xtask upload <din_port>` igen.
+Tjek at din serielle port er korrekt. Tjek at boardet er tændt og at SoC'en er flashet. Tryk på PROG-knappen og vent 5-10 sekunder inden du kører `cargo xtask upload <din_port>` igen.
 
 ### Programmet virker ikke efter ændringer i koden
 
@@ -655,7 +655,7 @@ Først: hvilken besked får du? "command failed (no ACK)" betyder at controllere
 Tjek i denne rækkefølge:
 
 - **Wiring:** SDA skal til `JC[2]` (pin N17), SCL til `JC[3]` (pin P18) — se testkredsløbet og I2C-afsnittet. Sensorens GND og 3,3V skal også være forbundet.
-- **Pull-ups:** Begge linjer (SDA og SCL) skal have eksterne pull-up-modstande til 3,3V (typisk 4,7-10 kΩ). Controlleren driver kun linjen lav (open-drain); uden pull-ups kan den aldrig trækkes høj, og bussen virker ikke.
+- **Pull-ups:** SDA og SCL skal have pull-up-modstande til 3,3V. FPGA'ens interne pull-ups er for svage til at være pålidelige, så tilføj eksterne — 4,7 kΩ anbefales (10 kΩ virker også). Controlleren driver kun linjen lav (open-drain); pull-up'en trækker den høj igen.
 - **Adresse:** AM2320 sidder på 7-bit adresse `0x5C`. Brug `i2c::scan()` til at se hvilke adresser der svarer på bussen.
 - **Wake-up:** AM2320 sover og NACK'er den første adresse. Den skal vækkes ved at holde SDA lav i mindst ~800 µs (i demoen gøres det ved kortvarigt at sætte `set_clkdiv` lavt), vente, og *derefter* lave den rigtige transaktion. Springer du wake-trinnet over, får du intet ACK.
 - **Polling-rate:** Sensoren må ikke læses oftere end ca. hvert 2. sekund.
