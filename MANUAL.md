@@ -437,85 +437,141 @@ Tabellen herunder er en opslagsreference over de rå adresser. Navnene i venstre
 
 ### Komplet eksempel: Alle periferienheder
 
-Følgende program demonstrerer brug af alle tilgængelige I/O-enheder. 
-Ved opstart printes en besked over UART, og derefter kører systemet 
-i en uendelig løkke der samtidig:
+Følgende program er projektets demo (`sw/program/src/app.rs`) og bruger stort set alle periferienheder. Ved opstart printer det et par linjer over UART og kører en selvtest af I2C'ens NACK-detektion. Derefter kører det i en uendelig løkke der samtidig:
 
-- Viser ADC-værdien som en bar-graph på onboard LEDs 0-6
-- Spejler knaptryk på Pmod LEDs 8, 9, 10
-- Fader en RGB-LED på pin 12-14 igennem rød, grøn og blå
+- viser ADC-kanal 0 som en bar-graph hen over alle 16 onboard-LED'er
+- spejler knaptryk (btnU/L/R) på Pmod JA[0], JA[1] og JA[2]
+- fader en RGB-LED på JA[4]-JA[6] igennem rød, grøn og blå
+- læser en AM2320 temperatur/fugt-sensor over I2C ca. hvert 2. sekund og printer resultatet over UART
+
+Bemærk signaturen `pub fn main() -> !`: `main` returnerer aldrig (`!`), fordi den kører en uendelig løkke — der er intet operativsystem at vende tilbage til.
 
 ```rust
-fn main() {
-    // Boot-besked over UART
-    println!("=== TRIFORK-32 Booted ===");
-    println!("SRAM Size: {} bytes", 16384);
-    println!("Status: PASS");
+use trifork32_hal::{adc, buttons, delay, i2c, leds, rgb, Pmod};
 
-    // Aktiver PWM kun for RGB-LED på pin 12-14.
-    // Onboard LED 0-6 forbliver almindelig GPIO (on/off).
-    pwm_enable((1u16 << 12) | (1u16 << 13) | (1u16 << 14));
+pub fn main() -> ! {
+    trifork32_hal::println!("=== TRIFORK-32 Booted ===");
+    trifork32_hal::println!("SRAM Size: {} bytes", 16384);
+    trifork32_hal::println!("Status: PASS");
 
-    // Fade-tilstand for RGB-test
+    Pmod::JA.set_dir(0b0111_0111);
+    Pmod::JA.set_pwm_en(0b_0111_0000);
+
+    // Configure I2C bus to 100 kHz (standard mode).
+    i2c::set_clkdiv(500);
+
+    // Sanity check: probe a nonexistent address (0x42). A correct
+    // controller must report NACK; an ACK here means NACK detection is
+    // broken and all later results are suspect.
+    i2c::start();
+    let fake_acked = i2c::write_byte((0x42 << 1) | 0);
+    i2c::stop();
+    if fake_acked {
+        trifork32_hal::println!("NACK detection: FAIL (got ACK from nonexistent 0x42)");
+    } else {
+        trifork32_hal::println!("NACK detection: PASS");
+    }
+
+    // AM2320 read scheduling: the sensor must not be polled more often than
+    // ~once per 2 s. Scheduled with the cycle counter (100_000_000 cycles =
+    // 1 s at 100 MHz) so the interval is independent of loop iteration cost.
+    const AM2320_READ_INTERVAL_CYCLES: u64 = 200_000_000; // 2 s
+    let mut next_am2320_read: u64 = delay::read_cycles() + AM2320_READ_INTERVAL_CYCLES;
+
     let mut fade: u8 = 0;
     let mut fade_up = true;
-    let mut color_phase: u8 = 0; // 0 = rød, 1 = grøn, 2 = blå
+    let mut color_phase: u8 = 0;
 
     loop {
-        // 1. Aflæs periferienheder
-        let adc_val = adc_read_all();
-        let btn_val = btn_read() & 0b111;
+        let adc0 = adc::read(0).unwrap_or(0); //unwrap_or is needed as reading might throw an error.
+        let btn_val = buttons::read();
 
-        // 2. ADC bar-graph på onboard LEDs 0-6
-        let mut adc_leds: u16 = 0;
-        if adc_val[0] > 512  { adc_leds |= 0b0000001; }
-        if adc_val[0] > 1024 { adc_leds |= 0b0000011; }
-        if adc_val[0] > 1536 { adc_leds |= 0b0000111; }
-        if adc_val[0] > 2048 { adc_leds |= 0b0001111; }
-        if adc_val[0] > 2560 { adc_leds |= 0b0011111; }
-        if adc_val[0] > 3072 { adc_leds |= 0b0111111; }
-        if adc_val[0] > 3584 { adc_leds |= 0b1111111; }
+        leds::write_bar(adc0, adc::MAX_VALUE);
 
-        // 3. Spejl knapper på Pmod LEDs 8-10
-        let btn_leds = (btn_val as u16) << 8;
+        Pmod::JA.set_out(btn_val);
 
-        // 4. Skriv alle GPIO-styrede LEDs på én gang
-        led_write(adc_leds | btn_leds);
-
-        // 5. Fade RGB-LED — én farve ad gangen
         match color_phase {
-            0 => rgb_set(fade, 0, 0),
-            1 => rgb_set(0, fade, 0),
-            _ => rgb_set(0, 0, fade),
+            0 => rgb::set(fade, 0, 0),
+            1 => rgb::set(0, fade, 0),
+            _ => rgb::set(0, 0, fade),
         }
 
         if fade_up {
-            if fade >= 100 { fade_up = false; }
-            else { fade += 1; }
+            if fade >= 100 {
+                fade_up = false;
+            } else {
+                fade += 1;
+            }
+        } else if fade == 0 {
+            fade_up = true;
+            color_phase = (color_phase + 1) % 3;
         } else {
-            if fade == 0 {
-                fade_up = true;
-                color_phase = (color_phase + 1) % 3;
-            } else { fade -= 1; }
+            fade -= 1;
         }
 
-        // 6. Lille forsinkelse for animation
-        for _ in 0..150_000 {
-            unsafe { core::arch::asm!("nop"); }
+        // AM2320 temperature/humidity read every ~2 seconds (cycle-timed).
+        if delay::read_cycles() >= next_am2320_read {
+            next_am2320_read = delay::read_cycles() + AM2320_READ_INTERVAL_CYCLES;
+
+            // Wake-up via clock divider trick: at ~10 kHz the wake address
+            // byte holds SDA low for ~900 us, satisfying the AM2320's
+            // >=800 us wake requirement without dedicated hardware support.
+            i2c::wait_idle();
+            i2c::set_clkdiv(5000);
+            i2c::start();
+            let _ = i2c::write_byte((0x5C << 1) | 0); // NACK expected
+            i2c::stop();
+
+            // Back to 100 kHz for the real transaction.
+            i2c::wait_idle();
+            i2c::set_clkdiv(500);
+            delay::cycles_precise(200_000); // 2 ms settle
+
+            // Modbus read: function 0x03, start reg 0x00, length 4
+            // (humidity regs 0-1, temperature regs 2-3).
+            let cmd = [0x03u8, 0x00, 0x04];
+            if i2c::write_bytes(0x5C, &cmd) {
+                delay::cycles_precise(500_000); // 5 ms for sensor to prepare
+
+                // Response: [0]=0x03 [1]=0x04 [2-3]=hum [4-5]=temp [6-7]=CRC
+                let mut response = [0u8; 8];
+                let read_ok = i2c::read_bytes(0x5C, &mut response);
+
+                if read_ok && response[0] == 0x03 && response[1] == 0x04 {
+                    let humidity = ((response[2] as u16) << 8) | (response[3] as u16);
+                    let temperature = (((response[4] as u16) << 8) | (response[5] as u16)) as i16;
+                    let temp_int = temperature / 10;
+                    let temp_frac = (temperature % 10).abs();
+                    let hum_int = humidity / 10;
+                    let hum_frac = humidity % 10;
+                    trifork32_hal::println!(
+                        "AM2320: {}.{} C, {}.{} %RH",
+                        temp_int,
+                        temp_frac,
+                        hum_int,
+                        hum_frac
+                    );
+                } else {
+                    trifork32_hal::println!("AM2320: read failed");
+                }
+            } else {
+                trifork32_hal::println!("AM2320: command failed (no ACK)");
+            }
         }
+
+        delay::cycles(150_000);
     }
 }
 ```
 
 **Forventet adfærd:**
-- Ved opstart vises "=== TRIFORK-32 Booted ===" i terminalen
-- Drej på potentiometer tilsluttet JXADC → flere LEDs (0-6) lyser op som en bar-graph
-- Tryk btnU → LED 8 lyser, btnL → LED 9, btnR → LED 10
-- RGB-LED på pin 12-14 fader langsomt op til fuld rød, ned til slukket, op til fuld grøn, ned, op til fuld blå, ned, og gentager
+- Ved opstart vises "=== TRIFORK-32 Booted ===", "SRAM Size: 16384 bytes", "Status: PASS" og "NACK detection: PASS" i terminalen
+- Drej på et potentiometer tilsluttet ADC-kanal 0 → flere LED'er lyser op som en bar-graph hen over de 16 onboard-LED'er
+- Tryk btnU → JA[0] går høj, btnL → JA[1], btnR → JA[2] (synligt hvis du har LED'er på de pins)
+- RGB-LED'en på JA[4]-JA[6] fader langsomt op til fuld rød, ned til slukket, videre til grøn, så blå, og gentager
+- Ca. hvert 2. sekund printes en linje som "AM2320: 23.4 C, 45.6 %RH". Er sensoren ikke tilsluttet, ses i stedet "AM2320: command failed (no ACK)" eller "AM2320: read failed"
 
-**Bemærk:** Hvis din RGB-LED er common-cathode i stedet for common-anode, skal 
-`rgb_set`-funktionen i `sw/trifork32-hal/src/lib.rs` ændres så den ikke inverterer værdierne
-(fjern `100 -` foran `r`, `g`, `b`).
+**Bemærk:** RGB-LED'en forudsættes common-anode, og `rgb::set` inverterer derfor værdierne (`100 - r` osv.). Er din RGB-LED i stedet common-cathode, skal du ændre `rgb::set` i `sw/trifork32-hal/src/rgb.rs` så den ikke inverterer — fjern `100 -` foran `r`, `g` og `b` i de tre `pwm::set_duty`-kald (kanal 4, 5 og 6).
 
 ## Fejlfinding
 
