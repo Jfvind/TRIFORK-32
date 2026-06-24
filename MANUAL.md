@@ -132,6 +132,9 @@ Bootloaderen er implementeret i hardware som en state machine - den er ikke soft
 #### Soft reset
 For at muliggøre hurtigere itterationer under developmenmt, er det muligt at re-uploade programmer uden at skulle genflashe hele softcoren. Upload-scriptet sender automatisk reset-signalet `0xDEADBEEF` over UART inden hvert upload. En dedikeret monitor-komponent i SoC'en lytter konstant efter denne sekvens og resetter CPU og bootloader tilbage til boot tilstand når denne detekteres. I overstående sekvens svarer det til at gennemgå punkt 2 - 5 forfra.
 
+#### Hardware reset (BTNC)
+Center-knappen på boardet (BTNC, FPGA-pin U18) er koblet til SoC'ens hardware-reset. Trykker du på den, nulstilles CPU, bootloader og periferienheder til starttilstand — præcis som ved opstart: bootloaderen bliver aktiv igen, og CPU'en stalles, klar til et nyt upload uden at genflashe. Det er den fysiske pendant til soft-resettet (`0xDEADBEEF`) ovenfor. Bemærk at center-knappen derfor *ikke* er en af de fire læsbare GPIO-knapper (btnU/L/R/D) — den styrer reset.
+
 ### Memory Map: Hvilke komponenter korrespondere til hvilke adresser?
 Adresserummet er delt i tre områder: IMEM til instruktioner, DMEM til data og stack, og I/O-enheder ved adresser der starter med `0xF`. For I/O-enheder er det bits 23-20 i adressen der specificerer hvilken enhed der tilgås.
 | Adresse | Enhed | Læs/Skriv |
@@ -429,7 +432,6 @@ Tabellen herunder er en opslagsreference over de rå adresser. Navnene i venstre
 | `PMOD_JB_BASE` | `0xF060_0000` | GPIO bank | Samme layout som JA |
 | `PMOD_JC_BASE` | `0xF070_0000` | GPIO bank | Samme layout som JA |
 | `I2C_CMD` … `I2C_CLKDIV` | `0xF080_0000 – 0xF080_000C` | I2C-controller | Command / data / status / clock-divider (offset 0x0/0x4/0x8/0xC) |
-
 
 ## Eksempler på programmering
 
