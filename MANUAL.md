@@ -621,14 +621,17 @@ stack kan være i DMEM-området.
 
 Tjek at du bruger de rigtige bit-positioner i `leds::write()` — bit 0 er LD0, bit 15 er LD15, og alle 16 onboard-LED'er er softwarestyrede. Bemærk at `leds::write` skriver alle 16 bit på én gang, så en LED du ikke sætter i samme kald, slukkes.
 
-### PWM-aktiverede LEDs lyser ikke, selvom `pwm_set` kaldes
+### PWM-pin reagerer ikke, selvom `pwm::set_duty` kaldes
 
-Tjek at `pwm_enable` er kaldt for den pågældende kanal. Duty cycle-værdier skrives til hardware-registrene uanset, men LED-outputtet bruger kun PWM-signalet hvis det tilsvarende enable-bit er sat. Eksempel: For at styre LED 0 med PWM skal bit 0 i `pwm_enable` være 1.
+En duty-skrivning når kun ud på en PMOD-pin hvis to ting er på plads: pinnen skal være sat som **output** med `set_dir`, og kanalen skal være **PWM-routet** med `set_pwm_en` på den tilhørende bank. Duty-værdien gemmes i registret uanset, men uden begge dele driver pinnen ikke. Eksempel — for at PWM'e JA[0] (kanal 0):
 
 ```rust
-pwm_enable(0b0000_0000_0000_0001); // Aktiver PWM på LED 0
-pwm_set(0, 50);                     // Nu virker denne linje
+Pmod::JA.set_dir(0b0000_0001);    // JA[0] som output
+Pmod::JA.set_pwm_en(0b0000_0001); // route PWM til JA[0]
+pwm::set_duty(0, 50);             // nu når duty ud på pinnen
 ```
+
+Husk også at kanal-nummeret er PMOD-pinnen, ikke en LED: JA = kanal 0-7, JB = 8-15, JC = 16-23.
 
 ### RGB-LED lyser modsat forventet (høj værdi = mørk)
 
