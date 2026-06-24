@@ -635,13 +635,17 @@ Husk også at kanal-nummeret er PMOD-pinnen, ikke en LED: JA = kanal 0-7, JB = 8
 
 ### RGB-LED lyser modsat forventet (høj værdi = mørk)
 
-Din RGB-LED er sandsynligvis *common-cathode* i stedet for *common-anode*. HAL-funktionen `rgb_set` inverterer værdierne som standard fordi den antager common-anode. For en common-cathode LED skal du ændre `rgb_set` i `sw/trifork32-hal/src/lib.rs` så inverteringen fjernes:
+Din RGB-LED er sandsynligvis *common-cathode* i stedet for *common-anode*. `rgb::set` inverterer værdierne som standard (`100 - r`), fordi den antager common-anode. For en common-cathode LED skal du fjerne inverteringen i `rgb::set` i `sw/trifork32-hal/src/rgb.rs`:
 
 ```rust
-fn rgb_set(r: u8, g: u8, b: u8) {
-    pwm_set(12, r);  // Ingen inversion
-    pwm_set(13, g);
-    pwm_set(14, b);
+pub fn set(r: u8, g: u8, b: u8) {
+    let r = r.min(100);
+    let g = g.min(100);
+    let b = b.min(100);
+
+    pwm::set_duty(4, r);  // ingen inversion (var: 100 - r)
+    pwm::set_duty(5, g);
+    pwm::set_duty(6, b);
 }
 ```
 
