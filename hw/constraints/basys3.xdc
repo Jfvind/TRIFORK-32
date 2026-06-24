@@ -127,9 +127,11 @@ set_property PULLUP true [get_ports {io_gpioJB[*]}]
 ## NOTE: JC[2] and JC[3] are used by the I2C controller as SDA and SCL.
 ## They are NOT available as general purpose GPIO. Connect external I2C
 ## devices to these pins (see MANUAL.md for the I2C HAL).
-## Internal pullups are enabled on all JC pins; this provides weak pullups
-## on SDA/SCL sufficient for 100 kHz operation with short wires.
-## For 400 kHz or long wires, add external 4.7 kOhm pullups to 3.3V.
+## All JC pins have internal pullups enabled, but these alone are too weak
+## for reliable I2C timing. SDA/SCL therefore use external 10 kOhm pullups
+## to 3.3V, which gives reliable standard-mode (100 kHz) operation on a
+## short breadboard bus. A lower value (e.g. 4.7 kOhm) gives faster rise
+## times and is the better choice for 400 kHz or longer wires.
 set_property PACKAGE_PIN K17 [get_ports {io_gpioJC[0]}]
 set_property PACKAGE_PIN M18 [get_ports {io_gpioJC[1]}]
 set_property PACKAGE_PIN N17 [get_ports {io_gpioJC[2]}]
