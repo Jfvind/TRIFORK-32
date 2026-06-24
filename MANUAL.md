@@ -380,6 +380,25 @@ i2c::stop();
 
 **Status-hjælpere:** `wait_idle()` blokerer til controlleren er færdig med den aktuelle kommando, og `status() -> u32` læser det rå statusregister (BUSY/NACK/BUS_ERR-bits) — primært til fejlsøgning.
 
+### delay: `delay::cycles(...)`, `delay::cycles_precise(...)`, `delay::read_cycles()`
+
+Tre hjælpere til at vente og til at måle tid, alle baseret på CPU'ens klokcyklusser. CPU'en kører på 100 MHz, så 100 cyklusser = 1 µs og 100.000 cyklusser = 1 ms.
+
+`delay::cycles(count)` venter ved at køre `count` `nop`-instruktioner i en løkke. Den er **ikke præcis**: selve løkken koster også instruktioner pr. gennemløb, og hvor mange cyklusser hver `nop` reelt tager afhænger af pipelinen. Tallet er altså kun vejledende — god nok til simple demoer som et synligt LED-blink.
+
+`delay::read_cycles()` læser den frie 64-bit cyklus-tæller direkte fra CPU'en via RISC-V-instruktionerne `rdcycle`/`rdcycleh`. Tælleren tæller op én gang pr. klokcyklus og nulstilles ikke undervejs, så du kan tage to aflæsninger og trække dem fra hinanden for at måle hvor mange cyklusser et stykke arbejde tog.
+
+`delay::cycles_precise(count)` venter **præcist** `count` cyklusser ved at aflæse den samme tæller og vente til der er gået nok. I modsætning til `cycles` er den uafhængig af pipelinen, og det er den du skal bruge når timing faktisk betyder noget — for eksempel de ventetider en I2C-sensor kræver mellem trin.
+
+```rust
+delay::cycles(1_000_000);          // grov pause — fint til et synligt blink
+delay::cycles_precise(100_000);    // præcist 1 ms (100.000 cyklusser ved 100 MHz)
+
+let start = delay::read_cycles();
+// ... noget arbejde ...
+let elapsed = delay::read_cycles() - start; // antal cyklusser brugt
+```
+
 ### Avanceret: Direkte MMIO
 
 Hvis du har brug for at tilgå hardware direkte uden HAL-funktioner, 
