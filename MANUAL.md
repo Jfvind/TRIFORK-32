@@ -68,6 +68,8 @@ Herunder en forklaring af hvad hver værktøj bruges til.
 
 Sørg for at du har installeret overstående ved at følge projektets `README.md`-fil under sektionen **"Prerequisites & Installation"** før du går videre til at flashe SoC'en ned på dit board.
 
+Vil du ændre selve hardwaren — altså SoC'en i Chisel, ikke kun dine Rust-programmer — så se afsnittet **"Developing on the CPU"** i `README.md`. Denne manual dækker udvikling *til* MCU'en; ændringer *af* den hører hjemme i README.
+
 ### **Opsætning del 1:** Flash SoC'en på boardet
 Efter værktøjerne er installeret og repoet er klonet, skal SoC'en flahes på FPGA'en. Logikken for SoC'en flashes til FPGA'ens non-volatile hukommelse, hvilket sikrer at logikken overlever genstart og slukning af boardet. Det eneste scenarie hvor du ville være nødsagt til at gen-flashe SoC'en er hvis der er blevet lavet ændringer til selveste SoC'ens logik.
 
