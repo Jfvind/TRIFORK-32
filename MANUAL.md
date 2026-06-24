@@ -619,9 +619,7 @@ stack kan være i DMEM-området.
 
 ### LEDs reagerer ikke
 
-Husk at LED 7 er reserveret til CPU running-indikatoren og 
-kan ikke styres fra software. Tjek at du bruger de rigtige 
-bit-positioner i `led_write()`.
+Tjek at du bruger de rigtige bit-positioner i `leds::write()` — bit 0 er LD0, bit 15 er LD15, og alle 16 onboard-LED'er er softwarestyrede. Bemærk at `leds::write` skriver alle 16 bit på én gang, så en LED du ikke sætter i samme kald, slukkes.
 
 ### PWM-aktiverede LEDs lyser ikke, selvom `pwm_set` kaldes
 
