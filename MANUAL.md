@@ -1,368 +1,362 @@
 # Manual: TRIFORK-32 - RISC-V MCU for embedded systems programming 02112 at DTU
-## Introduktion - hvad systemet er og kan
-TRIFORK-32 er en MCU (Microcontroller Unit) som ved hjælp af implementeringen af en softcore (Wildcat) 3-trins pipelinet RISC-V processor på et Digilent Basys 3 Artix-7 FPGA, muliggør programmering af selvsamme processor og tilhørende periferienheder i Rust. 
-Periferienheder som LED, knapper, UART, analog input (ADC), I2C og de bidirektionelle PMOD-porte (JA/JB/JC) interageres med via prædefineret Memory-Mapped I/O. For at forenkle systemet er der udviklet et tilhørende abstraktionslag til føromtalte Memory-Mapped I/O, som leverer færdigbagte hjælpefunktioner der forenkler programmeringen af selvsamme.
+![TRIFORK](docs/diagrams/trifork.png)
+## Introduction - what the system is and can do
+TRIFORK-32 is an MCU (Microcontroller Unit) that, by implementing a softcore (Wildcat) 3-stage pipelined RISC-V processor on a Digilent Basys 3 Artix-7 FPGA, lets you program that same processor and its peripherals in Rust.
+Peripherals such as LEDs, buttons, UART, analog input (ADC), I2C, and the bidirectional PMOD ports (JA/JB/JC) are accessed through predefined Memory-Mapped I/O. To simplify the system, an accompanying abstraction layer has been built on top of this Memory-Mapped I/O, providing ready-made helper functions that make programming it easier.
 
+With this MCU you can control LEDs, read buttons, dim outputs with PWM (e.g. an RGB LED), read analog signals via the ADC, communicate with external sensors over I2C, and send data over serial communication (UART) - all from Rust programs you write yourself and upload to the board.
 
-Med denne MCU kan du styre LEDs, aflæse knapper, dæmpe outputs med PWM (f.eks. en RGB-LED), aflæse analoge signaler via ADC, kommunikere med eksterne sensorer over I2C, samt sende data over seriel kommunikation (UART) - alt sammen fra Rust-programmer du selv skriver og uploader til boardet.
+This manual guides you through setting up the system, explains the underlying architecture, and gives you a complete reference of the available helper functions, with examples.
 
-Denne manual guider dig igennem opsætning af systemet, forklarer den underliggende arkitektur, og giver dig en komplet reference over de tilgængelige hjælpefunktioner med tilhørende eksempler.
+## Concepts and Terminology **(Recommended reading before the next section)**
+### What is a softcore
+A normal processor is a physical silicon chip where fixed transistors make up the processor's internal logic. A "softcore" is a processor described in code and then flashed onto an FPGA. The FPGA uses configurable logic blocks that can implement the logic the softcore's code describes, and thereby behaves like a real processor. That is why you must first flash the softcore this project describes - it configures the FPGA to be a Wildcat processor (this project's specific softcore).
 
-## Begreber og Terminologi **(Anbefalet læsning inden næste sektion)**
-### Hvad er en softcore
-En normal processor er en fysisk siliciumchip hvor uforanderlige transistorer udgør processorens interne logik. En "softcore" er en processor der er beskrevet i kode og derefter flashet over på en FPGA. FPGA'en bruger konfigurerbare logikblokke, som så kan implementere den logik som koden for softcoren beskriver, og dermed opfører sig som en rigtig processor. Derfor skal man først flashe softcoren som projektet beskriver - det konfigurerer FPGA'en til at være en (for dette projekt's specifikke softcore) Wildcat-processor.
+### What is GPIO (General Purpose Input/Output)
+GPIO refers to the physical pins on the board that can be used to send or receive electrical signals. For example, an LED connected to a GPIO pin can be turned on and off by software, or a button's input can be read. "General Purpose" means these pins are not function-specific, but can be used for whatever you connect to them.
 
-### Hvad er GPIO (General Purpose Input/Output)
-GPIO refererer til de fysiske pins på boardet der kan bruges til at sende eller modtage elektriske signaler. En LED tilsluttet en GPIO-pin kan eksempelvis tændes og slukkes af software, eller en knaps input kan aflæses. "General Purpose" betyder at disse pins ikke er funktionsspecifikke, men derimod kan bruges til hvad end du kobler på dem.
+### What is PMOD GPIO
+The PMOD ports on this SoC are divided into three 8-bit GPIO banks: JA, JB, and JC. Each bank has five registers:
+- `DIR` to choose the direction of each pin
+- `OUT` to write output values
+- `IN` to read the current pin levels
+- `PWM_EN` to route the PWM signal to specific pins
+- `IN_DEBOUNCED` to read stable button inputs without bounce
 
-### Hvad er PMOD GPIO
-PMOD-porte på denne SoC er delt op i tre 8-bit GPIO-banker: JA, JB og JC. Hver bank har fem registre:
-- `DIR` til at vælge retning for hver pin
-- `OUT` til at skrive output-værdier
-- `IN` til at læse de aktuelle pin-niveauer
-- `PWM_EN` til at route PWM-signalet til specifikke pins
-- `IN_DEBOUNCED` til at læse stabile knap-inputs uden bounce
+This means you can both control ordinary digital signals and use the same ports for dimmed outputs, e.g. an RGB LED on the PMOD header.
 
-Det betyder at du både kan styre almindelige digitale signaler og bruge de samme porte til dæmpede outputs, f.eks. en RGB-LED på PMOD-headeren.
+### What is Memory-Mapped I/O (MMIO)
+The RISC-V architecture the Wildcat processor is built on has only load/store operations to communicate with whatever exists outside the CPU itself. Memory-mapping is therefore used to map specific I/O devices to specific memory addresses. When the processor needs to interact with various I/O while running a program, it performs either a read or a write operation on one of the specific memory addresses that the I/O device corresponds to. The SoC has logic that understands that, for these specific addresses, it must carry out the operation on the I/O devices rather than in actual memory - for example the LED register.
 
-### Hvad er Memory-Mapped I/O (MMIO)
-RISC-V arkitekturen som Wildcat-processoren er bygget på har kun load/store operationer til at kommunikere med hvad end der eksisterer uden for CPU'en selv. Derfor bruges memory-mapping til at kortlægge specifikke I/O-enheder til specifikke hukommelsesadresser. Når processoren under kørsel af et program skal interagere med forskellige I/O, laver den enten en read eller write operation på en af de specifikke hukommelsesadresser som den specifikke I/O korresponderer med. SoC'en har logik der forstår at for disse specifikke adresser skal den udføre instruktionerne på I/O-enhederne og ikke i den rigtige hukommelse - eksempelvis LED-registret.
+### What is a HAL (Hardware Abstraction Layer)
+To simplify programming this MCU, the interaction with the available Memory-Mapped I/O is raised to a higher level of abstraction. Instead of having to know the specific memory addresses, this is a layer of helper functions where the addresses are hardcoded together with the intended operation in specific functions. Instead of writing `unsafe { (0xF010_0000 as *mut u32).write_volatile(0xFF) }`, you can write `leds::write(0xFF)`.
 
-### Hvad er HAL (Hardware Abstraction Layer)
-For at forenkle programmering af denne MCU er selveste interaktionen med det tilgængelige Memory-Mapped I/O løftet op på et højere abstraktionsniveau. I stedet for at skulle kende de specifikke hukommelsesadresser, er dette et lag af hjælpefunktioner hvor adresserne er hardcodet sammen med den ønskede interaktion i specifikke funktioner. I stedet for at skrive `unsafe { (0xF010_0000 as *mut u32).write_volatile(0xFF) }` kan man skrive `leds::write(0xFF)`.
+### What is PWM (Pulse Width Modulation)
+PWM is a technique for controlling how much power is delivered to a device - e.g. the brightness of an LED - by turning the signal on and off extremely fast. Instead of sending a "half" voltage (which would require analog electronics), we turn the LED on for a certain percentage of the time and off for the rest. This ratio is called the *duty cycle*: 100% = always on (full brightness), 50% = on half the time (half brightness), 0% = always off.
 
-### Hvad er PWM (Pulse Width Modulation)
-PWM er en teknik til at styre hvor meget effekt der leveres til en enhed - f.eks. lysstyrken af en LED - ved at tænde og slukke signalet ekstremt hurtigt. I stedet for at sende en "halv" spænding (hvilket kræver analog elektronik), tænder vi LED'en i en vis procentdel af tiden og slukker den resten. Dette forhold kaldes *duty cycle*: 100% = altid tændt (fuld lysstyrke), 50% = tændt halvdelen af tiden (halv lysstyrke), 0% = altid slukket.
+When the switching happens fast enough (typically above 100 Hz), the human eye cannot distinguish the individual blinks - it is perceived as a steady, dimmed brightness. On this SoC the PWM counter runs at ~390 kHz, far above the flicker threshold, so all dimmed LEDs produce the desired smooth, even effect.
 
-Når skiftene sker hurtigt nok (typisk over 100Hz), kan det menneskelige øje ikke skelne de individuelle blink - det opfattes som en jævn dæmpet lysstyrke. På denne SoC kører PWM-tælleren med ~390 kHz, langt over flimre-grænsen, så alle dæmpede LEDs producerer den ønskede bløde og glatte effekt.
+The PWM module in this SoC is implemented directly in hardware. This means the CPU only has to write a single duty cycle value per channel, and the hardware then generates the fast switching itself. The CPU is thus free to do other work in the meantime.
 
-PWM-modulet i denne SoC er implementeret direkte i hardware. Det betyder at CPU'en kun skal skrive én duty cycle-værdi per kanal, og så generere hardwaren selv de hurtige skift. CPU'en er demed fri til at lave andet arbejde imens.
+### What is an RGB LED
+An RGB LED is three separate single-color LEDs (red, green, blue) packed into one physical component. By controlling the brightness of each of the three channels independently - typically via PWM - you can blend the colors and produce almost any color. This color mixing happens in your eye, not in the LED: when three light sources sit close enough together, the eye cannot distinguish them individually and perceives them as one combined light.
 
-### Hvad er en RGB-LED
-En RGB-LED er tre separate enkeltfarvede LEDs (rød, grøn, blå) pakket ind i én fysisk komponent. Ved at styre lysstyrken af hver af de tre kanaler uafhængigt - typisk via PWM - kan man vlande farverne og proiducere næsten enhver farve. Denne farveblanding sker i dit øje, ikke i LED'en: når tre lyskilder sidder tæt nok sammen, kan øjet ikke skelne dem individuelt og opdatter dem som ét kombineret lys.
+RGB LEDs come in two variants: *common-anode*, where the shared pin is +3.3V and each color channel is turned on by pulling it to ground, and *common-cathode*, where it is the opposite. In common-anode this means that a *low* duty cycle gives *high* brightness - which the HAL function `rgb::set` accounts for automatically.
 
-RGB-LEDs findes i to varianter: *common-anode* hvor den fælles pin er +3.3V og hver farvekanal tændes ved at trække den til ground, og *common-cathode* hvor det er omvendt. I common-anode betyder det at en *lav* duty cycle giver *høj* lysstyrke — hvilket HAL-funktionen `rgb::set` tager højde for automatisk.
+### What is an ADC (Analog-to-Digital Converter)
+Most signals a processor works with are digital - either high (1) or low (0). But many sensors, e.g. potentiometers and light sensors, provide an *analog* signal: a voltage that varies smoothly between 0 V and a reference voltage. An ADC translates this continuous voltage into an integer the CPU can read.
 
-### Hvad er ADC (Analog-til-Digital Converter)
-De fleste signaler en processer arbejder med er digitale - enten højt (1) eller lavt (0). Men mange sensorer, f.eks. potentiometre og lyssensorer, leverer et *analogt* signal: en spænding der glider jævnt mellem 0 V og en referencespænding. En ADC oversætter denne kontinuerlige spænding til heltal, som CPU'en kan læse.
+On this SoC the ADC uses the FPGA's built-in XADC and is connected to the JXADC header. It has four channels (index 0-3) and provides a 12-bit value: an integer between 0 and 4095, where 0 corresponds to the lowest voltage and 4095 to the highest. A measurement at half the reference voltage therefore gives roughly 2048.
 
-På denne SoC bruger ADC'en FPGA'ens indbyggede XADC og er forbundet til JXADC-headeren. Den har fire kanaler (indeks 0-3) og leverer en 12-bit værdi: et heltal mellem 0 og 4095, hvor 0 svarer til den laveste spænding og 4095 til den højeste. En måling på halvdelen af referencespænndingen giver altså omkring 2048.
+### What is I2C (Inter-Integrated Circuit)
+I2C is a serial data bus that lets the processor communicate with external devices - typically sensors - over just two wires: **SDA** (data) and **SCL** (clock), which all devices on the bus share.
 
-### Hvad er I2C (Inter-Integrated Circuit)
-I2C er en seriel databus der lader processoren kommunikere med eksterne enheder - typisk sensorer - over kun to ledninger: **SDA** (data) og **SCL** (clock), som alle enheder på bussen deler.
+Each device has a 7-bit address. The processor is the **master**: it starts every transfer, sends the address of the device it wants to talk to, and the device replies with either ACK (acknowledge) or NACK (no response). Data is then transferred one byte at a time. On this SoC the I2C controller sits on PMOD JC, where `JC[2]` is SDA and `JC[3]` is SCL; the helper functions themselves are described in the I2C section of the HAL reference.
 
-Hver enhed har en 7-bit adresse. Processoren er **master**: den starter hver overførsel, sender adressen på den enhed den vil tale med, og enheden svarer med enten ACK (bekræftelse) eller NACK (intet svar). Derefter overføres data én byte ad gangen. På denne SOC sidder I2C-controlleren på PMOD JC, hvor `JC[2]` er SDA og `JC[3]` er SCL; selve hjælpefunktionerne beskrives i HAL-referencens I2C-afsnit.
+## Prerequisites and setup
+The prerequisites for building and flashing the project's softcore architecture onto a Basys 3 FPGA, and finally uploading and running the Rust program that makes up the logic of your environment-monitoring system, are described in the installation guide you will find in the project's `README.md` file.
 
-## Forudsætninger og opsætning
-Forudsætningerne for at og flashe projektets softcore arkitektur over på en Basys 3 FPGA for tilsidst at uploade og køre det Rust program der udgør logikken for dit miljø-overvågningssystem er beskrevet i den installationsguide du finder i projektetes `README.md`-fil. 
+![Workflow for uploading Rust code to TRIFORK-32 on the FPGA (Basys 3)](docs/diagrams/trifork32-manual.svg)
 
-![Workflow for at uploade Rust-kode til TRIFORK-32 på FPGA (Basys 3)](docs/diagrams/trifork32-manual.svg)
+Below is an explanation of what each tool is used for.
 
-Herunder en forklaring af hvad hver værktøj bruges til.
-
-### **Forudsætninger:** Værktøjer der skal være installeret
-| Værktøj | Formål |
+### **Prerequisites:** Tools that must be installed
+| Tool | Purpose |
 |---|---|
-| Vivado | Er Xilinx' udviklingsmiljø til FPGA'er. Det tager SoC-designets hardwarebeskrivelse (genereret Verilog-kode), syntetiserer det ned til en bitstream, og flasher bitstreamen på FPGA'en. Når SoC'en er flashet, ligger den i FPGA'ens non-volatile hukommelse og overlever både genstart og slukning. Du skal kun bruge Vivado én gang — medmindre selve hardwaredesignet ændres. |
-| Rust toolchain | Er compileren der oversætter dine Rust-programmer til RISC-V maskinkode. Compileren er konfigureret med target `riscv32i-unknown-none-elf`, som fortæller den at den skal producere kode til en 32-bit RISC-V processor uden operativsystem — præcis hvad Wildcat-processoren er. |
+| Vivado | Xilinx's development environment for FPGAs. It takes the SoC design's hardware description (generated Verilog code), synthesizes it down to a bitstream, and flashes the bitstream onto the FPGA. Once the SoC is flashed, it resides in the FPGA's non-volatile memory and survives both restart and power-off. You only need Vivado once - unless the hardware design itself changes. |
+| Rust toolchain | The compiler that translates your Rust programs into RISC-V machine code. The compiler is configured with the target `riscv32i-unknown-none-elf`, which tells it to produce code for a 32-bit RISC-V processor without an operating system - exactly what the Wildcat processor is. |
 
-Sørg for at du har installeret overstående ved at følge projektets `README.md`-fil under sektionen **"Prerequisites & Installation"** før du går videre til at flashe SoC'en ned på dit board.
+Make sure you have installed the above by following the project's `README.md` file under the section **"Prerequisites & Installation"** before moving on to flashing the SoC onto your board.
 
-Vil du ændre selve hardwaren — altså SoC'en i Chisel, ikke kun dine Rust-programmer — så se afsnittet **"Developing on the CPU"** i `README.md`. Denne manual dækker udvikling *til* MCU'en; ændringer *af* den hører hjemme i README.
+If you want to change the hardware itself - that is, the SoC in Chisel, not just your Rust programs - see the section **"Developing on the CPU"** in `README.md`. This manual covers development *for* the MCU; changes *to* it belong in the README.
 
-### **Opsætning del 1:** Flash SoC'en på boardet
-Efter værktøjerne er installeret og repoet er klonet, skal SoC'en flahes på FPGA'en. Logikken for SoC'en flashes til FPGA'ens non-volatile hukommelse, hvilket sikrer at logikken overlever genstart og slukning af boardet. Det eneste scenarie hvor du ville være nødsagt til at gen-flashe SoC'en er hvis der er blevet lavet ændringer til selveste SoC'ens logik.
+### **Setup part 1:** Flash the SoC onto the board
+Once the tools are installed and the repo is cloned, the SoC must be flashed onto the FPGA. The SoC's logic is flashed to the FPGA's non-volatile memory, which ensures the logic survives restart and power-off of the board. The only scenario in which you would have to re-flash the SoC is if changes have been made to the SoC's logic itself.
 
-**Flash SoC'en ved at**:
-1. Tilslut Basys 3 boardet via USB og tænd det
-2. I din terminal, naviger til roden af repoet, så du står i mappen `.../rust-riscv-soc`
-3. Kør nu kommandoen `cargo xtask flash` i terminalen
-4. SoC'en flashes: Vent på at processen færdiggøres (dette kan tage flere minutter)
-5. Tryk på PROG-knappen på FPGA (rød knap i øverste højre hjørne af boardet)
-6. Efter 5-10 sekunder er SoC'en konfigureret på FPGA'en og klar: bootloaderen er aktiv og venter på et program, mens CPU'en er i idle-tilstand indtil du uploader dit første program.
+**Flash the SoC by:**
+1. Connect the Basys 3 board via USB and turn it on
+2. In your terminal, navigate to the root of the repo so you are in the folder `.../rust-riscv-soc`
+3. Now run the command `cargo xtask flash` in the terminal
+4. The SoC is flashed: wait for the process to finish (this can take several minutes)
+5. Press the PROG button on the FPGA (red button in the top-right corner of the board)
+6. After 5-10 seconds the SoC is configured on the FPGA and ready: the bootloader is active and waiting for a program, while the CPU is stalled until you upload your first program
 
-### **Opsætning del 2:** Upload dit første program
-Når først SoC'en er flashet, kan du uploade Rust-programmer (igen og igen) via UART **uden** at skulle reflashe SoC'en over på FPGA'en. Dette er et bevidst designvalg med det formål at sænke den tid det tager at itterere programdesign, og dermed sænke friktion i workflowet for kursister af 02112.
+### **Setup part 2:** Upload your first program
+Once the SoC is flashed, you can upload Rust programs (again and again) over UART **without** having to re-flash the SoC onto the FPGA. This is a deliberate design choice meant to reduce the time it takes to iterate on program design, and thereby reduce friction in the workflow for students of 02112.
 
-**Upload dit første program ved at:**
-1. Find din serielle port:
+**Upload your first program by:**
+1. Find your serial port:
     - **Windows:** `Get-PnpDevice -Class Ports -PresentOnly`
     - **Linux:** `ls /dev/ttyUSB* /dev/ttyACM*`
-2. Upload programmet ved at skrive kommandoen `cargo xtask upload <din_port>` i terminalen
-3. Programmet kompilere automatisk, uploades, og begynder at køre. Output fra programmet vises i terminalen.
+2. Upload the program by running the command `cargo xtask upload <your_port>` in the terminal
+3. The program compiles automatically, is uploaded, and starts running. Output from the program is shown in the terminal.
 
-**Itterer i jeres program design:**
-Efterfølgende ændringer i Rust-koden kan uploades ved at køre `cargo xtask upload <din_port>` igen. Det er ikke nødvændigt at reflashe SoC'en for at uplade nye programmer. 
+**Iterate on your program design:**
+Subsequent changes to the Rust code can be uploaded by running `cargo xtask upload <your_port>` again. It is not necessary to re-flash the SoC to upload new programs.
 
-Testkredsløbet herunder er det hardware-setup, som bruges af koden der aktuelt kører i [sw/program/src/app.rs](sw/program/src/app.rs).
+The test circuit below is the hardware setup used by the code currently running in [sw/program/src/app.rs](sw/program/src/app.rs).
 
 ![Test circuit for app.rs](docs/diagrams/Test-circuit.png)
 
-## Systemarkitektur - CPU, hukommelse, boot-flow og memory map
+## System architecture - CPU, memory, boot flow, and memory map
 
 ### CPU: Wildcat ThreeCats
-Projektet implementere en softcore processor på en basys 3 FPGA - den specifikke processor som softcoren implementere er en "Wildcat ThreeCat" CPU, der er bygget på RISC-V arkitekturen og  implementere RV32I instruktionssættet. Det betyder at processorens arkitektur er i et 32-bit format: instruktioner er 32-bit, registre er 32-bit og vi er begrænset til heltalsoperationer (ingen floating point — floating point hører til en separat RISC-V-udvidelse, "F", som denne processor ikke implementerer).
+The project implements a softcore processor on a Basys 3 FPGA - the specific processor the softcore implements is a "Wildcat ThreeCat" CPU, built on the RISC-V architecture and implementing the RV32I instruction set. This means the processor's architecture is in a 32-bit format: instructions are 32-bit, registers are 32-bit, and we are limited to integer operations (no floating point - floating point belongs to a separate RISC-V extension, "F", which this processor does not implement).
 
-Processoren kører ét clock-tick ad gangen, igennem dens 3 trins pipeline - fetch (hent instruktion fra hukommelse), decode (forstå instruktionen og indlæs registre) og execute (udfør beregningen).
-### Hukommelse
-SoC'en implementeres i dette projekt med 16 KB scratchpad-hukommelse, som vivado genkender og implementere i den on chip BRAM der findes på et Basys 3 board. 
+The processor runs one clock tick at a time, through its 3-stage pipeline - fetch (fetch the instruction from memory), decode (interpret the instruction and load registers), and execute (carry out the computation).
+### Memory
+In this project the SoC is implemented with 16 KB of scratchpad memory, which Vivado recognizes and implements in the on-chip BRAM found on a Basys 3 board.
 
-SoC'en har to seperate fysiske hukommelser - begge implementeret som scratchpad-hukommelse på hhv. 16 KB:
-- **IMEM (Instruction Memory):** Herfra henter CPU'en instruktioner
-- **DMEM (Data Memory):** Herfra læser og skriver CPU'en data (variabler, stack, arrays osv.)
+The SoC has two separate physical memories - both implemented as 16 KB scratchpad memories:
+- **IMEM (Instruction Memory):** the CPU fetches instructions from here
+- **DMEM (Data Memory):** the CPU reads and writes data here (variables, stack, arrays, etc.)
 
-De to hukommelser er på seperate busser, hvilket betyder at CPU'en kan hente en instruktion og tilgå data på samme clock-cyklus (mere effektivt).
+The two memories are on separate buses, which means the CPU can fetch an instruction and access data on the same clock cycle (more efficient).
 
-**OBS**: Ved upload routes hvert `(adresse, data)`-word efter adressen. Adresser i `0x0000_0000 – 0x0000_3FFF` skrives kun til IMEM, og adresser i `0x0000_4000 – 0x0000_7FFF` skrives kun til DMEM. Den rå binærfil kan stadig indeholde padding mellem de to områder, men hardwaren gemmer hvert word i den relevante hukommelse. Programmet kan derfor bruge op til 16 KB instruktioner i IMEM og op til 16 KB data/stack i DMEM.
+**NOTE:** During upload, each `(address, data)` word is routed by its address. Addresses in `0x0000_0000 – 0x0000_3FFF` are written only to IMEM, and addresses in `0x0000_4000 – 0x0000_7FFF` are written only to DMEM. The raw binary may still contain padding between the two regions, but the hardware stores each word in the relevant memory. The program can therefore use up to 16 KB of instructions in IMEM and up to 16 KB of data/stack in DMEM.
 
-### Boot-flow: Hvad sker der når boardet tændes
-**Når boardet tændes, gennemgår systemet følgende sekvens:**
-1. **Starter Basys 3 m. softcore flashet:** FPGA'en starter med bootloaderen aktiv og CPU'en stallet - den kan ikke eksekvere instruktioner endnu
+### Boot flow: what happens when the board is powered on
+**When the board is powered on, the system goes through the following sequence:**
+1. **Basys 3 starts with the softcore flashed:** the FPGA starts with the bootloader active and the CPU stalled - it cannot execute instructions yet
 
-**Upload-scriptet gennemgår derefter følgende sekvens:**
+**The upload script then goes through the following sequence:**
 
-2. **Reset:** Upload-scriptet sender reset-signalet `0xDEADBEEF` over UART. SoC'en lytter konstant efter 
-   denne sekvens og resetter CPU og bootloader til starttilstand (bootloader aktiv, CPU stallet). 
-   
-   Dette sikrer at systemet er klar til at modtage et nyt program — uanset om boardet lige er tændt, eller om der allerede kører et program fra et tidligere upload.
-3. **Aktivering:** Upload-scriptet sender sender magic word `0xB00710AD` som aktiverer bootloaderen.
-4. **Upload:** Upload-scriptet sender Rust-programmet som (adresse, data)-par. Bootloaderen modtager hvert word over UART, og SoC-toppen skriver wordet til IMEM eller DMEM ud fra adressen.
-5. **Start eksekvering:** Upload scriptet sender done signalet `0xD0000000` som frigiver CPU'en og starter programeksekvering fra adressen `0x0000_0000`.
- 
-Bootloaderen er implementeret i hardware som en state machine - den er ikke software der kører på CPU'en. Den sidder og lytter på UART-linjen, modtager bytes, og skriver dem ind i hukommelsen.
+2. **Reset:** the upload script sends the reset signal `0xDEADBEEF` over UART. The SoC constantly listens for this sequence and resets the CPU and bootloader to their initial state (bootloader active, CPU stalled).
+
+   This ensures the system is ready to receive a new program - whether the board has just been powered on, or a program from a previous upload is already running.
+3. **Activation:** the upload script sends the magic word `0xB00710AD`, which activates the bootloader.
+4. **Upload:** the upload script sends the Rust program as (address, data) pairs. The bootloader receives each word over UART, and the SoC top writes the word to IMEM or DMEM based on the address.
+5. **Start execution:** the upload script sends the done signal `0xD0000000`, which releases the CPU and starts program execution from address `0x0000_0000`.
+
+The bootloader is implemented in hardware as a state machine - it is not software running on the CPU. It listens on the UART line, receives bytes, and writes them into memory.
 
 #### Soft reset
-For at muliggøre hurtigere itterationer under developmenmt, er det muligt at re-uploade programmer uden at skulle genflashe hele softcoren. Upload-scriptet sender automatisk reset-signalet `0xDEADBEEF` over UART inden hvert upload. En dedikeret monitor-komponent i SoC'en lytter konstant efter denne sekvens og resetter CPU og bootloader tilbage til boot tilstand når denne detekteres. I overstående sekvens svarer det til at gennemgå punkt 2 - 5 forfra.
+To enable faster iteration during development, it is possible to re-upload programs without having to re-flash the entire softcore. The upload script automatically sends the reset signal `0xDEADBEEF` over UART before every upload. A dedicated monitor component in the SoC constantly listens for this sequence and resets the CPU and bootloader back to the boot state when it is detected. In the sequence above, this corresponds to going through steps 2 - 5 again.
 
 #### Hardware reset (BTNC)
-Center-knappen på boardet (BTNC, FPGA-pin U18) er koblet til SoC'ens hardware-reset. Trykker du på den, nulstilles CPU, bootloader og periferienheder til starttilstand — præcis som ved opstart: bootloaderen bliver aktiv igen, og CPU'en stalles, klar til et nyt upload uden at genflashe. Det er den fysiske pendant til soft-resettet (`0xDEADBEEF`) ovenfor. Bemærk at center-knappen derfor *ikke* er en af de fire læsbare GPIO-knapper (btnU/L/R/D) — den styrer reset.
+The center button on the board (BTNC, FPGA pin U18) is wired to the SoC's hardware reset. Pressing it resets the CPU, bootloader, and peripherals to their initial state - exactly as at startup: the bootloader becomes active again, and the CPU is stalled, ready for a new upload without re-flashing. It is the physical counterpart to the soft reset (`0xDEADBEEF`) above. Note that the center button is therefore *not* one of the four readable GPIO buttons (btnU/L/R/D) - it controls the reset.
 
-### Memory Map: Hvilke komponenter korrespondere til hvilke adresser?
-Adresserummet er delt i tre områder: IMEM til instruktioner, DMEM til data og stack, og I/O-enheder ved adresser der starter med `0xF`. For I/O-enheder er det bits 23-20 i adressen der specificerer hvilken enhed der tilgås.
-| Adresse | Enhed | Læs/Skriv |
+### Memory Map: which components correspond to which addresses?
+The address space is divided into three regions: IMEM for instructions, DMEM for data and stack, and I/O devices at addresses starting with `0xF`. For I/O devices, it is bits 23-20 of the address that specify which device is accessed.
+| Address | Device | Read/Write |
 |---|---|---|
-| `0x0000_0000 – 0x0000_3FFF` | IMEM: instruction scratchpad (16 KB) | Læs |
-| `0x0000_4000 – 0x0000_7FFF` | DMEM: data scratchpad (16 KB) | Læs + Skriv |
-| `0xF000_0000` | UART status (bit 0 = TX klar, bit 1 = RX data tilgængelig) | Læs |
-| `0xF000_0004` | UART data (læs = modtag byte, skriv = send byte) | Læs + Skriv |
-| `0xF010_0000` | LED-register (bit 0-15 = de 16 onboard-LEDs LD0-LD15) | Skriv |
-| `0xF020_0000` | Debounced button-register (bit 0–3 = btnU, btnL, btnR, btnD) | Læs |
-| `0xF030_000X` | ADC: fire analoge JXADC-kanaler (offset 0x0/0x4/0x8/0xC = kanal 0-3), 12-bit værdi 0-4095 | Læs |
-| `0xF040_0000` | PWM-enable-register (ikke tilkoblet i hardware - PWM-routing styres pr. PMOD-bank via PWM_EN) | Læs + Skriv |
-| `0xF040_0004 – 0xF040_0060` | PWM duty cycle for kanal 0-23 (8-bit værdi 0-255, 4 bytes per kanal fra 0xF040_0004). Kanal 0-7 = PMOD JA-pins, 8-15 = JB, 16-23 = JC | Læs + Skriv |
-| `0xF050_0000` | PMOD JA DIR (bit 0–7 = direction per pin) | Læs + Skriv |
-| `0xF050_0004` | PMOD JA OUT (bit 0–7 = output value per pin) | Læs + Skriv |
-| `0xF050_0008` | PMOD JA IN (bit 0–7 = input value per pin) | Læs |
-| `0xF050_000C` | PMOD JA PWM_EN (bit 0–7 = PWM routing per pin) | Læs + Skriv |
-| `0xF050_0010` | PMOD JA IN_DEBOUNCED (bit 0–7 = debounced input value per pin) | Læs |
-| `0xF060_0000` | PMOD JB DIR / OUT / IN / PWM_EN / IN_DEBOUNCED (samme layout som JA, offset 0x0/0x4/0x8/0xC/0x10) | Læs + Skriv |
-| `0xF070_0000` | PMOD JC DIR / OUT / IN / PWM_EN / IN_DEBOUNCED (samme layout som JA). Bemærk: JC[2]=SDA og JC[3]=SCL er reserveret til I2C og kan ikke bruges som GPIO | Læs + Skriv |
-| `0xF080_0000 – 0xF080_000C` | I2C-controller: CMD (0x0, write-only) / DATA (0x4) / STATUS (0x8, read-only) / CLKDIV (0xC) | Skriv + Læs |
+| `0x0000_0000 – 0x0000_3FFF` | IMEM: instruction scratchpad (16 KB) | Read |
+| `0x0000_4000 – 0x0000_7FFF` | DMEM: data scratchpad (16 KB) | Read + Write |
+| `0xF000_0000` | UART status (bit 0 = TX ready, bit 1 = RX data available) | Read |
+| `0xF000_0004` | UART data (read = receive byte, write = send byte) | Read + Write |
+| `0xF010_0000` | LED register (bit 0-15 = the 16 onboard LEDs LD0-LD15) | Write |
+| `0xF020_0000` | Debounced button register (bit 0-3 = btnU, btnL, btnR, btnD) | Read |
+| `0xF030_000X` | ADC: four analog JXADC channels (offset 0x0/0x4/0x8/0xC = channel 0-3), 12-bit value 0-4095 | Read |
+| `0xF040_0000` | PWM enable register (not connected in hardware - PWM routing is controlled per PMOD bank via PWM_EN) | Read + Write |
+| `0xF040_0004 – 0xF040_0060` | PWM duty cycle for channels 0-23 (8-bit value 0-255, 4 bytes per channel from 0xF040_0004). Channels 0-7 = PMOD JA pins, 8-15 = JB, 16-23 = JC | Read + Write |
+| `0xF050_0000` | PMOD JA DIR (bit 0-7 = direction per pin) | Read + Write |
+| `0xF050_0004` | PMOD JA OUT (bit 0-7 = output value per pin) | Read + Write |
+| `0xF050_0008` | PMOD JA IN (bit 0-7 = input value per pin) | Read |
+| `0xF050_000C` | PMOD JA PWM_EN (bit 0-7 = PWM routing per pin) | Read + Write |
+| `0xF050_0010` | PMOD JA IN_DEBOUNCED (bit 0-7 = debounced input value per pin) | Read |
+| `0xF060_0000` | PMOD JB DIR / OUT / IN / PWM_EN / IN_DEBOUNCED (same layout as JA, offset 0x0/0x4/0x8/0xC/0x10) | Read + Write |
+| `0xF070_0000` | PMOD JC DIR / OUT / IN / PWM_EN / IN_DEBOUNCED (same layout as JA). Note: JC[2]=SDA and JC[3]=SCL are reserved for I2C and cannot be used as GPIO | Read + Write |
+| `0xF080_0000 – 0xF080_000C` | I2C controller: CMD (0x0, write-only) / DATA (0x4) / STATUS (0x8, read-only) / CLKDIV (0xC) | Write + Read |
 
-## Workflow - fra Rust-kode til kørende program
-Når du udvikler programmer til denne MCU, er dit workflow:
-1. Skriv eller rediger dit Rust-program i filen `sw/program/src/app.rs`
-2. Kør kommandoen `cargo xtask upload <din_port>` fra roden af repoet (`.../rust-riscv-soc`)
-3. Dit program kompileres, uploades, og begynder at eksekvere automatisk.
+## Workflow - from Rust code to running program
+When you develop programs for this MCU, your workflow is:
+1. Write or edit your Rust program in the file `sw/program/src/app.rs`
+2. Run the command `cargo xtask upload <your_port>` from the root of the repo (`.../rust-riscv-soc`)
+3. Your program is compiled, uploaded, and starts executing automatically.
 
-### Hvad sker der på din pc?
-Kommandoen `cargo xtask upload` automatiserer følgende kæde af handlinger:
-1. **Kompilering:** Cargo (Rusts build-system) kompilerer dit Rust-program til en RISC-V ELF-fil. ELF-formatet indeholder maskinkode plus metadata om programmets struktur (Hvor kode og data starter, symbolnavne osv.)
-2. **Konvertering:** `cargo objcopy` konverterer denne ELF-fil til en rå binærfil (`program.bin`). Filen indeholder bytes fra både IMEM- og DMEM-området og kan indeholde padding mellem områderne.
-3. **Upload:** rust-craten `uploader` sender binærfilen over USB/UART til FPGA'en. Scriptet håndterer reset, aktivering af bootloader, og overførsel af programdata. Hardwaren bruger adresserne til at skrive instruktioner til IMEM og data til DMEM.
-4. **Eksekvering:** Når upload er færdig, frigiver bootloaderen CPU'en og dit progream eksekveres fra adresse `0x0000_0000`.
+### What happens on your PC?
+The command `cargo xtask upload` automates the following chain of actions:
+1. **Compilation:** Cargo (Rust's build system) compiles your Rust program into a RISC-V ELF file. The ELF format contains machine code plus metadata about the program's structure (where code and data start, symbol names, etc.)
+2. **Conversion:** `cargo objcopy` converts this ELF file into a raw binary (`program.bin`). The file contains bytes from both the IMEM and DMEM regions and may contain padding between the regions.
+3. **Upload:** the Rust crate `uploader` sends the binary over USB/UART to the FPGA. The script handles reset, activation of the bootloader, and transfer of the program data. The hardware uses the addresses to write instructions to IMEM and data to DMEM.
+4. **Execution:** when the upload is finished, the bootloader releases the CPU and your program executes from address `0x0000_0000`.
 
-### Filstruktur
+### File structure
 
-Dit Rust-program skrives i filen `sw/program/src/app.rs`. Det 
-er den eneste fil du behøver at redigere under normal brug.
+Your Rust program is written in the file `sw/program/src/app.rs`. It is the only file you need to edit under normal use.
 
-**Note:** Hvis du løber ind i hukommelsesbegrænsninger (16 KB instruktioner eller 16 KB data/stack),
-er det muligt at udvide hukommelsen ved at ændre størrelsen i 
-`sw/program/linker.ld` og `wildcat/src/main/scala/rvsoc/RustSoCTop.scala`, 
-efterfulgt af et `cargo xtask flash`. Kontakt en underviser inden du 
-gør dette.
+**Note:** If you run into memory limits (16 KB of instructions or 16 KB of data/stack), it is possible to expand the memory by changing the size in `sw/program/linker.ld` and `wildcat/src/main/scala/rvsoc/RustSoCTop.scala`, followed by a `cargo xtask flash`. Contact an instructor before doing this.
 
-## HAL-reference: tilgængelige funktioner og adresser
+## HAL reference: available functions and addresses
 
-Følgende funktioner udgør det Hardware Abstraction Layer (HAL), der er implementeret som moduler under `sw/trifork32-hal/src/` (`leds`, `buttons`, `adc`, `pwm`, `rgb`, `delay`, `pmod`, `uart`, `i2c`) og bruges fra `sw/program/src/app.rs`. De abstraherer den underliggende Memory-Mapped I/O, så du ikke behøver at arbejde direkte med hukommelsesadresser.
+The following functions make up the Hardware Abstraction Layer (HAL), implemented as modules under `sw/trifork32-hal/src/` (`leds`, `buttons`, `adc`, `pwm`, `rgb`, `delay`, `pmod`, `uart`, `i2c`) and used from `sw/program/src/app.rs`. They abstract away the underlying Memory-Mapped I/O, so you do not have to work directly with memory addresses.
 
-API'et er modul-baseret: hver periferienhed tilgås via sit modul, f.eks. `leds::write(...)`, `buttons::read()`, `adc::read(...)`, `pwm::set_duty(...)`, `rgb::set(...)` og `delay::cycles(...)`. Den fulde, genererede API-reference kan åbnes lokalt med `cargo xtask docs`.
+The API is module-based: each peripheral is accessed through its module, e.g. `leds::write(...)`, `buttons::read()`, `adc::read(...)`, `pwm::set_duty(...)`, `rgb::set(...)`, and `delay::cycles(...)`. The full, generated API reference can be opened locally with `cargo xtask docs`.
 
 ### LED: `leds::write(bits: u16)`
 
-Skriver en værdi til LED-registret. Hver bit svarer til én af de 16 onboard-LEDs (LD0-LD15) — sæt bit til 1 for at tænde, 0 for at slukke.
+Writes a value to the LED register. Each bit corresponds to one of the 16 onboard LEDs (LD0-LD15) - set a bit to 1 to turn it on, 0 to turn it off.
 ```rust
-leds::write(0b0000_0101); // Tænder LED 0 og LED 2
-leds::write(0xFF);        // Tænder LED 0-7
-leds::write(0x00);        // Slukker alle LEDs
+leds::write(0b0000_0101); // Turns on LED 0 and LED 2
+leds::write(0xFF);        // Turns on LED 0-7
+leds::write(0x00);        // Turns off all LEDs
 ```
 
-Alle 16 bits (0-15) styrer hver sin onboard-LED.
+All 16 bits (0-15) each control their own onboard LED.
 
-Modulet har desuden et par hjælpefunktioner:
+The module also has a couple of helper functions:
 
-- `leds::all_off()` og `leds::all_on()` slukker eller tænder alle LEDs på én gang.
-- `leds::write_bar(value, max)` viser `value` som en bar-graph hen over de 16 LEDs, hvor `0` slukker alle og `value >= max` tænder alle. Praktisk til f.eks. at vise en ADC-måling:
+- `leds::all_off()` and `leds::all_on()` turn all LEDs off or on at once.
+- `leds::write_bar(value, max)` shows `value` as a bar graph across the 16 LEDs, where `0` turns all off and `value >= max` turns all on. Handy for showing an ADC reading, for example:
 ```rust
 leds::write_bar(adc::read(0).unwrap_or(0), adc::MAX_VALUE);
 ```
 
-### Knapper: `buttons::read() -> u8`
+### Buttons: `buttons::read() -> u8`
 
-Returnerer den debounced tilstand af de fire retningsknapper som en bitmaske. Bit 0-3 svarer til de fire knapper — 1 betyder trykket, 0 betyder ikke trykket.
+Returns the debounced state of the four directional buttons as a bitmask. Bits 0-3 correspond to the four buttons - 1 means pressed, 0 means not pressed.
 ```rust
 let state = buttons::read();
 if state & 0x1 != 0 {
-    // Knap 0 (btnU) er trykket
+    // Button 0 (btnU) is pressed
 }
 ```
 
-Vil du bare vide om én bestemt knap er trykket, er `buttons::is_pressed(index)` mere direkte (gyldige indeks er 0-3):
+If you just want to know whether one specific button is pressed, `buttons::is_pressed(index)` is more direct (valid indices are 0-3):
 ```rust
 if buttons::is_pressed(2) {
-    // Knap 2 (btnR) er trykket
+    // Button 2 (btnR) is pressed
 }
 ```
 
-| Bit | Knap |
+| Bit | Button |
 |-----|------|
-| 0   | btnU (op) |
-| 1   | btnL (venstre) |
-| 2   | btnR (højre) |
-| 3   | btnD (ned) |
+| 0   | btnU (up) |
+| 1   | btnL (left) |
+| 2   | btnR (right) |
+| 3   | btnD (down) |
 
-### ADC (Analogt Input): `adc::read_all() -> [u32; 4]` og `adc::read(channel) -> Option<u32>`
+### ADC (Analog Input): `adc::read_all() -> [u32; 4]` and `adc::read(channel) -> Option<u32>`
 
-Aflæser den aktuelle digitale værdi fra de fire analoge JXADC-kanaler (indeks 0-3) på Basys 3 boardet. Spændingen konverteres via ADC-controlleren og returneres som en 12-bit værdi: et heltal mellem 0 og 4095. Dette er især nyttigt til at aflæse analoge sensorer (f.eks. et potentiometer eller en lyssensor).
+Reads the current digital value from the four analog JXADC channels (index 0-3) on the Basys 3 board. The voltage is converted by the ADC controller and returned as a 12-bit value: an integer between 0 and 4095. This is especially useful for reading analog sensors (e.g. a potentiometer or a light sensor).
 
-`adc::read_all()` returnerer alle fire kanaler på én gang, mens `adc::read(channel)` læser en enkelt kanal og returnerer `None` hvis indekset er uden for 0-3. Konstanten `adc::MAX_VALUE` (4095) er den maksimale værdi og er praktisk til skalering.
+`adc::read_all()` returns all four channels at once, while `adc::read(channel)` reads a single channel and returns `None` if the index is outside 0-3. The constant `adc::MAX_VALUE` (4095) is the maximum value and is handy for scaling.
 ```rust
 let values = adc::read_all();
-println!("Kanal 0: {}", values[0]);
+println!("Channel 0: {}", values[0]);
 
 if let Some(v) = adc::read(0) {
     if v > adc::MAX_VALUE / 2 {
-        // Spændingen på kanal 0 er over 50%
-        println!("ADC kanal 0 er høj: {}", v);
+        // The voltage on channel 0 is above 50%
+        println!("ADC channel 0 is high: {}", v);
     }
 }
 ```
 
 ### PMOD GPIO: `Pmod::JA`, `Pmod::JB`, `Pmod::JC`
 
-De tre PMOD-porte kan bruges som almindelige GPIO-banker fra Rust. Hver port understøtter retning, output, input og PWM-routing.
+The three PMOD ports can be used as ordinary GPIO banks from Rust. Each port supports direction, output, input, and PWM routing.
 
 ```rust
-Pmod::JA.set_dir(0b1111_0000);      // Nederste 4 pins som input, øverste 4 som output
-Pmod::JA.set_out(0b1010_0000);      // Skriv output på de pins der er sat som output
-let input = Pmod::JA.read_in();     // Læs aktuelle niveauer
-let stable = Pmod::JA.read_debounced(); // Læs debounced niveauer
-Pmod::JA.set_pwm_en(0b0111_0000);   // Route PWM til pins 4-6
+Pmod::JA.set_dir(0b1111_0000);      // Lower 4 pins as input, upper 4 as output
+Pmod::JA.set_out(0b1010_0000);      // Write output on the pins set as output
+let input = Pmod::JA.read_in();     // Read current levels
+let stable = Pmod::JA.read_debounced(); // Read debounced levels
+Pmod::JA.set_pwm_en(0b0111_0000);   // Route PWM to pins 4-6
 ```
 
-For PWM-drevne PMOD-pins bruger den tilhørende software typisk `pwm::set_duty(...)` eller en wrapper som `rgb::set(...)` til at vælge duty cycle, mens `set_pwm_en(...)` bestemmer hvilke pins der faktisk lytter på PWM-signalet.
+For PWM-driven PMOD pins, the corresponding software typically uses `pwm::set_duty(...)` or a wrapper like `rgb::set(...)` to choose the duty cycle, while `set_pwm_en(...)` determines which pins actually listen to the PWM signal.
 
-For knapper på PMOD sættes pinnen som input. Alle PMOD GPIO-pins har interne pullups, så en simpel knap kan forbindes mellem PMOD-pinnen og GND. Brug `button_pressed(bit)` for aktiv-lav knaplogik:
+For buttons on PMOD, the pin is set as input. All PMOD GPIO pins have internal pullups, so a simple button can be connected between the PMOD pin and GND. Use `button_pressed(bit)` for active-low button logic:
 
 ```rust
-Pmod::JA.set_dir(0b0000_0000); // JA som input
+Pmod::JA.set_dir(0b0000_0000); // JA as input
 
 if Pmod::JA.button_pressed(0) {
-    println!("JA[0] knap er trykket");
+    println!("JA[0] button is pressed");
 }
 ```
 
-`read_in()` er raw input og kan bounce. `read_debounced()` og `button_pressed()` er beregnet til knapper.
+`read_in()` is raw input and can bounce. `read_debounced()` and `button_pressed()` are intended for buttons.
 
-**Bemærk:** På `Pmod::JC` er pin 2 og 3 reserveret til I2C (SDA og SCL) og styres direkte af I2C-controlleren. De kan ikke bruges som GPIO eller PWM — skrivninger til JC's DIR/OUT-register for de to bit ignoreres af hardwaren. JC's øvrige pins (0, 1, 4-7) er fri GPIO/PWM som normalt.
+**Note:** On `Pmod::JC`, pins 2 and 3 are reserved for I2C (SDA and SCL) and are controlled directly by the I2C controller. They cannot be used as GPIO or PWM - writes to JC's DIR/OUT register for those two bits are ignored by the hardware. JC's other pins (0, 1, 4-7) are free GPIO/PWM as usual.
 
 ### PWM: `pwm::set_duty(channel: u8, percent: u8)`
 
-Sætter duty cycle for en PWM-kanal som en procentværdi. Der er 24 PWM-kanaler (0-23), og hver kanal styrer én PMOD-pin — ikke de indbyggede LED'er. Kanalerne fordeler sig på de tre PMOD-porte:
+Sets the duty cycle of a PWM channel as a percentage. There are 24 PWM channels (0-23), and each channel controls one PMOD pin - not the built-in LEDs. The channels are distributed across the three PMOD ports:
 
-| Kanal | PMOD-pin |
+| Channel | PMOD pin |
 |-------|----------|
 | 0-7   | JA[0]-JA[7] |
 | 8-15  | JB[0]-JB[7] |
 | 16-23 | JC[0]-JC[7] |
 
-(JC[2] og JC[3] er reserveret til I2C — se PMOD GPIO ovenfor — så kanal 18 og 19 kan ikke bruges.)
+(JC[2] and JC[3] are reserved for I2C - see PMOD GPIO above - so channels 18 and 19 cannot be used.)
 
-`percent` går fra 0 (slukket) til 100 (fuld). Værdier over 100 clampes til 100. Internt omsættes procenten til en 8-bit duty cycle (0-255).
-
-```rust
-Pmod::JA.set_dir(0b0000_1111);    // JA[0]-JA[3] som output
-Pmod::JA.set_pwm_en(0b0000_1111); // Route PWM til JA[0]-JA[3]
-pwm::set_duty(0, 100); // JA[0]: fuld
-pwm::set_duty(1, 50);  // JA[1]: halv
-pwm::set_duty(2, 10);  // JA[2]: svagt
-pwm::set_duty(3, 0);   // JA[3]: slukket
-```
-
-For at en `set_duty`-skrivning når ud på pinnen, skal pinnen være sat som output med `set_dir` *og* PWM-routet med `set_pwm_en` på den tilhørende PMOD-bank. Mangler PWM-routingen, drives pinnen af bankens output-register i stedet; mangler output-retningen, er pinnen høj-Z og driver intet.
-
-### RGB-LED: `rgb::set(r: u8, g: u8, b: u8)`
-
-Sætter farven af en RGB-LED tilsluttet JA[4], JA[5] og JA[6] (PWM-kanal 4, 5 og 6 — rød, grøn, blå). Hver farvekanal angives som en procentværdi (0-100); værdier over 100 clampes til 100. Funktionen inverterer værdierne internt (`100 - værdi`), fordi RGB-LED'en er common-anode — så en høj `r`-værdi giver reelt høj rød lysstyrke, som forventet.
+`percent` ranges from 0 (off) to 100 (full). Values above 100 are clamped to 100. Internally the percentage is converted to an 8-bit duty cycle (0-255).
 
 ```rust
-rgb::set(100, 0, 0);   // Fuld rød
-rgb::set(0, 100, 0);   // Fuld grøn
-rgb::set(0, 0, 100);   // Fuld blå
-rgb::set(100, 100, 0); // Gul (rød + grøn)
-rgb::set(50, 0, 50);   // Lilla (halv rød + halv blå)
-rgb::set(0, 0, 0);     // Slukket
+Pmod::JA.set_dir(0b0000_1111);    // JA[0]-JA[3] as output
+Pmod::JA.set_pwm_en(0b0000_1111); // Route PWM to JA[0]-JA[3]
+pwm::set_duty(0, 100); // JA[0]: full
+pwm::set_duty(1, 50);  // JA[1]: half
+pwm::set_duty(2, 10);  // JA[2]: faint
+pwm::set_duty(3, 0);   // JA[3]: off
 ```
 
-**Forudsætning:** de tre RGB-pins skal være sat som output og PWM-routet, før `rgb::set` virker:
+For a `set_duty` write to reach the pin, the pin must be set as output with `set_dir` *and* PWM-routed with `set_pwm_en` on the corresponding PMOD bank. Without the PWM routing, the pin is driven by the bank's output register instead; without the output direction, the pin is high-Z and drives nothing.
+
+### RGB LED: `rgb::set(r: u8, g: u8, b: u8)`
+
+Sets the color of an RGB LED connected to JA[4], JA[5], and JA[6] (PWM channels 4, 5, and 6 - red, green, blue). Each color channel is given as a percentage (0-100); values above 100 are clamped to 100. The function inverts the values internally (`100 - value`), because the RGB LED is common-anode - so a high `r` value really does give high red brightness, as expected.
 
 ```rust
-Pmod::JA.set_dir(0b0111_0000);    // JA[4]-JA[6] som output
-Pmod::JA.set_pwm_en(0b0111_0000); // Route PWM til JA[4]-JA[6]
+rgb::set(100, 0, 0);   // Full red
+rgb::set(0, 100, 0);   // Full green
+rgb::set(0, 0, 100);   // Full blue
+rgb::set(100, 100, 0); // Yellow (red + green)
+rgb::set(50, 0, 50);   // Purple (half red + half blue)
+rgb::set(0, 0, 0);     // Off
 ```
 
-### UART: `print!()` og `println!()`
+**Prerequisite:** the three RGB pins must be set as output and PWM-routed before `rgb::set` works:
 
-Sender tekst over den serielle forbindelse (UART) — fungerer ligesom standard Rust og understøtter formatering med `{}`. Makroerne bruger en `Uart`-writer, der implementerer `core::fmt::Write`: for hver byte venter den på at TX er klar (status bit 0) og skriver så til UART'ens dataregister.
+```rust
+Pmod::JA.set_dir(0b0111_0000);    // JA[4]-JA[6] as output
+Pmod::JA.set_pwm_en(0b0111_0000); // Route PWM to JA[4]-JA[6]
+```
+
+### UART: `print!()` and `println!()`
+
+Sends text over the serial connection (UART) - works just like standard Rust and supports formatting with `{}`. The macros use a `Uart` writer that implements `core::fmt::Write`: for each byte it waits for TX to be ready (status bit 0) and then writes to the UART's data register.
 
 ```rust
 println!("Hello from Rust!");
-println!("Tallet er: {}", 42);
-println!("Knapper: 0x{:X}", buttons::read());
+println!("The number is: {}", 42);
+println!("Buttons: 0x{:X}", buttons::read());
 ```
 
-Output kan ses i terminalen efter `cargo xtask upload <din_port>`, eller med et serielt terminalprogram (115200 baud, 8N1).
+Output can be seen in the terminal after `cargo xtask upload <your_port>`, or with a serial terminal program (115200 baud, 8N1).
 
-**Modtagelse (RX):** HAL'en har kun TX — der er ingen modtage-funktion blandt makroerne. UART-hardwaren *kan* modtage, men det gøres via rå MMIO: poll statusregistret (bit 1 = byte tilgængelig) og læs dataregistret på `0xF000_0004`.
+**Receiving (RX):** the HAL has only TX - there is no receive function among the macros. The UART hardware *can* receive, but this is done via raw MMIO: poll the status register (bit 1 = byte available) and read the data register at `0xF000_0004`.
 
 ### I2C: `i2c::start()`, `i2c::write_bytes(...)`, `i2c::read_bytes(...)`
 
-I2C er en seriel to-leder bus til at kommunikere med eksterne enheder som sensorer. På denne SoC sidder I2C-controlleren på **PMOD JC**: pin `JC[2]` er SDA (data) og `JC[3]` er SCL (clock). Forbind sensorens SDA/SCL til de to pins. I2C kræver pull-up-modstande på begge linjer; FPGA'ens interne pull-ups er for svage til at være pålidelige, så i praksis skal du tilføje eksterne — 4,7 kΩ til 3,3V anbefales generelt (10 kΩ virker også). Funktionerne ligger i modulet `i2c` (`sw/trifork32-hal/src/i2c.rs`) og bruges som `i2c::start()` osv.
+I2C is a serial two-wire bus for communicating with external devices such as sensors. On this SoC the I2C controller sits on **PMOD JC**: pin `JC[2]` is SDA (data) and `JC[3]` is SCL (clock). Connect the sensor's SDA/SCL to these two pins. I2C requires pull-up resistors on both lines; the FPGA's internal pull-ups are too weak to be reliable, so in practice you must add external ones - 4.7 kΩ to 3.3V is generally recommended (10 kΩ also works). The functions live in the `i2c` module (`sw/trifork32-hal/src/i2c.rs`) and are used as `i2c::start()`, etc.
 
-Hver enhed på bussen har en 7-bit adresse. Master (din MCU) starter hver overførsel, sender adressen, og enheden svarer med ACK (bekræftelse) eller NACK (intet svar).
+Each device on the bus has a 7-bit address. The master (your MCU) starts each transfer, sends the address, and the device replies with ACK (acknowledge) or NACK (no response).
 
-**Opsætning — bus-hastighed:**
+**Setup - bus speed:**
 ```rust
 i2c::set_clkdiv(500); // 100 kHz (standard mode)
 i2c::set_clkdiv(125); // 400 kHz (fast mode)
 ```
-Divideren er `system_clock / (i2c_hz * 2)`; ved 100 MHz giver 500 → 100 kHz. Skriv 0 for hardware-default (100 kHz).
+The divider is `system_clock / (i2c_hz * 2)`; at 100 MHz, 500 → 100 kHz. Write 0 for the hardware default (100 kHz).
 
-**Højniveau-hjælpere (de fleste programmer bruger disse):**
+**High-level helpers (most programs use these):**
 
-- `write_bytes(addr, data) -> bool` sender en hel buffer til enheden på 7-bit adresse `addr` (START → adresse+W → data → STOP). Returnerer `true` hvis hver byte blev ACK'et.
-- `read_bytes(addr, buf) -> bool` læser `buf.len()` bytes fra enheden (START → adresse+R → læs → STOP). Returnerer `true` hvis adresse-byten blev ACK'et.
-- `write_read(addr, write_data, read_buf) -> bool` skriver-derefter-læser i én overførsel med repeated START — det typiske "læs et sensor-register"-mønster.
-- `scan(found) -> usize` prober alle adresser `0x08..=0x77` og fylder `found` med dem der svarer; returnerer antallet fundet. Nyttigt til at finde ud af hvilken adresse din sensor har.
+- `write_bytes(addr, data) -> bool` sends a whole buffer to the device at 7-bit address `addr` (START → address+W → data → STOP). Returns `true` if every byte was ACKed.
+- `read_bytes(addr, buf) -> bool` reads `buf.len()` bytes from the device (START → address+R → read → STOP). Returns `true` if the address byte was ACKed.
+- `write_read(addr, write_data, read_buf) -> bool` writes-then-reads in a single transfer with a repeated START - the typical "read a sensor register" pattern.
+- `scan(found) -> usize` probes all addresses `0x08..=0x77` and fills `found` with those that respond; returns the number found. Useful for finding out which address your sensor has.
 
 ```rust
-// Find enheder på bussen
+// Find devices on the bus
 let mut found = [0u8; 8];
 let n = i2c::scan(&mut found);
-println!("Fandt {} I2C-enhed(er)", n);
+println!("Found {} I2C device(s)", n);
 
-// Skriv en kommando til enheden på adresse 0x5C og læs 4 bytes svar
+// Write a command to the device at address 0x5C and read a 4-byte response
 let cmd = [0x03, 0x00, 0x04];
 if i2c::write_bytes(0x5C, &cmd) {
     let mut resp = [0u8; 4];
@@ -370,83 +364,81 @@ if i2c::write_bytes(0x5C, &cmd) {
 }
 ```
 
-**Lavniveau-primitiver (til fuld kontrol over en overførsel):**
+**Low-level primitives (for full control over a transfer):**
 
-- `start()` / `stop()` — generér START i begyndelsen og STOP i slutningen af hver overførsel.
-- `write_byte(byte) -> bool` — send én byte, returnerer `true` ved ACK. En adresse-byte laves som `(addr << 1) | rw`, hvor `rw` = 0 for skriv, 1 for læs.
-- `read_byte(send_ack) -> u8` — modtag én byte. `send_ack = true` betyder "send mig mere"; `false` signalerer at det var sidste byte (NACK).
+- `start()` / `stop()` - generate START at the beginning and STOP at the end of each transfer.
+- `write_byte(byte) -> bool` - send one byte, returns `true` on ACK. An address byte is built as `(addr << 1) | rw`, where `rw` = 0 for write, 1 for read.
+- `read_byte(send_ack) -> u8` - receive one byte. `send_ack = true` means "send me more"; `false` signals that it was the last byte (NACK).
 
 ```rust
 i2c::start();
-let acked = i2c::write_byte((0x5C << 1) | 0); // adresse 0x5C, skriv
-i2c::write_byte(0x03);                         // send en data-byte
+let acked = i2c::write_byte((0x5C << 1) | 0); // address 0x5C, write
+i2c::write_byte(0x03);                         // send a data byte
 i2c::stop();
 ```
 
-**Status-hjælpere:** `wait_idle()` blokerer til controlleren er færdig med den aktuelle kommando, og `status() -> u32` læser det rå statusregister (BUSY/NACK/BUS_ERR-bits) — primært til fejlsøgning.
+**Status helpers:** `wait_idle()` blocks until the controller has finished the current command, and `status() -> u32` reads the raw status register (BUSY/NACK/BUS_ERR bits) - primarily for debugging.
 
 ### delay: `delay::cycles(...)`, `delay::cycles_precise(...)`, `delay::read_cycles()`
 
-Tre hjælpere til at vente og til at måle tid, alle baseret på CPU'ens klokcyklusser. CPU'en kører på 100 MHz, så 100 cyklusser = 1 µs og 100.000 cyklusser = 1 ms.
+Three helpers for waiting and for measuring time, all based on the CPU's clock cycles. The CPU runs at 100 MHz, so 100 cycles = 1 µs and 100,000 cycles = 1 ms.
 
-`delay::cycles(count)` venter ved at køre `count` `nop`-instruktioner i en løkke. Den er **ikke præcis**: selve løkken koster også instruktioner pr. gennemløb, og hvor mange cyklusser hver `nop` reelt tager afhænger af pipelinen. Tallet er altså kun vejledende — god nok til simple demoer som et synligt LED-blink.
+`delay::cycles(count)` waits by running `count` `nop` instructions in a loop. It is **not precise**: the loop itself also costs instructions per iteration, and how many cycles each `nop` actually takes depends on the pipeline. The number is therefore only a rough guide - good enough for simple demos like a visible LED blink.
 
-`delay::read_cycles()` læser den frie 64-bit cyklus-tæller direkte fra CPU'en via RISC-V-instruktionerne `rdcycle`/`rdcycleh`. Tælleren tæller op én gang pr. klokcyklus og nulstilles ikke undervejs, så du kan tage to aflæsninger og trække dem fra hinanden for at måle hvor mange cyklusser et stykke arbejde tog.
+`delay::read_cycles()` reads the free-running 64-bit cycle counter directly from the CPU via the RISC-V instructions `rdcycle`/`rdcycleh`. The counter increments once per clock cycle and is not reset along the way, so you can take two readings and subtract them to measure how many cycles a piece of work took.
 
-`delay::cycles_precise(count)` venter **præcist** `count` cyklusser ved at aflæse den samme tæller og vente til der er gået nok. I modsætning til `cycles` er den uafhængig af pipelinen, og det er den du skal bruge når timing faktisk betyder noget — for eksempel de ventetider en I2C-sensor kræver mellem trin.
+`delay::cycles_precise(count)` waits **exactly** `count` cycles by reading the same counter and waiting until enough have passed. Unlike `cycles`, it is independent of the pipeline, and it is the one you should use when timing actually matters - for example the wait times an I2C sensor requires between steps.
 
 ```rust
-delay::cycles(1_000_000);          // grov pause — fint til et synligt blink
-delay::cycles_precise(100_000);    // præcist 1 ms (100.000 cyklusser ved 100 MHz)
+delay::cycles(1_000_000);          // rough pause - fine for a visible blink
+delay::cycles_precise(100_000);    // exactly 1 ms (100,000 cycles at 100 MHz)
 
 let start = delay::read_cycles();
-// ... noget arbejde ...
-let elapsed = delay::read_cycles() - start; // antal cyklusser brugt
+// ... some work ...
+let elapsed = delay::read_cycles() - start; // number of cycles used
 ```
 
-### Avanceret: Direkte MMIO
+### Advanced: Direct MMIO
 
-Hvis du har brug for at tilgå hardware direkte uden HAL-funktioner, 
-kan du bruge de rå adresser. Dette kræver `unsafe` blokke i Rust 
-fordi compileren ikke kan garantere at adresserne er gyldige.
+If you need to access hardware directly without the HAL functions, you can use the raw addresses. This requires `unsafe` blocks in Rust because the compiler cannot guarantee that the addresses are valid.
 ```rust
-// Læs UART status
+// Read UART status
 let status = unsafe { (0xF000_0000 as *const u32).read_volatile() };
 
-// Skriv til LED-register
+// Write to the LED register
 unsafe { (0xF010_0000 as *mut u32).write_volatile(0xFF) };
 
-// Læs knapper
+// Read the buttons
 let buttons = unsafe { (0xF020_0000 as *const u32).read_volatile() };
 ```
 
-Tabellen herunder er en opslagsreference over de rå adresser. Navnene i venstre kolonne er HAL'ens egne interne konstanter (`mmio.rs`); de er private (`pub(crate)` i et privat modul) og kan **ikke** importeres fra dit program. Du skriver derfor adressen direkte som i eksemplet ovenfor — navnene er kun med for at vise hvad hver adresse er.
+The table below is a lookup reference for the raw addresses. The names in the left column are the HAL's own internal constants (`mmio.rs`); they are private (`pub(crate)` in a private module) and **cannot** be imported from your program. You therefore write the address directly as in the example above - the names are included only to show what each address is.
 
-| Intern konstant | Adresse | Type | Beskrivelse |
+| Internal constant | Address | Type | Description |
 |----------|---------|------|-------------|
-| `UART_STATUS` | `0xF000_0000` | `*const u32` | UART statusregister |
-| `UART_DATA` | `0xF000_0004` | `*mut u32` | UART data (send/modtag) |
-| `LED_REG` | `0xF010_0000` | `*mut u32` | LED-register |
-| `BTN_REG` | `0xF020_0000` | `*const u32` | Button-register |
-| `ADC_BASE` | `0xF030_0000` | `*const u32` | ADC-base (4 kanaler, offset 0-12) |
-| `PWM_DUTY` | `0xF040_0000` | `*mut u32` | PWM-base: offset 0 = globalt enable-register, offset (N+1)*4 = duty for kanal N (0-23) |
+| `UART_STATUS` | `0xF000_0000` | `*const u32` | UART status register |
+| `UART_DATA` | `0xF000_0004` | `*mut u32` | UART data (send/receive) |
+| `LED_REG` | `0xF010_0000` | `*mut u32` | LED register |
+| `BTN_REG` | `0xF020_0000` | `*const u32` | Button register |
+| `ADC_BASE` | `0xF030_0000` | `*const u32` | ADC base (4 channels, offset 0-12) |
+| `PWM_DUTY` | `0xF040_0000` | `*mut u32` | PWM base: offset 0 = global enable register, offset (N+1)*4 = duty for channel N (0-23) |
 | `PMOD_JA_BASE` | `0xF050_0000` | GPIO bank | DIR/OUT/IN/PWM_EN/IN_DEBOUNCED |
-| `PMOD_JB_BASE` | `0xF060_0000` | GPIO bank | Samme layout som JA |
-| `PMOD_JC_BASE` | `0xF070_0000` | GPIO bank | Samme layout som JA |
-| `I2C_CMD` … `I2C_CLKDIV` | `0xF080_0000 – 0xF080_000C` | I2C-controller | Command / data / status / clock-divider (offset 0x0/0x4/0x8/0xC) |
+| `PMOD_JB_BASE` | `0xF060_0000` | GPIO bank | Same layout as JA |
+| `PMOD_JC_BASE` | `0xF070_0000` | GPIO bank | Same layout as JA |
+| `I2C_CMD` … `I2C_CLKDIV` | `0xF080_0000 – 0xF080_000C` | I2C controller | Command / data / status / clock-divider (offset 0x0/0x4/0x8/0xC) |
 
-## Eksempler på programmering
+## Programming examples
 
-### Komplet eksempel: Alle periferienheder
+### Complete example: all peripherals
 
-Følgende program er projektets demo (`sw/program/src/app.rs`) og bruger stort set alle periferienheder. Ved opstart printer det et par linjer over UART og kører en selvtest af I2C'ens NACK-detektion. Derefter kører det i en uendelig løkke der samtidig:
+The following program is the project's demo (`sw/program/src/app.rs`) and uses almost all of the peripherals. At startup it prints a few lines over UART and runs a self-test of the I2C NACK detection. It then runs in an infinite loop that simultaneously:
 
-- viser ADC-kanal 0 som en bar-graph hen over alle 16 onboard-LED'er
-- spejler knaptryk (btnU/L/R) på Pmod JA[0], JA[1] og JA[2]
-- fader en RGB-LED på JA[4]-JA[6] igennem rød, grøn og blå
-- læser en AM2320 temperatur/fugt-sensor over I2C ca. hvert 2. sekund og printer resultatet over UART
+- shows ADC channel 0 as a bar graph across all 16 onboard LEDs
+- mirrors button presses (btnU/L/R) on Pmod JA[0], JA[1], and JA[2]
+- fades an RGB LED on JA[4]-JA[6] through red, green, and blue
+- reads an AM2320 temperature/humidity sensor over I2C roughly every 2 seconds and prints the result over UART
 
-Bemærk signaturen `pub fn main() -> !`: `main` returnerer aldrig (`!`), fordi den kører en uendelig løkke — der er intet operativsystem at vende tilbage til.
+Note the signature `pub fn main() -> !`: `main` never returns (`!`), because it runs an infinite loop - there is no operating system to return to.
 
 ```rust
 use trifork32_hal::{adc, buttons, delay, i2c, leds, rgb, Pmod};
@@ -566,75 +558,60 @@ pub fn main() -> ! {
 }
 ```
 
-**Forventet adfærd:**
-- Ved opstart vises "=== TRIFORK-32 Booted ===", "SRAM Size: 16384 bytes", "Status: PASS" og "NACK detection: PASS" i terminalen
-- Drej på et potentiometer tilsluttet ADC-kanal 0 → flere LED'er lyser op som en bar-graph hen over de 16 onboard-LED'er
-- Tryk btnU → JA[0] går høj, btnL → JA[1], btnR → JA[2] (synligt hvis du har LED'er på de pins)
-- RGB-LED'en på JA[4]-JA[6] fader langsomt op til fuld rød, ned til slukket, videre til grøn, så blå, og gentager
-- Ca. hvert 2. sekund printes en linje som "AM2320: 23.4 C, 45.6 %RH". Er sensoren ikke tilsluttet, ses i stedet "AM2320: command failed (no ACK)" eller "AM2320: read failed"
+**Expected behavior:**
+- At startup, "=== TRIFORK-32 Booted ===", "SRAM Size: 16384 bytes", "Status: PASS", and "NACK detection: PASS" are shown in the terminal
+- Change the light falling on the photoresistor connected to ADC channel 0 (e.g. cover it with your hand) → more or fewer LEDs light up as a bar graph across the 16 onboard LEDs
+- Press btnU → JA[0] goes high, btnL → JA[1], btnR → JA[2] (visible if you have LEDs on those pins)
+- The RGB LED on JA[4]-JA[6] slowly fades up to full red, down to off, on to green, then blue, and repeats
+- Roughly every 2 seconds a line like "AM2320: 23.4 C, 45.6 %RH" is printed. If the sensor is not connected, you instead see "AM2320: command failed (no ACK)" or "AM2320: read failed"
 
-**Bemærk:** RGB-LED'en forudsættes common-anode, og `rgb::set` inverterer derfor værdierne (`100 - r` osv.). Er din RGB-LED i stedet common-cathode, skal du ændre `rgb::set` i `sw/trifork32-hal/src/rgb.rs` så den ikke inverterer — fjern `100 -` foran `r`, `g` og `b` i de tre `pwm::set_duty`-kald (kanal 4, 5 og 6).
+**Note:** The RGB LED is assumed to be common-anode, so `rgb::set` inverts the values (`100 - r`, etc.). If your RGB LED is common-cathode instead, you must change `rgb::set` in `sw/trifork32-hal/src/rgb.rs` so it does not invert - remove `100 -` in front of `r`, `g`, and `b` in the three `pwm::set_duty` calls (channels 4, 5, and 6).
 
-## Fejlfinding
+## Troubleshooting
 
-### "cargo xtask upload" fejler med "Could not open port"
+### "cargo xtask upload" fails with "Could not open port"
 
-Seriel porten er enten forkert angivet eller i brug af et 
-andet program. Tjek at du har angivet den rigtige port med 
-`cargo xtask upload <din_port>`. Luk eventuelle andre programmer 
-der bruger porten (serielle terminaler, andre upload-scripts).
+The serial port is either specified incorrectly or in use by another program. Check that you specified the correct port with `cargo xtask upload <your_port>`. Close any other programs using the port (serial terminals, other upload scripts).
 
-### Ingen output i terminalen efter upload
+### No output in the terminal after upload
 
-Tjek at din serielle port er korrekt. Tjek at boardet er tændt og at SoC'en er flashet. Tryk på PROG-knappen og vent 5-10 sekunder inden du kører `cargo xtask upload <din_port>` igen.
+Check that your serial port is correct. Check that the board is powered on and that the SoC is flashed. Press the PROG button and wait 5-10 seconds before running `cargo xtask upload <your_port>` again.
 
-### Programmet virker ikke efter ændringer i koden
+### The program does not work after changes to the code
 
-Sørg for at du gemmer filen inden du kører `cargo xtask upload <din_port>`. 
-Tjek terminalens output for kompileringsfejl — Rust-compileren 
-giver typisk præcise fejlbeskeder med linjenummer.
+Make sure you save the file before running `cargo xtask upload <your_port>`. Check the terminal output for compilation errors - the Rust compiler usually gives precise error messages with line numbers.
 
-### "cargo xtask flash" fejler
+### "cargo xtask flash" fails
 
-Tjek følgende:
-- **Er Vivado installeret?** Følg installationsguiden i README
-- **Kan terminalen finde Vivado?** Vivado skal være tilføjet 
-  til dit systems PATH — det er en miljøvariabel der fortæller 
-  din terminal hvor den kan finde programmer. Hvis du skriver 
-  `vivado -version` i terminalen og får en fejl, er PATH ikke 
-  sat korrekt. Se README under "Xilinx Vivado" for hvordan du 
-  tilføjer den korrekte sti til PATH for dit operativsystem
-- **Er boardet tilsluttet?** Boardet skal være forbundet via 
-  USB og tændt
-- **Er der kun ét board tilsluttet?** Vivado kan kun 
-  auto-detektere ét board ad gangen
+Check the following:
+- **Is Vivado installed?** Follow the installation guide in the README
+- **Can the terminal find Vivado?** Vivado must be added to your system PATH - an environment variable that tells your terminal where to find programs. If you type `vivado -version` in the terminal and get an error, PATH is not set correctly. See the README under "Xilinx Vivado" for how to add the correct path to PATH for your operating system
+- **Is the board connected?** The board must be connected via USB and powered on
+- **Is only one board connected?** Vivado can only auto-detect one board at a time
 
-### Programmet kompilerer men gør ingenting på boardet
+### The program compiles but does nothing on the board
 
-Dit program fylder muligvis mere end den tilgængelige hukommelse. Kør
-`rust-size -A target/riscv32i-unknown-none-elf/release/program` fra repo-roden
-og tjek at `.text` holder sig under 16384 bytes, og at data-sektionerne samt
-stack kan være i DMEM-området.
+Your program may be larger than the available memory. Run `rust-size -A target/riscv32i-unknown-none-elf/release/program` from the repo root and check that `.text` stays under 16384 bytes, and that the data sections plus the stack fit in the DMEM region.
 
-### LEDs reagerer ikke
+### LEDs do not respond
 
-Tjek at du bruger de rigtige bit-positioner i `leds::write()` — bit 0 er LD0, bit 15 er LD15, og alle 16 onboard-LED'er er softwarestyrede. Bemærk at `leds::write` skriver alle 16 bit på én gang, så en LED du ikke sætter i samme kald, slukkes.
+Check that you are using the right bit positions in `leds::write()` - bit 0 is LD0, bit 15 is LD15, and all 16 onboard LEDs are software-controlled. Note that `leds::write` writes all 16 bits at once, so an LED you do not set in the same call is turned off.
 
-### PWM-pin reagerer ikke, selvom `pwm::set_duty` kaldes
+### A PWM pin does not respond even though `pwm::set_duty` is called
 
-En duty-skrivning når kun ud på en PMOD-pin hvis to ting er på plads: pinnen skal være sat som **output** med `set_dir`, og kanalen skal være **PWM-routet** med `set_pwm_en` på den tilhørende bank. Duty-værdien gemmes i registret uanset, men uden begge dele driver pinnen ikke. Eksempel — for at PWM'e JA[0] (kanal 0):
+A duty write only reaches a PMOD pin if two things are in place: the pin must be set as **output** with `set_dir`, and the channel must be **PWM-routed** with `set_pwm_en` on the corresponding bank. The duty value is stored in the register regardless, but without both the pin does not drive. Example - to PWM JA[0] (channel 0):
 
 ```rust
-Pmod::JA.set_dir(0b0000_0001);    // JA[0] som output
-Pmod::JA.set_pwm_en(0b0000_0001); // route PWM til JA[0]
-pwm::set_duty(0, 50);             // nu når duty ud på pinnen
+Pmod::JA.set_dir(0b0000_0001);    // JA[0] as output
+Pmod::JA.set_pwm_en(0b0000_0001); // route PWM to JA[0]
+pwm::set_duty(0, 50);             // now the duty reaches the pin
 ```
 
-Husk også at kanal-nummeret er PMOD-pinnen, ikke en LED: JA = kanal 0-7, JB = 8-15, JC = 16-23.
+Also remember that the channel number is the PMOD pin, not an LED: JA = channels 0-7, JB = 8-15, JC = 16-23.
 
-### RGB-LED lyser modsat forventet (høj værdi = mørk)
+### The RGB LED lights up the opposite of what is expected (high value = dark)
 
-Din RGB-LED er sandsynligvis *common-cathode* i stedet for *common-anode*. `rgb::set` inverterer værdierne som standard (`100 - r`), fordi den antager common-anode. For en common-cathode LED skal du fjerne inverteringen i `rgb::set` i `sw/trifork32-hal/src/rgb.rs`:
+Your RGB LED is probably *common-cathode* instead of *common-anode*. `rgb::set` inverts the values by default (`100 - r`), because it assumes common-anode. For a common-cathode LED you must remove the inversion in `rgb::set` in `sw/trifork32-hal/src/rgb.rs`:
 
 ```rust
 pub fn set(r: u8, g: u8, b: u8) {
@@ -642,26 +619,26 @@ pub fn set(r: u8, g: u8, b: u8) {
     let g = g.min(100);
     let b = b.min(100);
 
-    pwm::set_duty(4, r);  // ingen inversion (var: 100 - r)
+    pwm::set_duty(4, r);  // no inversion (was: 100 - r)
     pwm::set_duty(5, g);
     pwm::set_duty(6, b);
 }
 ```
 
-### I2C/AM2320: sensoren svarer ikke
+### I2C/AM2320: the sensor does not respond
 
-Først: hvilken besked får du? "command failed (no ACK)" betyder at controlleren ikke fik et ACK på adressen — typisk et hardware- eller wake-problem. "read failed" betyder at adressen blev ACK'et, men svaret var forkert — typisk timing eller framing.
+First: which message do you get? "command failed (no ACK)" means the controller did not get an ACK on the address - typically a hardware or wake problem. "read failed" means the address was ACKed, but the response was wrong - typically timing or framing.
 
-Tjek i denne rækkefølge:
+Check in this order:
 
-- **Wiring:** SDA skal til `JC[2]` (pin N17), SCL til `JC[3]` (pin P18) — se testkredsløbet og I2C-afsnittet. Sensorens GND og 3,3V skal også være forbundet.
-- **Pull-ups:** SDA og SCL skal have pull-up-modstande til 3,3V. FPGA'ens interne pull-ups er for svage til at være pålidelige, så tilføj eksterne — 4,7 kΩ anbefales (10 kΩ virker også). Controlleren driver kun linjen lav (open-drain); pull-up'en trækker den høj igen.
-- **Adresse:** AM2320 sidder på 7-bit adresse `0x5C`. Brug `i2c::scan()` til at se hvilke adresser der svarer på bussen.
-- **Wake-up:** AM2320 sover og NACK'er den første adresse. Den skal vækkes ved at holde SDA lav i mindst ~800 µs (i demoen gøres det ved kortvarigt at sætte `set_clkdiv` lavt), vente, og *derefter* lave den rigtige transaktion. Springer du wake-trinnet over, får du intet ACK.
-- **Polling-rate:** Sensoren må ikke læses oftere end ca. hvert 2. sekund.
+- **Wiring:** SDA goes to `JC[2]` (pin N17), SCL to `JC[3]` (pin P18) - see the test circuit and the I2C section. The sensor's GND and 3.3V must also be connected.
+- **Pull-ups:** SDA and SCL must have pull-up resistors to 3.3V. The FPGA's internal pull-ups are too weak to be reliable, so add external ones - 4.7 kΩ is recommended (10 kΩ also works). The controller only drives the line low (open-drain); the pull-up pulls it high again.
+- **Address:** the AM2320 is at 7-bit address `0x5C`. Use `i2c::scan()` to see which addresses respond on the bus.
+- **Wake-up:** the AM2320 sleeps and NACKs the first address. It must be woken by holding SDA low for at least ~800 µs (in the demo this is done by briefly setting `set_clkdiv` low), waiting, and *then* doing the real transaction. If you skip the wake step, you get no ACK.
+- **Polling rate:** the sensor must not be read more often than roughly every 2 seconds.
 
-### Terminalen viser `[TRIFORK-32 PANIC]: ...`
+### The terminal shows `[TRIFORK-32 PANIC]: ...`
 
-Dit Rust-program ramte en runtime-fejl (en *panic*). Panic-handleren fanger den, printer `[TRIFORK-32 PANIC]:` efterfulgt af fejlbeskeden og stedet (fil og linjenummer) over UART, og går derefter i en uendelig løkke — så CPU'en står stille, og boardet "hænger" indtil du uploader igen eller trykker reset (BTNC).
+Your Rust program hit a runtime error (a *panic*). The panic handler catches it, prints `[TRIFORK-32 PANIC]:` followed by the error message and the location (file and line number) over UART, and then enters an infinite loop - so the CPU stands still, and the board "hangs" until you upload again or press reset (BTNC).
 
-Teksten efter kolon fortæller præcis hvad og hvor. Typiske årsager: indeks uden for et arrays grænser, `.unwrap()` på en `None`/`Err`, heltalsoverløb (fanges i debug-builds), division med nul, eller et eksplicit `panic!`. Ret fejlen i koden, og upload på ny.
+The text after the colon tells you exactly what and where. Common causes: an index outside an array's bounds, `.unwrap()` on a `None`/`Err`, integer overflow (caught in debug builds), division by zero, or an explicit `panic!`. Fix the error in the code, and upload again.
