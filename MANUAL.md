@@ -415,16 +415,16 @@ unsafe { (0xF010_0000 as *mut u32).write_volatile(0xFF) };
 let buttons = unsafe { (0xF020_0000 as *const u32).read_volatile() };
 ```
 
-De prædefinerede adresser er:
+Tabellen herunder er en opslagsreference over de rå adresser. Navnene i venstre kolonne er HAL'ens egne interne konstanter (`mmio.rs`); de er private (`pub(crate)` i et privat modul) og kan **ikke** importeres fra dit program. Du skriver derfor adressen direkte som i eksemplet ovenfor — navnene er kun med for at vise hvad hver adresse er.
 
-| Konstant | Adresse | Type | Beskrivelse |
+| Intern konstant | Adresse | Type | Beskrivelse |
 |----------|---------|------|-------------|
 | `UART_STATUS` | `0xF000_0000` | `*const u32` | UART statusregister |
 | `UART_DATA` | `0xF000_0004` | `*mut u32` | UART data (send/modtag) |
 | `LED_REG` | `0xF010_0000` | `*mut u32` | LED-register |
 | `BTN_REG` | `0xF020_0000` | `*const u32` | Button-register |
 | `ADC_BASE` | `0xF030_0000` | `*const u32` | ADC-base (4 kanaler, offset 0-12) |
-| `PWM_BASE` | `0xF040_0000` | `*mut u32` | PWM-base (enable + 16 duty registre) |
+| `PWM_DUTY` | `0xF040_0000` | `*mut u32` | PWM-base: offset 0 = globalt enable-register, offset (N+1)*4 = duty for kanal N (0-23) |
 | `PMOD_JA_BASE` | `0xF050_0000` | GPIO bank | DIR/OUT/IN/PWM_EN/IN_DEBOUNCED |
 | `PMOD_JB_BASE` | `0xF060_0000` | GPIO bank | Samme layout som JA |
 | `PMOD_JC_BASE` | `0xF070_0000` | GPIO bank | Samme layout som JA |
