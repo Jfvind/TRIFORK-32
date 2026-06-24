@@ -645,3 +645,15 @@ pub fn set(r: u8, g: u8, b: u8) {
     pwm::set_duty(6, b);
 }
 ```
+
+### I2C/AM2320: sensoren svarer ikke
+
+Først: hvilken besked får du? "command failed (no ACK)" betyder at controlleren ikke fik et ACK på adressen — typisk et hardware- eller wake-problem. "read failed" betyder at adressen blev ACK'et, men svaret var forkert — typisk timing eller framing.
+
+Tjek i denne rækkefølge:
+
+- **Wiring:** SDA skal til `JC[2]` (pin N17), SCL til `JC[3]` (pin P18) — se testkredsløbet og I2C-afsnittet. Sensorens GND og 3,3V skal også være forbundet.
+- **Pull-ups:** Begge linjer (SDA og SCL) skal have eksterne pull-up-modstande til 3,3V (typisk 4,7-10 kΩ). Controlleren driver kun linjen lav (open-drain); uden pull-ups kan den aldrig trækkes høj, og bussen virker ikke.
+- **Adresse:** AM2320 sidder på 7-bit adresse `0x5C`. Brug `i2c::scan()` til at se hvilke adresser der svarer på bussen.
+- **Wake-up:** AM2320 sover og NACK'er den første adresse. Den skal vækkes ved at holde SDA lav i mindst ~800 µs (i demoen gøres det ved kortvarigt at sætte `set_clkdiv` lavt), vente, og *derefter* lave den rigtige transaktion. Springer du wake-trinnet over, får du intet ACK.
+- **Polling-rate:** Sensoren må ikke læses oftere end ca. hvert 2. sekund.
