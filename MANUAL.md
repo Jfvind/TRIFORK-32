@@ -657,3 +657,9 @@ Tjek i denne rækkefølge:
 - **Adresse:** AM2320 sidder på 7-bit adresse `0x5C`. Brug `i2c::scan()` til at se hvilke adresser der svarer på bussen.
 - **Wake-up:** AM2320 sover og NACK'er den første adresse. Den skal vækkes ved at holde SDA lav i mindst ~800 µs (i demoen gøres det ved kortvarigt at sætte `set_clkdiv` lavt), vente, og *derefter* lave den rigtige transaktion. Springer du wake-trinnet over, får du intet ACK.
 - **Polling-rate:** Sensoren må ikke læses oftere end ca. hvert 2. sekund.
+
+### Terminalen viser `[TRIFORK-32 PANIC]: ...`
+
+Dit Rust-program ramte en runtime-fejl (en *panic*). Panic-handleren fanger den, printer `[TRIFORK-32 PANIC]:` efterfulgt af fejlbeskeden og stedet (fil og linjenummer) over UART, og går derefter i en uendelig løkke — så CPU'en står stille, og boardet "hænger" indtil du uploader igen eller trykker reset (BTNC).
+
+Teksten efter kolon fortæller præcis hvad og hvor. Typiske årsager: indeks uden for et arrays grænser, `.unwrap()` på en `None`/`Err`, heltalsoverløb (fanges i debug-builds), division med nul, eller et eksplicit `panic!`. Ret fejlen i koden, og upload på ny.
