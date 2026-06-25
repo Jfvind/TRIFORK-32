@@ -175,7 +175,7 @@ The command `cargo xtask upload` automates the following chain of actions:
 
 Your Rust program is written in the file `sw/program/src/app.rs`. It is the only file you need to edit under normal use.
 
-**Note:** If you run into memory limits (16 KB of instructions or 16 KB of data/stack), it is possible to expand the memory by changing the size in `sw/program/linker.ld` and `wildcat/src/main/scala/rvsoc/RustSoCTop.scala`, followed by a `cargo xtask flash`. Contact an instructor before doing this.
+**Note:** If you run into memory limits (16 KB of instructions or 16 KB of data/stack), it is possible to expand the memory by changing the size in `sw/trifork32-rt/linker.ld` and `wildcat/src/main/scala/rvsoc/RustSoCTop.scala`, followed by a `cargo xtask flash`. Contact an instructor before doing this.
 
 ## HAL reference: available functions and addresses
 
